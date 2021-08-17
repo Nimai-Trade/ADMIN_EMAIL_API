@@ -1,0 +1,49 @@
+
+AVIVA_MAIL_HOST_SERVER=10.72.1.229
+
+
+
+sms.http.proxyHost=10.72.1.187
+sms.http.proxyPort=8082
+sms.http.url=http://www.myvaluefirst.com/smpp/sendsms?username=retentionhttp&password=life1in8&to=91$MOBILENO$&from=AVIVAi&text=$SMSTEXT$&dlr-mask=19&dlr-url&category=bulk
+#sms.http.url=http://www.myvaluefirst.com/smpp/sendsms?username=retentionhttp&password=life1in8&to=91$MOBILENO$&from=AVIVA&text=$SMSTEXT$&dlr-mask=19&dlr-url&category=bulk
+
+
+
+#CLOVER_TEST_mail.host=smtp.gmail.com
+#CLOVER_TEST_mail.smtp.port=465
+CLOVER_TEST_mail.host=email.cloverinfotech.com
+CLOVER_TEST_mail.smtp.port=465
+
+
+#incoming143
+#outgoing25
+CLOVER_TEST_mail.smtp.starttls.enable=true
+CLOVER_TEST_mail.smtp.auth=true
+CLOVER_TEST_mail.smtp.socketFactory.class=javax.net.ssl.SSLSocketFactory
+CLOVER_TEST_mail.smtp.socketFactory.fallback=false
+CLOVER_TEST_mail.smtp.quitwait=false
+CLOVER_TEST_mail.debug=false
+CLOVER_TEST_mail.store.protocol=pop3
+CLOVER_TEST_mail.transport.protocol=smtp
+
+
+
+DisableEmailFlag=false
+DisableSMSFlag=false
+
+
+
+
+#basePathForEmailAttachment= /root/avivasp/email/attachments
+#basePathForEmailInlineImages= /root/avivasp/email/images
+#basePathForEmailAttachment= C:/Users/clover/Desktop/toDeven/prop/email/attachments
+#basePathForEmailInlineImages= C:/Users/clover/Desktop/toDeven/prop/email/images
+basePathForEmailAttachment1= C:/Users/Administrator/Desktop/Rajdeep/prop/email/attachments
+basePathForEmailAttachment= D:/Dhiraj DATA/My SVNWorkspace/NIMAI
+basePathForEmailInlineImages= D:/Sanjeev Data/EmailData/images		
+
+
+
+avivasp.env.currentEnv=CLOVER
+avivasp.env.AvivaEnv=AVIVA
