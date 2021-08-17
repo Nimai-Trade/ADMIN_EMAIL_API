@@ -48,6 +48,8 @@ import com.nimai.admin.util.Utility;
 @Service
 public class CustomerServiceImpl implements CustomerService {
 
+	
+	
 	@Autowired
 	CustomerRepository customerRepository;
 
@@ -153,6 +155,7 @@ public class CustomerServiceImpl implements CustomerService {
 					HttpStatus.OK);
 		}
 		System.out.println(data);
+		logger.info("data");
 		NimaiMEmployee rmDetails = empRepository.findByEmpCode(data.get("rm"));
 		NimaiEmailScheduler schData = new NimaiEmailScheduler();
 		customer.setIsRmassigned(true);
