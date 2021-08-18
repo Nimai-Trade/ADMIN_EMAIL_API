@@ -413,7 +413,7 @@ public class BankServiceImpl implements BankService {
 			fkyc.setApprovedBy(data.getApproverName());
 			fkyc.setApprovedDate(new Date());
 			fkyc.setCheckerComment(data.getApprovalReason().concat(" - "+Utility.getUserId()));
-			fkyc.setComment(data.getComment());
+			//fkyc.setComment(data.getComment());
 			this.kycRepo.save(fkyc);
 			final NimaiMCustomer customer = (NimaiMCustomer) this.repo.getOne(fkyc.getUserid().getUserid());
 			final NimaiMEmployee emp = this.employeeRepository.findByEmpCode(customer.getRmId());
@@ -792,7 +792,8 @@ public class BankServiceImpl implements BankService {
 			response.setCountry(kyc.getCountry());
 			response.setKycType(kyc.getKycType());
 			response.setDocType(kyc.getDocumentType());
-			response.setReason(kyc.getReason());
+			//response.setReason(kyc.getReason());
+			response.setReason(kyc.getComment());
 			response.setKycStatus(kyc.getKycStatus());
 			response.setUserid(kyc.getUserid().getUserid());
 			response.setApproverName(kyc.getApprovedMaker());
