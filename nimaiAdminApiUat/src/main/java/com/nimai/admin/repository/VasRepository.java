@@ -20,10 +20,10 @@ public interface VasRepository extends JpaRepository<NimaiMVas, Integer>, JpaSpe
 	int updateCheckerVas(@Param("vasid") int vasid, @Param("modifiedBy") String modifiedBy,
 			@Param("modifiedDate") Date modifiedDate);
 
-	@Query("Select count(v) FROM NimaiMVas v where v.countryName= :countryName and  v.status='Active'")
-	int checkAvailability(@Param("countryName") String countryName);
+	@Query("Select count(v) FROM NimaiMVas v where v.countryName= :countryName and  v.status='Active' and v.customerType= :custType")
+	int checkAvailability(@Param("countryName") String countryName,@Param("custType") String custType);
 	
 	@Query("FROM NimaiMVas v where v.countryName= :countryName and  v.status='Active' and v.customerType= :custType")
-	List<NimaiMVas> getVasDetails(@Param("countryName") String countryName, String custType);
+	List<NimaiMVas> getVasDetails(@Param("countryName") String countryName,@Param("custType") String custType);
 	
 }

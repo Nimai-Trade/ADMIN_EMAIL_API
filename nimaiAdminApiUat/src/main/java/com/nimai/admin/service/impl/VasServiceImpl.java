@@ -189,7 +189,7 @@ public class VasServiceImpl implements VasService {
 	public ResponseEntity<?> checkerUpdate(VasUpdateRequestBody request) {
 		NimaiMVas chck = vasRepository.getOne(request.getVasid());
 
-		System.out.println("checker update quantity" + vasRepository.checkAvailability(request.getCountryName()));
+		System.out.println("checker update quantity" + vasRepository.checkAvailability(request.getCountryName(),request.getCustomerType()));
 		if (chck.getCreatedBy().equalsIgnoreCase(Utility.getUserId())) {
 
 			return new ResponseEntity<>(new ApiResponse(false, "You dont have the authority for this operation!!!"),
@@ -198,7 +198,7 @@ public class VasServiceImpl implements VasService {
 
 		if (request.getStatus().equalsIgnoreCase("Active")) {
 
-			if (vasRepository.checkAvailability(request.getCountryName()) >= 1) {
+			if (vasRepository.checkAvailability(request.getCountryName(),request.getCustomerType()) >= 1) {
 
 				return new ResponseEntity<>(
 						new ApiResponse(true, "VAS Plan already active for " + request.getCountryName()),
