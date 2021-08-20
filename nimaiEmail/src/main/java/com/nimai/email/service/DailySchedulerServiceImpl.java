@@ -28,6 +28,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import com.nimai.email.bean.TupleBean;
+import com.nimai.email.controller.BanksAlertEmailController;
 import com.nimai.email.dao.DailySchedulerDaoImpl;
 import com.nimai.email.dao.UserServiceDao;
 import com.nimai.email.entity.AdminDailyCountDetailsBean;
@@ -50,6 +51,9 @@ import com.nimai.email.utility.Utils;
 @Service
 @Transactional
 public class DailySchedulerServiceImpl implements DailySchedulerService {
+	
+	
+	
 	@Autowired
 	private EmaiInsert emailInsert;
 
@@ -257,6 +261,7 @@ public class DailySchedulerServiceImpl implements DailySchedulerService {
 	// @Scheduled(fixedDelay = 30000)
 	@Scheduled(cron = "${eodAdminReportcronExpression}")
 	public void managementDailyReport() {
+		logger.info("======================Indside managementDailyReport===============================");
 
 		Date dnow = new Date();
 		System.out.println(dnow);
@@ -264,12 +269,11 @@ public class DailySchedulerServiceImpl implements DailySchedulerService {
 		if (counDetails.size() > 0) {
 			for (AdminRmWiseCount count : counDetails) {
 				logger.info("============Inside managementDailyReport class:" + count + "==========");
-				System.out.println("======================counDetails:" + count + "===============================");
+				logger.info("======================counDetails:" + count + "===============================");
 			}
 			AdminDailyCountDetailsBean adminCount = schDao.getDailyCountDetails(dnow);
 			if (adminCount != null) {
-				System.out
-						.println("======================adminCount:" + adminCount + "===============================");
+				logger.info("======================adminCount:" + adminCount + "===============================");
 
 				List<NimaiMEmployee> mgmtEmpList = schDao.findManagementEmailIds();
 				if (mgmtEmpList.size() > 0) {
@@ -324,7 +328,7 @@ public class DailySchedulerServiceImpl implements DailySchedulerService {
 //@Scheduled(fixedDelay = 30000)
 	@Scheduled(cron = "${eodCustomerReportcronExpression}")
 	public void sendCustomerDailyReport() {
-
+		logger.info("============Inside sendCustomerDailyReport available==========::" );
 		List<EodCustomerDailyReort> adminCount = schDao.getCuDailyReport();
 		if (adminCount.size() > 0) {
 			Map<String, List<EodCustomerDailyReort>> groupByUserId = new HashMap<>();
@@ -332,7 +336,7 @@ public class DailySchedulerServiceImpl implements DailySchedulerService {
 			groupByUserId = adminCount.stream().collect(Collectors.groupingBy(EodCustomerDailyReort::getUserId));
 			for (Entry<String, List<EodCustomerDailyReort>> entry : groupByUserId.entrySet()) {
 
-				System.out.println("============Inside eodCusttDailyReport available==========::" + entry.toString());
+				logger.info("============Inside eodCusttDailyReport available==========::" + entry.toString());
 				NimaiClient clientUseId = userDao.getClientDetailsbyUserId(entry.getKey());
 				System.out.println("============Inside eodCusttDailyReport available========== key::" + entry.getKey());
 				if (clientUseId != null) {
@@ -368,7 +372,7 @@ public class DailySchedulerServiceImpl implements DailySchedulerService {
 
 	@Scheduled(cron = "${eodBankReportcronExpression}")
 	public void sendBankDailyReport() {
-
+		logger.info("============Inside sendBankDailyReport available==========::" );
 		List<EodBankDailyReport> bankDetails = schDao.getBankDailyReport();
 		if (bankDetails.size() > 0) {
 			Map<String, List<EodBankDailyReport>> groupByUserId = new HashMap<>();
@@ -412,7 +416,7 @@ public class DailySchedulerServiceImpl implements DailySchedulerService {
 
 	@Scheduled(cron = "${trStatusUpdateScheduler}")
 	public void sendAlertToCustForUpdateTrStatus() {
-
+		logger.info("============Inside sendAlertToCustForUpdateTrStatus=========" );
 		List<NimaiLCMaster> LcTrDetails = schDao.getAcceptedTrList();
 		logger.info("============Inside sendAlertToCustForUpdateTrStatus=========" + LcTrDetails.size());
 		System.out.println("======================size:" + "Inside sendAlertToCustForUpdateTrStatus"

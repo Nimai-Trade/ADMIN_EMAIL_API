@@ -2841,9 +2841,10 @@ public class EmaiInsert {
 			SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 			Calendar cal = Calendar.getInstance();
 			cal.add(Calendar.DATE, -1);
+			String dailyRepostSubj="Daily Status";
 			String html = util.generateAdminHtmlTemplateReport(counDetails, adminCount, employeeDetails);
 			emailConfigurationDAOImpl.updateSubject(
-					emailconfigurationBean.getSubject().concat(" ").concat(dateFormat.format(cal.getTime())),
+					dailyRepostSubj.concat(" ").concat(dateFormat.format(cal.getTime())),
 					emailconfigurationBean.getEventId());
 			System.out.println("Fetching Configuration for Reset Password Policy " + emailconfigurationBean);
 			Map<String, String> subject = new HashMap<String, String>();

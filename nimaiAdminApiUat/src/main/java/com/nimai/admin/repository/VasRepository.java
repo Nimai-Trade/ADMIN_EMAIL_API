@@ -23,7 +23,7 @@ public interface VasRepository extends JpaRepository<NimaiMVas, Integer>, JpaSpe
 	@Query("Select count(v) FROM NimaiMVas v where v.countryName= :countryName and  v.status='Active' and v.customerType= :custType")
 	int checkAvailability(@Param("countryName") String countryName,@Param("custType") String custType);
 	
-	@Query("FROM NimaiMVas v where v.countryName= :countryName and  v.status='Active' and v.customerType= :custType")
+	@Query("FROM NimaiMVas v where v.countryName= :countryName and  (v.status='Active' or v.status='Pending')  and v.customerType= :custType")
 	List<NimaiMVas> getVasDetails(@Param("countryName") String countryName,@Param("custType") String custType);
 	
 }
