@@ -517,7 +517,7 @@ public class DailySchedulerServiceImpl implements DailySchedulerService {
 			logger.info("============Inside eodCusttDailyReport recoreds not available==========");			
 		}
 	}
-	
+	  
 	
 	
 	

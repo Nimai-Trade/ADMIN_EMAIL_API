@@ -293,7 +293,7 @@ public class EmaiInsert {
 			// attachements.add(new File("D:\\EmailSplan_changes_Checklist.xlsx"));
 			body.put("link", bUlink);
 			body.put("passcode", passcode);
-			body.put("username", clientUseId.getFirstName());
+			body.put("username", branchUserLink.getEmployeeName());
 
 			body.put("emailId", branchUserLink.getEmailId());
 
