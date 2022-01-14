@@ -3,8 +3,9 @@ package com.nimai.admin.payload;
 import java.util.Date;
 
 public class ReportBankTransaction {
-
+	
 	private String user_ID;
+	private String landline_no;
 	private String mobile;
 	private String email;
 	private Date date_3_Time;
@@ -16,7 +17,8 @@ public class ReportBankTransaction {
 	private String iB;
 	private Double amount;
 	private String ccy;
-	private Integer tenor;
+	private Integer orignal_tenor_of_LC;
+	private String usance;
 	private Float applicable_benchmark;
 	private Float confirmation_charges_p_a;
 	private Float discounting_charges_p_a;
@@ -29,12 +31,19 @@ public class ReportBankTransaction {
 	private Float other_Charges;
 	private Float min_Trxn_Charges;
 	private Float total_Quote;
-	private String validity;
+	private String Bank_Quote_validity;
+	
+	
+	
 
-	
-	
-	
-	
+	public String getLandline_no() {
+		return landline_no;
+	}
+
+	public void setLandline_no(String landline_no) {
+		this.landline_no = landline_no;
+	}
+
 	public Float getApplicable_benchmark() {
 		return applicable_benchmark;
 	}
@@ -160,12 +169,24 @@ public class ReportBankTransaction {
 		this.ccy = ccy;
 	}
 
-	public Integer getTenor() {
-		return tenor;
+	
+
+
+
+	public Integer getOrignal_tenor_of_LC() {
+		return orignal_tenor_of_LC;
 	}
 
-	public void setTenor(Integer tenor) {
-		this.tenor = tenor;
+	public void setOrignal_tenor_of_LC(Integer orignal_tenor_of_LC) {
+		this.orignal_tenor_of_LC = orignal_tenor_of_LC;
+	}
+
+	public String getUsance() {
+		return usance;
+	}
+
+	public void setUsance(String usance) {
+		this.usance = usance;
 	}
 
 	public Float getConfirmation_charges_p_a() {
@@ -218,12 +239,14 @@ public class ReportBankTransaction {
 		this.total_Quote = total_Quote;
 	}
 
-	public String getValidity() {
-		return validity;
+
+
+	public String getBank_Quote_validity() {
+		return Bank_Quote_validity;
 	}
 
-	public void setValidity(String validity) {
-		this.validity = validity;
+	public void setBank_Quote_validity(String bank_Quote_validity) {
+		Bank_Quote_validity = bank_Quote_validity;
 	}
 
 	public Float getDiscounting_charges_p_a() {

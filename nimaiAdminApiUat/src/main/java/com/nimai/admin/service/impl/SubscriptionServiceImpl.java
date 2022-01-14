@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.persistence.Tuple;
 import javax.security.auth.message.callback.PrivateKeyCallback.Request;
@@ -34,6 +36,7 @@ import com.nimai.admin.payload.PagedResponse;
 import com.nimai.admin.payload.SearchRequest;
 import com.nimai.admin.payload.SubscriptionMPlanResponse;
 import com.nimai.admin.payload.SubscriptionPlanUpdateRequest;
+import com.nimai.admin.repository.CustomerRepository;
 import com.nimai.admin.repository.EmployeeRepository;
 import com.nimai.admin.repository.MasterSubsPlanRepository;
 import com.nimai.admin.repository.NimaiEmailSchedulerRepository;
@@ -57,6 +60,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
 	@Autowired
 	NimaiEmailSchedulerRepository schRepo;
+	
+	@Autowired
+	CustomerRepository repo;
 
 	@Autowired
 	RoleRepository roleRepo;
@@ -66,11 +72,38 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 	 */
 	@Override
 	public PagedResponse<?> getAllSubsDetails(SearchRequest request) {
+		
+		request.setSortBy("inserted_date");
 		Pageable pageable = PageRequest.of(request.getPage(), request.getSize(),
 				request.getDirection().equalsIgnoreCase("desc") ? Sort.by(request.getSortBy()).descending()
 						: Sort.by(request.getSortBy()).ascending());
-		Page<NimaiMSubscriptionPlan> subsList = masterRepo.findAll(subsspecification.getFilter(request), pageable);
+		String countryNames = Utility.getUserCountry();
+		System.out.println("CountryNames: "+countryNames);
+		if (countryNames != null && countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
+			countryNames = "";
+			final List<String> countryList = (List<String>) this.repo.getCountryList();
+			for (final String country : countryList) {
+				countryNames = countryNames + country + ",";
+			}
+			System.out.println("Country List: " + countryNames);
+			request.setCountryNames(countryNames);
+		}else if(countryNames!=null && request.getCountry()!=null) {
+			request.setCountryNames(request.getCountry());
+		} else if (countryNames != null && !countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
+			request.setCountryNames(countryNames);
+		}
+		final List<String> value = Stream.of(request.getCountryNames().split(",", -1)).collect(Collectors.toList());
+		System.out.println("Countries:" + value);
+		
+		Page<NimaiMSubscriptionPlan> subsList = masterRepo.getAllSubscriptionPlan(value,request.getCustomerType(),pageable);
+				//.findAll(subsspecification.getFilter(request), pageable);
 
+		//Page<NimaiMSubscriptionPlan> subsList = masterRepo.findAll(subsspecification.getFilter(request), pageable);
+
+	
+		
+		
+		
 		List<SubscriptionMPlanResponse> responses = subsList.map(sub -> {
 			SubscriptionMPlanResponse response = new SubscriptionMPlanResponse();
 			response.setSubscriptionPlanId(sub.getSubscriptionPlanId());

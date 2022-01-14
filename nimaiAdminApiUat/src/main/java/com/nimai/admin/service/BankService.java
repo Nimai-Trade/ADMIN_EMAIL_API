@@ -9,11 +9,13 @@ import com.nimai.admin.model.NimaiMCustomer;
 import com.nimai.admin.payload.BankDetailsResponse;
 import com.nimai.admin.payload.CouponBean;
 import com.nimai.admin.payload.KycBDetailResponse;
+import com.nimai.admin.payload.KycFiledBean;
 import com.nimai.admin.payload.PagedResponse;
 import com.nimai.admin.payload.PlanOfPaymentDetailsResponse;
 import com.nimai.admin.payload.QuotationDetailsResponse;
 import com.nimai.admin.payload.SPlanBean;
 import com.nimai.admin.payload.SearchRequest;
+import com.nimai.admin.payload.TransactionRequestBody;
 import com.nimai.admin.payload.VasUpdateRequestBody;
 
 /*bashir*/
@@ -54,5 +56,13 @@ public interface BankService {
 	ResponseEntity<?> checkDuplicateSPLan(SPlanBean request);
 
 	PagedResponse<?> getVasWireTransferList(SearchRequest request);
+
+	ResponseEntity<?> transactionStatusUpdate(TransactionRequestBody request);
+
+	ResponseEntity<?> makerTransactionStatusUpdate(TransactionRequestBody request);
+
+	ResponseEntity<?> kycFiledSave(KycFiledBean data);
+
+	ResponseEntity<?> kycViewFieldData(KycFiledBean data);
 
 }

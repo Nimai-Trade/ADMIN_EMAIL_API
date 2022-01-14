@@ -232,11 +232,19 @@ public class Utils {
 		return token;
 
 	}
-	public Double referrerAmount(int SubscriptionAmount) {
-		Double gstAmount = (0.07) * (SubscriptionAmount);
-		logger.info("=========Inside GstValue==========" + SubscriptionAmount);
-
-		return gstAmount;
+	public Float referrerAmount(int SubscriptionAmount, String referPercentage) {
+		logger.info("========= ==========" + referPercentage);
+		System.out.println("=========Inside referrerAmount==========" + referPercentage);
+		Float referEarning = Float.valueOf(referPercentage);
+		Float actualREarning = (Float) (referEarning / 100);
+		Float gstAmount = (actualREarning) * (SubscriptionAmount);
+		logger.info("=========Inside GstValue==========" + gstAmount);
+		System.out.println("=========Inside GstValue==========" + gstAmount);
+		Float value = Float
+				.parseFloat(new DecimalFormat("##.##").format(gstAmount));
+		logger.info("=========Conversion referrerAmount in util==========" + value);
+System.out.println("=========Conversion referrerAmount in util==========" + value);
+		return value;
 	}
 
 	public static void main(String[] args) throws ParseException, IOException {

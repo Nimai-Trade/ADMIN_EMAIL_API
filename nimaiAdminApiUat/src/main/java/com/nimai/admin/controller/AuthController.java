@@ -136,10 +136,10 @@ public class AuthController {
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
-		logger.info("====== Sign In ======" + loginRequest.getRecaptchaResponse());
-		boolean captchaVerified = captchaService.verify(loginRequest.getRecaptchaResponse());
-		System.out.println("Peersonal Details recaptchResponse" + loginRequest.getRecaptchaResponse());
-		if (captchaVerified) {
+//		logger.info("====== Sign In ======" + loginRequest.getRecaptchaResponse());
+//	boolean captchaVerified = captchaService.verify(loginRequest.getRecaptchaResponse());
+//		System.out.println("Peersonal Details recaptchResponse" + loginRequest.getRecaptchaResponse());
+//		if (captchaVerified) {
 			NimaiMEmployee employee = empRepo.findByEmpCode(loginRequest.getUsername());
 			NimaiEmployeeLoginAttempt attempt = new NimaiEmployeeLoginAttempt();
 			Date currentTime = new Date();
@@ -171,13 +171,13 @@ public class AuthController {
 					return signUser(employee, loginRequest, attempt, countDetails);
 				}
 			}
-		} else {
-			System.out.println("INSIDE ELSE CONDITION OF CAPTCH IN authenticateUser CONTROLLER"
-					+ loginRequest.getRecaptchaResponse());
-			System.out.println("INSIDE ELSE CONDITION OF CAPTCH IN authenticateUser CONTROLLER" + captchaVerified);
-			return new ResponseEntity<>("Invalid Captcha", HttpStatus.BAD_REQUEST);
-		}
-return new ResponseEntity<>("Bad Credentials", HttpStatus.BAD_REQUEST);
+//	} else {
+//			System.out.println("INSIDE ELSE CONDITION OF CAPTCH IN authenticateUser CONTROLLER"
+//			+ loginRequest.getRecaptchaResponse());
+//			System.out.println("INSIDE ELSE CONDITION OF CAPTCH IN authenticateUser CONTROLLER" + captchaVerified);
+//			return new ResponseEntity<>("Invalid Captcha", HttpStatus.BAD_REQUEST);
+//		}
+		return new ResponseEntity<>("Bad Credentials", HttpStatus.BAD_REQUEST);
 
 	}
 

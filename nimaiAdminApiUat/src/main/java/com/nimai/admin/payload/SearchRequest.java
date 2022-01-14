@@ -1,5 +1,7 @@
 package com.nimai.admin.payload;
 
+import java.util.Date;
+
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 public class SearchRequest {
@@ -35,6 +37,9 @@ public class SearchRequest {
 	private String vasMakerComment;
 	private String vasCheckerComment;
 	private String paymentMode;
+	private String txnsts2;
+	private String approverName;
+	private Date approvalDate;
 	
 	
 	
@@ -44,6 +49,34 @@ public class SearchRequest {
 	
 	
 	
+	
+	
+	
+	
+
+	public String getApproverName() {
+		return approverName;
+	}
+
+	public void setApproverName(String approverName) {
+		this.approverName = approverName;
+	}
+
+	public Date getApprovalDate() {
+		return approvalDate;
+	}
+
+	public void setApprovalDate(Date approvalDate) {
+		this.approvalDate = approvalDate;
+	}
+
+	public String getTxnsts2() {
+		return txnsts2;
+	}
+
+	public void setTxnsts2(String txnsts2) {
+		this.txnsts2 = txnsts2;
+	}
 
 	public String getPaymentMode() {
 		return paymentMode;

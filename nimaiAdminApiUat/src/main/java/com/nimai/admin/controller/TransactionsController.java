@@ -37,6 +37,12 @@ public class TransactionsController {
 
 	}
 	
+	@PostMapping("/makerApprovedList")
+	public PagedResponse<?> getmakerTransaction(@RequestBody SearchRequest request) {
+		return transactionsService.getmakerApprovedTransaction(request);
+
+	}
+	
 	@GetMapping("/userIdSearch/{userId}")
 	public List<String> userIdSearch(@PathVariable(value = "userId") String userId) {
 		System.out.println("userIdSearch search :: " + userId);

@@ -4,6 +4,7 @@ import java.io.File;
 
 import java.math.BigDecimal;
 import java.text.DateFormat;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -15,6 +16,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.mail.SendFailedException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +41,7 @@ import com.nimai.email.bean.TupleBean;
 import com.nimai.email.bean.UserRegistrationBean;
 import com.nimai.email.dao.EmailConfigurationdaoImpl;
 import com.nimai.email.dao.EmailProcessImpl;
+import com.nimai.email.dao.UserServiceDao;
 import com.nimai.email.entity.AdminDailyCountDetailsBean;
 import com.nimai.email.entity.AdminRmWiseCount;
 import com.nimai.email.entity.BankMonthlyReport;
@@ -62,7 +66,7 @@ import com.nimai.email.entity.QuotationMaster;
 import com.nimai.email.repository.EmailComponentRepository;
 import com.nimai.email.repository.OnlinePaymentRepository;
 import com.nimai.email.repository.nimaiSystemConfigRepository;
-import com.sun.mail.smtp.SMTPAddressFailedException;
+
 
 @Component
 public class EmaiInsert {
@@ -83,6 +87,9 @@ public class EmaiInsert {
 
 	@Autowired
 	nimaiSystemConfigRepository systemConfig;
+	
+	@Autowired
+	UserServiceDao userDao;
 
 	@Autowired
 	EmailSend emailSend;
@@ -150,7 +157,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======SMTP ADDRESS Failed Exception============" + e);
 
 			System.out.println("Exception" + e);
@@ -207,7 +214,7 @@ public class EmaiInsert {
 			emailProcessorImpl.saveEmail(details, emailconfigurationBean.getEventId());
 
 			emailSend.getDetailsEmail();
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======SMTP ADDRESS Failed Exception============" + e);
 
 			System.out.println("Exception" + e);
@@ -262,7 +269,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======SMTP ADDRESS Failed Exception============" + e);
 
 			System.out.println("Exception" + e);
@@ -315,14 +322,14 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======SMTP ADDRESS Failed Exception============" + e);
 
-			System.out.println("Exception" + e);
+			logger.info("Exception" + e);
 			e.printStackTrace();
 		} catch (Exception e) {
 
-			System.out.println("sendBranchUserActivationLink Exception" + e);
+			logger.info("sendBranchUserActivationLink Exception" + e);
 			e.printStackTrace();
 		}
 
@@ -361,7 +368,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======SMTP ADDRESS Failed Exception============" + e);
 
 			System.out.println("Exception" + e);
@@ -418,7 +425,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======SMTP ADDRESS Failed Exception============" + e);
 			response.setMessage("SMTP Address Failed Exception");
 
@@ -526,7 +533,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======SMTP ADDRESS Failed Exception============" + e);
 			logger.info("Exception" + e);
 			e.printStackTrace();
@@ -578,7 +585,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======sendQuotationStatusEmail SMTP ADDRESS Failed Exception============" + e);
 
 			System.out.println("sendQuotationStatusEmail Exception" + e);
@@ -628,7 +635,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======sendTransactionStatusToBanks SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("sendTransactionStatusToBanks Exception" + e);
 			e.printStackTrace();
@@ -685,7 +692,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======sendQuotePlaceEmailToBanks SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("sendQuotePlaceEmailToBanks Exception" + e);
 			e.printStackTrace();
@@ -826,7 +833,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======sendQuotationStatusEmail SMTP ADDRESS Failed Exception============" + e);
 			logger.info("sendQuotationStatusEmail Exception" + e);
 			e.printStackTrace();
@@ -904,7 +911,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======sendQuotationStatusEmail SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("sendQuotationStatusEmail Exception" + e);
 			e.printStackTrace();
@@ -1037,7 +1044,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======sendQuotationStatusEmailToCust SMTP ADDRESS Failed Exception============" + e);
 			logger.info("sendQuotationStatusEmailToCust Exception" + e);
 			e.printStackTrace();
@@ -1088,7 +1095,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======sendBidRecivedEmailToCust SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("sendBidRecivedEmailToCust Exception" + e);
 			e.printStackTrace();
@@ -1147,7 +1154,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======sendBankDetailstoCustomer SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("sendBankDetailstoCustomer Exception" + e);
 			e.printStackTrace();
@@ -1199,7 +1206,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======AdminEmail SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("AdminEmail Exception" + e);
 			e.printStackTrace();
@@ -1277,7 +1284,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======SMTP ADDRESS Failed Exception============" + e);
 			logger.info("Exception" + e);
 			e.printStackTrace();
@@ -1389,7 +1396,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======sendCustSPlanEmail SMTP ADDRESS Failed Exception============" + e);
 			response.setMessage("sendCustSPlanEmail SMTP Address Failed Exception");
 
@@ -1502,7 +1509,7 @@ public class EmaiInsert {
 			emailProcessorImpl.saveEmail(details, emailconfigurationBean.getEventId());
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======sendKycEmail SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("sendKycEmail Exception" + e);
 			e.printStackTrace();
@@ -1554,7 +1561,7 @@ public class EmaiInsert {
 			System.out.println("details" + details);
 			emailProcessorImpl.saveEmail(details, emailconfigurationBean.getEventId());
 			emailSend.getDetailsEmail();
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======sendEmailToRm SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("sendEmailToRm Exception" + e);
 			e.printStackTrace();
@@ -1616,7 +1623,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 			return true;
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======sendCustSPlanEmail SMTP ADDRESS Failed Exception============" + e);
 			response.setMessage("sendCustSPlanEmail SMTP Address Failed Exception");
 
@@ -1678,7 +1685,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======SMTP ADDRESS Failed Exception============" + e);
 
 			System.out.println("Exception" + e);
@@ -1714,9 +1721,10 @@ public class EmaiInsert {
 			body.put("emailId", subsidiaryBean.getEmailId());
 			if (subsidiaryBean.getEvent().equalsIgnoreCase("ADD_REFER")) {
 				body.put("referUserId", referUsrIdDetails.getUserid());
-				body.put("productRequirementName", referUsrIdDetails.getFirstName());
+				body.put("productRequirementName", referUsrIdDetails.getCompanyName());
 				System.out.println("Refer user id:" + referUsrIdDetails.getUserid());
-				body.put("username", subsidiaryBean.getUserId());
+				NimaiClient clientUseId = userDao.getClientDetailsbyUserId(subsidiaryBean.getUserId());
+				body.put("username", clientUseId.getCompanyName());
 			}
 			String toMail = subsidiaryBean.getEmailId();
 
@@ -1738,7 +1746,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======SMTP ADDRESS Failed Exception============" + e);
 
 			System.out.println("Exception" + e);
@@ -1793,7 +1801,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======SMTP ADDRESS Failed Exception============" + e);
 
 			System.out.println("Exception" + e);
@@ -1852,7 +1860,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======SMTP ADDRESS Failed Exception============" + e);
 
 			System.out.println("Exception" + e);
@@ -1921,7 +1929,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======SMTP ADDRESS Failed Exception============" + e);
 
 			System.out.println("Exception" + e);
@@ -1974,7 +1982,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======AdminEmail SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("AdminEmail Exception" + e);
 			e.printStackTrace();
@@ -2027,7 +2035,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======AdminEmail SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("AdminEmail Exception" + e);
 			e.printStackTrace();
@@ -2079,7 +2087,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======AdminEmail SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("AdminEmail Exception" + e);
 			e.printStackTrace();
@@ -2131,7 +2139,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======AdminEmail SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("AdminEmail Exception" + e);
 			e.printStackTrace();
@@ -2190,7 +2198,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======AdminEmail SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("AdminEmail Exception" + e);
 			e.printStackTrace();
@@ -2249,7 +2257,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======AdminEmail SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("AdminEmail Exception" + e);
 			e.printStackTrace();
@@ -2307,7 +2315,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======AdminEmail SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("AdminEmail Exception" + e);
 			e.printStackTrace();
@@ -2367,7 +2375,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======AdminEmail SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("AdminEmail Exception" + e);
 			e.printStackTrace();
@@ -2430,7 +2438,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======AdminEmail SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("AdminEmail Exception" + e);
 			e.printStackTrace();
@@ -2493,7 +2501,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======AdminEmail SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("AdminEmail Exception" + e);
 			e.printStackTrace();
@@ -2557,7 +2565,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======AdminEmail SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("AdminEmail Exception" + e);
 			e.printStackTrace();
@@ -2621,7 +2629,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======AdminEmail SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("AdminEmail Exception" + e);
 			e.printStackTrace();
@@ -2689,7 +2697,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======AdminEmail SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("AdminEmail Exception" + e);
 			e.printStackTrace();
@@ -2741,7 +2749,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======AdminEmail SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("AdminEmail Exception" + e);
 			e.printStackTrace();
@@ -2815,7 +2823,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======AdminEmail SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("AdminEmail Exception" + e);
 			e.printStackTrace();
@@ -2871,7 +2879,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======sendAdminDailyReport SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("sendAdminDailyReport Exception" + e);
 			e.printStackTrace();
@@ -2921,7 +2929,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======sendCustEodDailyReport SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("sendCustEodDailyReport Exception" + e);
 			e.printStackTrace();
@@ -2971,7 +2979,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======sendBankEodDailyReport SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("sendBankEodDailyReport Exception" + e);
 			e.printStackTrace();
@@ -3033,7 +3041,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======sendTrupdateAlertToCust SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("sendTrupdateAlertToCust Exception" + e);
 			e.printStackTrace();
@@ -3084,7 +3092,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======resetSuccessEmail SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("resetSuccessEmail Exception" + e);
 			e.printStackTrace();
@@ -3154,7 +3162,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======sendCustSPlanEmail SMTP ADDRESS Failed Exception============" + e);
 			response.setMessage("sendCustSPlanEmail SMTP Address Failed Exception");
 
@@ -3203,7 +3211,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======sendWinningQuoteToAlertBank SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("sendWinningQuoteToAlertBank Exception" + e);
 			e.printStackTrace();
@@ -3259,7 +3267,7 @@ public class EmaiInsert {
 			emailProcessorImpl.saveEmail(details, emailconfigurationBean.getEventId());
 
 			emailSend.getDetailsEmail();
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======SMTP ADDRESS Failed Exception============" + e);
 
 			System.out.println("Exception" + e);
@@ -3305,7 +3313,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======SMTP ADDRESS Failed Exception============" + e);
 
 			System.out.println("Exception" + e);
@@ -3366,7 +3374,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======SMTP ADDRESS Failed Exception============" + e);
 
 			System.out.println("Exception" + e);
@@ -3416,7 +3424,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======AdminEmail SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("AdminEmail Exception" + e);
 			e.printStackTrace();
@@ -3486,7 +3494,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======AdminEmail SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("AdminEmail Exception" + e);
 			e.printStackTrace();
@@ -3497,7 +3505,7 @@ public class EmaiInsert {
 		}
 	}
 
-	public void sendCustAccountReferredEmailToSource(NimaiEmailScheduler schdulerData) {
+	public void sendCustAccountReferredEmailToSource(NimaiEmailScheduler schdulerData, String referPercentage) {
 		// TODO Auto-generated method stub
 		EmailComponentMaster emailconfigurationBean = null;
 		try {
@@ -3510,7 +3518,8 @@ public class EmaiInsert {
 			subject.put("Subject", emailconfigurationBean.getSubject());
 			Utils util = new Utils();
 			// ArrayList attachements = new ArrayList();
-			String amount = String.valueOf(util.referrerAmount(Integer.parseInt(schdulerData.getSubscriptionAmount())));
+			Float referAmount=util.referrerAmount(Integer.valueOf(schdulerData.getSubscriptionAmount()), referPercentage);
+			String amount = String.valueOf(referAmount);
 			body.put("username", schdulerData.getUserName());
 			body.put("companyname", schdulerData.getDescription1());
 			body.put("splanAmount", amount);
@@ -3534,7 +3543,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======AdminEmail SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("AdminEmail Exception" + e);
 			e.printStackTrace();
@@ -3581,7 +3590,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======sendCustEodDailyReport SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("sendCustEodDailyReport Exception" + e);
 			e.printStackTrace();
@@ -3652,7 +3661,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======SMTP ADDRESS Failed Exception============" + e);
 			logger.info("Exception" + e);
 			e.printStackTrace();
@@ -3720,7 +3729,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======SMTP ADDRESS Failed Exception============" + e);
 			logger.info("Exception" + e);
 			e.printStackTrace();
@@ -3766,7 +3775,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======SMTP ADDRESS Failed Exception============" + e);
 			logger.info("Exception" + e);
 			e.printStackTrace();
@@ -3811,7 +3820,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======SMTP ADDRESS Failed Exception============" + e);
 			logger.info("Exception" + e);
 			e.printStackTrace();
@@ -3857,7 +3866,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======SMTP ADDRESS Failed Exception============" + e);
 			logger.info("Exception" + e);
 			e.printStackTrace();
@@ -3909,7 +3918,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======AdminEmail SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("AdminEmail Exception" + e);
 			e.printStackTrace();
@@ -3976,7 +3985,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======AdminEmail SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("AdminEmail Exception" + e);
 			e.printStackTrace();
@@ -4040,7 +4049,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======sendBidRecivedEmailToCust SMTP ADDRESS Failed Exception============" + e);
 			System.out.println("sendBidRecivedEmailToCust Exception" + e);
 			e.printStackTrace();
@@ -4169,7 +4178,7 @@ public class EmaiInsert {
 
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======sendQuotationStatusEmailToCust SMTP ADDRESS Failed Exception============" + e);
 			logger.info("sendQuotationStatusEmailToCust Exception" + e);
 			e.printStackTrace();
@@ -4208,7 +4217,7 @@ public class EmaiInsert {
 			emailProcessorImpl.saveEmail(details, emailconfigurationBean.getEventId());
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======sendCustEodDailyReport SMTP ADDRESS Failed Exception============" + e);
 			e.printStackTrace();
 		} catch (Exception e) {
@@ -4246,7 +4255,7 @@ public class EmaiInsert {
 			emailProcessorImpl.saveEmail(details, emailconfigurationBean.getEventId());
 			emailSend.getDetailsEmail();
 
-		} catch (SMTPAddressFailedException e) {
+		} catch (SendFailedException e) {
 			logger.info("=======sendCustEodDailyReport SMTP ADDRESS Failed Exception============" + e);
 			e.printStackTrace();
 		} catch (Exception e) {

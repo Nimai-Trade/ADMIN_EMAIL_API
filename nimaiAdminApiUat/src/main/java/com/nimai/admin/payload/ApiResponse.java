@@ -7,10 +7,11 @@ public class ApiResponse {
     private Boolean success;
     private String message;
     private String uniqueKey;
-
+    private int KeyId;
     public ApiResponse(Boolean success, String message) {
         this.success = success;
         this.message = message;
+        
     }
 
     
@@ -18,6 +19,24 @@ public class ApiResponse {
 		this.success = success;
 		this.message = message;
 		this.uniqueKey = uniqueKey;
+	}
+
+    public ApiResponse(Boolean success, String message, int KeyId) {
+		this.success = success;
+		this.message = message;
+		this.KeyId = KeyId;
+	}
+
+    
+    
+    
+	public int getKeyId() {
+		return KeyId;
+	}
+
+
+	public void setKeyId(int keyId) {
+		KeyId = keyId;
 	}
 
 

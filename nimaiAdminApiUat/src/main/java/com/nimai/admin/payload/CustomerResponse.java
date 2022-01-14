@@ -50,6 +50,49 @@ public class CustomerResponse {
 	private String rmLastName;
 	private String rmDesignation;
 	private String rmApprovedBy;
+	private float userWiseTotalEarning;
+	private String subscriptionValidity;
+	private String planName;
+	private String planAmount;
+	  
+	
+	
+
+	
+	
+	
+	
+	public String getSubscriptionValidity() {
+		return subscriptionValidity;
+	}
+
+	public void setSubscriptionValidity(String subscriptionValidity) {
+		this.subscriptionValidity = subscriptionValidity;
+	}
+
+	public String getPlanName() {
+		return planName;
+	}
+
+	public void setPlanName(String planName) {
+		this.planName = planName;
+	}
+
+	public String getPlanAmount() {
+		return planAmount;
+	}
+
+	public void setPlanAmount(String planAmount) {
+		this.planAmount = planAmount;
+	}
+
+	public float getUserWiseTotalEarning() {
+		return userWiseTotalEarning;
+	}
+
+	public void setUserWiseTotalEarning(float userWiseTotalEarning) {
+		this.userWiseTotalEarning = userWiseTotalEarning;
+	}
 
 	public String getSubscriberType() {
 		return subscriberType;

@@ -55,14 +55,16 @@ public class NimaiMDiscount {
 	@Column(name="COUPON_TYPE")
 	private String couponType;
 
+	
 	@Column(name = "START_DATE")
 	private Date startDate;
-	@JsonFormat(pattern = "HH:MM:SS")
+	
+	@JsonFormat(pattern = "HH:MM:SS",timezone = "Asia/Kolkata")
 	@Column(name = "START_TIME")
 	private Time startTime;
 	@Column(name = "END_DATE")
 	private Date endDate;
-	@JsonFormat(pattern = "HH:MM:SS")
+	@JsonFormat(pattern = "HH:MM:SS",timezone = "Asia/Kolkata")
 	@Column(name = "END_TIME")
 	private Time endTime;
 
@@ -303,6 +305,38 @@ public class NimaiMDiscount {
 				+ ", endTime=" + endTime + ", status=" + status + ", couponCode=" + couponCode + ", approvedBy="
 				+ approvedBy + ", approvalDate=" + approvalDate + ", createdBy=" + createdBy + ", createdDate="
 				+ createdDate + ", modifiedBy=" + modifiedBy + ", modifiedDate=" + modifiedDate + "]";
+	}
+
+	public NimaiMDiscount(Integer discountId, String discountType, double amount, String currency,
+			double discountPercentage, double maxDiscount, String couponFor, String subscriptionPlan, String country,
+			Integer quantity, Integer consumedCoupons, String couponType, Date startDate, Time startTime, Date endDate,
+			Time endTime, String status, String couponCode, String approvedBy, Date approvalDate, String createdBy,
+			Date createdDate, String modifiedBy, Date modifiedDate) {
+		super();
+		this.discountId = discountId;
+		this.discountType = discountType;
+		this.amount = amount;
+		this.currency = currency;
+		this.discountPercentage = discountPercentage;
+		this.maxDiscount = maxDiscount;
+		this.couponFor = couponFor;
+		this.subscriptionPlan = subscriptionPlan;
+		this.country = country;
+		this.quantity = quantity;
+		this.consumedCoupons = consumedCoupons;
+		this.couponType = couponType;
+		this.startDate = startDate;
+		this.startTime = startTime;
+		this.endDate = endDate;
+		this.endTime = endTime;
+		this.status = status;
+		this.couponCode = couponCode;
+		this.approvedBy = approvedBy;
+		this.approvalDate = approvalDate;
+		this.createdBy = createdBy;
+		this.createdDate = createdDate;
+		this.modifiedBy = modifiedBy;
+		this.modifiedDate = modifiedDate;
 	}
 
 }

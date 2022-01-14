@@ -1,7 +1,9 @@
 package com.nimai.admin.controller;
 
+import java.io.IOException;
 import java.util.List;
 
+import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,13 +20,16 @@ import com.nimai.admin.model.NimaiMCustomer;
 import com.nimai.admin.payload.BankDetailsResponse;
 import com.nimai.admin.payload.CouponBean;
 import com.nimai.admin.payload.KycBDetailResponse;
+import com.nimai.admin.payload.KycFiledBean;
 import com.nimai.admin.payload.PagedResponse;
 import com.nimai.admin.payload.PlanOfPaymentDetailsResponse;
 import com.nimai.admin.payload.QuotationDetailsResponse;
 import com.nimai.admin.payload.SPlanBean;
 import com.nimai.admin.payload.SearchRequest;
+import com.nimai.admin.payload.TransactionRequestBody;
 import com.nimai.admin.payload.VasUpdateRequestBody;
 import com.nimai.admin.service.BankService;
+import com.nimai.admin.service.CurrencyConverterService;
 
 /**
  * 
@@ -40,6 +45,9 @@ public class BankController {
 
 	@Autowired
 	BankService bankService;
+	
+	@Autowired
+	CurrencyConverterService currencyService;
 
 	@PostMapping("/searchList")
 	public PagedResponse<?> getSearchCustomer(@RequestBody SearchRequest request) {
@@ -105,6 +113,18 @@ public class BankController {
 		return bankService.wireTranferStatusUpdate(request);
 	}
 	
+	
+	@PostMapping("/transactionStatusUpdate")
+	public ResponseEntity<?> transactionStatusUpdate(@RequestBody TransactionRequestBody request) {
+		return bankService.transactionStatusUpdate(request);
+	}
+	
+	@PostMapping("/makerTransactionStatusUpdate")
+	public ResponseEntity<?> makerTransactionStatusUpdate(@RequestBody TransactionRequestBody request) {
+		return bankService.makerTransactionStatusUpdate(request);
+	}
+	
+	
 	@PostMapping("/wireTransferList")
 	public PagedResponse<?> getWireTransferList(@RequestBody SearchRequest request) {
 		return bankService.getWireTransferList(request);
@@ -126,5 +146,21 @@ public class BankController {
 	public ResponseEntity<?> checkDuplicateSPLan(@RequestBody SPlanBean request) {
 		return bankService.checkDuplicateSPLan(request);
 	}
+	  
+	@PostMapping("/currencyConverter")
+	public ResponseEntity<?> currencyConverter(@RequestBody SPlanBean request) throws IOException, JSONException {
+		currencyService.sendHttpGetRequest("INR","USD");
+		return null;
+	}
 
+	@PostMapping("/saveFieldData")
+	public ResponseEntity<?> saveKycFiedData(@RequestBody KycFiledBean data) {
+		return bankService.kycFiledSave(data);
+	}
+	
+	@PostMapping("/viewFieldData")
+	public ResponseEntity<?> viewKycFiedData(@RequestBody KycFiledBean data) {
+		return bankService.kycViewFieldData(data);
+	}
+	
 }

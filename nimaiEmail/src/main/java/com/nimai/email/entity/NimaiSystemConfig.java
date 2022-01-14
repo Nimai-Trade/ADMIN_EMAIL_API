@@ -47,6 +47,12 @@ public class NimaiSystemConfig {
 	public void setSystemEntityValue(String systemEntityValue) {
 		this.systemEntityValue = systemEntityValue;
 	}
+
+	@Override
+	public String toString() {
+		return "NimaiSystemConfig [id=" + id + ", systenEntity=" + systenEntity + ", systemEntityValue="
+				+ systemEntityValue + "]";
+	}
 	
 	
 	

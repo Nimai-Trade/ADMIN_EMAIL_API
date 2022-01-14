@@ -2,9 +2,11 @@ package com.nimai.admin.specification;
 
 import static org.springframework.data.jpa.domain.Specification.where;
 
+
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
+import com.nimai.admin.model.NimaiMDiscount;
 import com.nimai.admin.model.NimaiMVas;
 import com.nimai.admin.payload.SearchRequest;
 
@@ -14,7 +16,8 @@ public class VasSpecification extends BaseSpecification<NimaiMVas, SearchRequest
 	public Specification<NimaiMVas> getFilter(SearchRequest request) {
 
 		return (root, query, cb) -> {
-			return where(likeValuesContains("countryName", request.getCountry())).toPredicate(root, query, cb);
+			return where(likeValuesContains("countryName", request.getCountry()))
+					.toPredicate(root, query, cb);
 		};
 	}
 
@@ -27,5 +30,6 @@ public class VasSpecification extends BaseSpecification<NimaiMVas, SearchRequest
 			}
 		};
 	}
+
 
 }

@@ -4,10 +4,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.springframework.http.ResponseEntity;
+
 import com.nimai.admin.payload.DashCountryAnalysisResponse;
 import com.nimai.admin.payload.DashNewUserStat;
 import com.nimai.admin.payload.DashTransStat;
 import com.nimai.admin.payload.PagedResponse;
+import com.nimai.admin.payload.PendingRequestBean;
 import com.nimai.admin.payload.SearchRequest;
 
 public interface DashboardService {
@@ -111,5 +114,15 @@ public interface DashboardService {
 	int getReferrers(SearchRequest request);
 
 	List<DashCountryAnalysisResponse> getLatestCountryAnalysis();
+
+	Object totalQuoteReceived(SearchRequest request);
+
+	Object totalQuoteAccepted(SearchRequest request);
+
+	Object totalQuoteClosed(SearchRequest request);
+
+	PagedResponse<?> getPendingWireTfList(SearchRequest request);
+
+	PendingRequestBean getPendingRequests(SearchRequest request);
 
 }

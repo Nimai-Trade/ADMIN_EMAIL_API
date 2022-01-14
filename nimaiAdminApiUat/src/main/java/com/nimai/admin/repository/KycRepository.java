@@ -15,7 +15,14 @@ import com.nimai.admin.model.NimaiMCustomer;
 public interface KycRepository extends JpaRepository<NimaiFKyc, Integer>//, JpaSpecificationExecutor<NimaiFKyc> {
 {
 	@Query("from NimaiFKyc k where k.userid= :userid")
-	List<NimaiFKyc> findByUserid(@Param("userid") NimaiMCustomer  userid);
+	List<NimaiFKyc> findByUserid(@Param("userid") NimaiMCustomer userid);
+	
+
+@Query(value="select * from nimai_f_kyc k where k.userId= :userid",nativeQuery=true)
+	List<NimaiFKyc> findKycByUserid(@Param("userid") String  userid);
+	
+//	@Query("from NimaiFKyc k where k.kycStatus= :status")
+//	List<NimaiFKyc> findByUseridAndKYC(@Param("STATUS") String status);
 	
 	
 	
@@ -40,4 +47,10 @@ public interface KycRepository extends JpaRepository<NimaiFKyc, Integer>//, JpaS
 	
 	@Query(value ="SELECT * FROM nimai_f_kyc k INNER JOIN nimai_m_customer nc ON k.userId=nc.USERID WHERE k.kyc_status='Maker Approved' AND nc.COUNTRY_NAME IN :value", nativeQuery = true)
 	Page<NimaiFKyc> findMakerApprovedKycByCountries(@Param("value")List<String> value, Pageable pageable);
+	
+	@Query(value ="SELECT * FROM nimai_f_kyc k INNER JOIN nimai_m_customer nc ON k.userId=nc.USERID WHERE k.kyc_status='Maker Approved' AND nc.subscriber_type=:subsType and nc.bank_type=:bankType and nc.COUNTRY_NAME IN :value", nativeQuery = true)
+	Page<NimaiFKyc> findMakerApprovedKycByCountriesSubsTypeBankType(@Param("value")List<String> value, String subsType, String bankType, Pageable pageable);
+	
+	@Query(value ="SELECT * FROM nimai_f_kyc k INNER JOIN nimai_m_customer nc ON k.userId=nc.USERID WHERE nc.subscriber_type=:subsType and k.kyc_status='Maker Approved' AND nc.COUNTRY_NAME IN :value", nativeQuery = true)
+	Page<NimaiFKyc> findCustomerReferrerMakerApprovedKycByCountries(@Param("value")List<String> value, String subsType, Pageable pageable);
 }

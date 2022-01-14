@@ -56,6 +56,59 @@ public class TransactionDetails {
 	private String beneContactPersonEmail;
 	
 	
+	private String bgType;   
+	private Date claimExpiryDate;  
+	private Date lCExpiryDate;
+	private String comment;
+	private String makerComment;
+	private String checkerComment;
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	public String getMakerComment() {
+		return makerComment;
+	}
+	public void setMakerComment(String makerComment) {
+		this.makerComment = makerComment;
+	}
+	public String getCheckerComment() {
+		return checkerComment;
+	}
+	public void setCheckerComment(String checkerComment) {
+		this.checkerComment = checkerComment;
+	}
+	public String getComment() {
+		return comment;
+	}
+	public void setComment(String comment) {
+		this.comment = comment;
+	}
+	public String getBgType() {
+		return bgType;
+	}
+	public void setBgType(String bgType) {
+		this.bgType = bgType;
+	}
+	public Date getClaimExpiryDate() {
+		return claimExpiryDate;
+	}
+	public void setClaimExpiryDate(Date claimExpiryDate) {
+		this.claimExpiryDate = claimExpiryDate;
+	}
+	public Date getlCExpiryDate() {
+		return lCExpiryDate;
+	}
+	public void setlCExpiryDate(Date lCExpiryDate) {
+		this.lCExpiryDate = lCExpiryDate;
+	}
 	public String getIssuingBank() {
 		return issuingBank;
 	}

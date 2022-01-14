@@ -30,6 +30,7 @@ public class CustomerSearchSpecification extends BaseSpecification<NimaiMCustome
 					.and(likeValuesContains("registeredCountry", request.getCountry()))
 					.and(likeValuesContains("companyName", request.getCompanyName()))
 					.and(valuesContains("kycStatus", request.getTxtStatus()))
+					.or(valuesContains("kycStatus", null))
 					.and(valuesContains("rmId", request.getLoginUserId()))
 					.and(valuesContains("rmStatus", request.getRmStatus()))
 					.and(iN("countryName", request.getCountryNames()))

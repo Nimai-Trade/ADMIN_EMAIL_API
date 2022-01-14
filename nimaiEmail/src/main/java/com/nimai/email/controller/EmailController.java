@@ -1,14 +1,33 @@
 
 package com.nimai.email.controller;
 
-import javax.servlet.http.HttpServletRequest;
+import java.io.BufferedInputStream;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.file.Files;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Date;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.repository.query.Param;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -17,29 +36,40 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.itextpdf.io.codec.Base64.OutputStream;
+import com.itextpdf.text.DocumentException;
 import com.nimai.email.api.GenericResponse;
 import com.nimai.email.bean.AdminBean;
 import com.nimai.email.bean.BankDetailsBean;
 import com.nimai.email.bean.BranchUserPassCodeBean;
 import com.nimai.email.bean.BranchUserRequest;
+import com.nimai.email.bean.InvoiceBeanResponse;
 import com.nimai.email.bean.KycEmailRequest;
 import com.nimai.email.bean.LcUploadBean;
+import com.nimai.email.bean.PdfBean;
 import com.nimai.email.bean.ResetPassBean;
 import com.nimai.email.bean.SubsidiaryBean;
 import com.nimai.email.bean.UserRegistrationBean;
 import com.nimai.email.dao.UserServiceDao;
+import com.nimai.email.entity.EmailComponentMaster;
 import com.nimai.email.entity.NimaiClient;
 import com.nimai.email.entity.NimaiMBranch;
+import com.nimai.email.entity.NimaiSubscriptionDetails;
 import com.nimai.email.entity.NimaiToken;
 import com.nimai.email.repository.NimaiTokenRepository;
+import com.nimai.email.repository.SubscriptionDetailsRepository;
+import com.nimai.email.repository.nimaiSystemConfigRepository;
 import com.nimai.email.service.CaptchService;
 import com.nimai.email.service.UserService;
 import com.nimai.email.utility.AppConstants;
 import com.nimai.email.utility.EmaiInsert;
 import com.nimai.email.utility.ErrorDescription;
+import com.nimai.email.utility.FileAttachment;
 import com.nimai.email.utility.Utils;
+
 
 /**
  * @author Dhiraj
@@ -73,6 +103,12 @@ public class EmailController {
 
 	@Autowired
 	GenericResponse response;
+	
+	@Autowired
+	SubscriptionDetailsRepository sPlanRepo;
+	
+	@Autowired
+	nimaiSystemConfigRepository systemConfig;
 
 	@CrossOrigin(origins = "*", allowedHeaders = "*")
 	@RequestMapping("/sendSetPasswordLink")
@@ -84,12 +120,12 @@ public class EmailController {
 			boolean captchaVerified = captchaService.forgotVerify(registerLink.getRecaptchaResponse());
 			System.out.println("Peersonal Details recaptchResponse" + registerLink.getRecaptchaResponse());
 			if (!captchaVerified) {
-				System.out.println(
+			System.out.println(
 						"INSIDE ELSE CONDITION OF sendResetPasswordLink" + registerLink.getRecaptchaResponse());
 				System.out.println("INSIDE ELSE CONDITION OF sendResetPasswordLink" + captchaVerified);
 				response.setMessage("Invalid Captcha");
-				return new ResponseEntity<Object>(response, HttpStatus.BAD_REQUEST);
-			}
+		return new ResponseEntity<Object>(response, HttpStatus.BAD_REQUEST);
+}
 		}
 
 		return userEmailService.sendEmail(registerLink);
@@ -181,8 +217,8 @@ public class EmailController {
 		logger.info("validatePasscode Authorization: " + token.substring(7));
 
 		logger.info("================ checBranchUserkPassCode API Invoked ================:" + passCodeBean.toString());
-		boolean captchaVerified = captchaService.verify(passCodeBean.getRecaptchaResponse());
-		System.out.println("Peersonal Details recaptchResponse" + passCodeBean.getRecaptchaResponse());
+	boolean captchaVerified = captchaService.verify(passCodeBean.getRecaptchaResponse());
+System.out.println("Peersonal Details recaptchResponse" + passCodeBean.getRecaptchaResponse());
 		try {
 			if(userid.toString().substring(0, 2).equalsIgnoreCase("CU") || 
 					userid.toString().substring(0, 2).equalsIgnoreCase("BC") ||
@@ -209,7 +245,7 @@ public class EmailController {
 						+ passCodeBean.getRecaptchaResponse());
 				logger.info("INSIDE ELSE CONDITION OF CAPTCH IN authenticateUser CONTROLLER" + captchaVerified);
 				response.setMessage("Invalid captcha");
-				try {
+			try {
 					flag = "true";
 					tokenDetails.setIsInvalidCaptcha(flag);
 					tokenRepo.save(tokenDetails);
@@ -221,7 +257,7 @@ public class EmailController {
 					return new ResponseEntity<>(response, HttpStatus.OK);
 				}
 
-				return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+			return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
 			}
 
 			return userEmailService.validatePassCodeValue(passCodeBean);
@@ -322,5 +358,109 @@ public class EmailController {
 	public ResponseEntity<?> sendBAnkDetails(@RequestBody BankDetailsBean BdBean) throws Exception {
 		logger.info(" ================ Send resetPaasword Link API is  Invoked ================" + BdBean.toString());
 		return userEmailService.sendBankDetails(BdBean);
+	}
+	
+	
+//	@CrossOrigin(origins = "*", allowedHeaders = "*")
+//	@RequestMapping("/getInvoice/{userId}")
+//	public ResponseEntity<?> getInvoice(@PathVariable(value = "userId") String userId) throws Exception {
+//		logger.info(" ================ Send resetPaasword Link API is  Invoked ================" + userId);
+//		return userEmailService.getSplanInvoice(userId);
+//	}
+	
+	@CrossOrigin(value = "*", allowedHeaders = "*")
+	@RequestMapping(value = "/downloadInvoice/{userId}/{invoiceId}", produces ="application/json", method = RequestMethod.POST)
+	public ResponseEntity<?> downloadExcelReportForTxnByUserId(@PathVariable(value = "userId") String userId,
+			@PathVariable(value = "invoiceId") String invoiceId) throws ParseException, IOException 
+	{
+		GenericResponse respons=new GenericResponse<>();
+		System.out.println("userId"+userId);
+		System.out.println("invoiceId"+invoiceId);
+		try {
+			int subDetails=userEmailService.chkForInvoiceId(userId,invoiceId);
+			if(subDetails==0) {
+				InvoiceBeanResponse response=userEmailService.getVasplanInvoiceString(userId,invoiceId);
+				
+				if(!response.getVasStatus().equalsIgnoreCase("Approved")) {
+					System.out.println("Inside the if condtionns");
+					System.out.println("Inside the if condtionns"+response.toString());
+					System.out.println("Inside the if condtionns"+response.getSplanSerialNumber());
+					NimaiSubscriptionDetails subDetail = userEmailService.getSubDetails(response.getSplanSerialNumber());
+					 response=userEmailService.getSplanInvoiceString(subDetail.getUserid().getUserid(),subDetail.getInvoiceId());
+					respons.setData(response);
+					respons.setMessage("Success");
+				}else {
+					System.out.println("Inside the else condtionns");
+					respons.setData(response);
+					respons.setMessage("Success");
+				}
+				
+			}else {
+				InvoiceBeanResponse response=userEmailService.getSplanInvoiceString(userId,invoiceId);
+				respons.setData(response);
+				respons.setMessage("Success");
+				
+			}
+			
+		}catch(Exception e) {
+			logger.info("Excption Inside downloadInvoice checking invoiceId controller method");
+			e.printStackTrace();
+		}
+		
+		
+
+		
+
+		
+		return new ResponseEntity<Object>(respons, HttpStatus.OK);
+		
+	}
+	
+	@CrossOrigin(value = "*", allowedHeaders = "*")
+	@RequestMapping(value = "/downloadVasInvoice/{userId}/{invoiceId}", produces ="application/json", method = RequestMethod.POST)
+	public ResponseEntity<?> downloadVasByUserId(@PathVariable(value = "userId") String userId,
+			@PathVariable(value = "invoiceId") String invoiceId) throws ParseException, IOException 
+	{
+ 
+		System.out.println("userId"+userId);
+		System.out.println("invoiceId"+invoiceId);
+		
+	
+		
+	
+		String  pdfPath =systemConfig.getPdfPath();
+		PdfBean bean =new PdfBean();
+		GenericResponse respons=new GenericResponse<>();  
+		respons.setData(response);
+		respons.setMessage("Success");
+		return new ResponseEntity<Object>(respons, HttpStatus.OK);
+		
+	}
+	
+	
+	
+	
+	
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	public static ByteArrayInputStream retrieveByteArrayInputStream(File file) throws IOException {
+	    return new ByteArrayInputStream(FileUtils.readFileToByteArray(file));
 	}
 }

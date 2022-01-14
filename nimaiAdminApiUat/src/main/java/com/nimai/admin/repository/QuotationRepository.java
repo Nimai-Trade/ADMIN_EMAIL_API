@@ -2,6 +2,7 @@ package com.nimai.admin.repository;
 
 import java.util.List;
 
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -9,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.nimai.admin.model.NimaiMCustomer;
 import com.nimai.admin.model.NimaiMQuotation;
+
 
 public interface QuotationRepository
 		extends JpaRepository<NimaiMQuotation, Integer>, JpaSpecificationExecutor<NimaiMQuotation> {
@@ -19,5 +21,10 @@ public interface QuotationRepository
 
 	@Query("select count(*) FROM NimaiMQuotation m where m.bankUserid = :userid")
 	long quoteCout(@Param("userid") String userid);
+	
+	
+	@Query(value="SELECT * from get_all_quotation where userid=(:userId) and transaction_id=(:transactionId) and (quotation_status like '%Placed')", nativeQuery = true )
+	List<NimaiMQuotation> findAllReplacedQuotationByUserIdAndTransactionId(@Param("userId") String userId,@Param("transactionId") String transactionId);
+
 
 }

@@ -241,7 +241,66 @@ public class NimaiLCMaster
 	@Temporal(value=TemporalType.TIMESTAMP)
 	private Date rejectedOn;
 	
+	@Column(name="maker_comment")
+	private String makerComment;
 	
+	@Column(name="checker_comment")
+	private String checkerComment;
+			
+	@Column(name="transaction_approved_by")
+	private String transactionApprovedBy;
+				
+	@Column(name="transaction_rejected_by")
+	private String transactionRejected;
+	
+	@Column(name="transaction_approaval_date")
+	@Temporal(value=TemporalType.TIMESTAMP)
+	private Date trApprovaldate;
+						
+	@Column(name="transaction_rejected_date")
+	@Temporal(value=TemporalType.TIMESTAMP)
+	private Date trRejectedDate;
+	
+	
+	
+	
+	
+	public String getTransactionRejected() {
+		return transactionRejected;
+	}
+	public void setTransactionRejected(String transactionRejected) {
+		this.transactionRejected = transactionRejected;
+	}
+	public String getMakerComment() {
+		return makerComment;
+	}
+	public void setMakerComment(String makerComment) {
+		this.makerComment = makerComment;
+	}
+	public String getCheckerComment() {
+		return checkerComment;
+	}
+	public void setCheckerComment(String checkerComment) {
+		this.checkerComment = checkerComment;
+	}
+	public String getTransactionApprovedBy() {
+		return transactionApprovedBy;
+	}
+	public void setTransactionApprovedBy(String transactionApprovedBy) {
+		this.transactionApprovedBy = transactionApprovedBy;
+	}
+	public Date getTrApprovaldate() {
+		return trApprovaldate;
+	}
+	public void setTrApprovaldate(Date trApprovaldate) {
+		this.trApprovaldate = trApprovaldate;
+	}
+	public Date getTrRejectedDate() {
+		return trRejectedDate;
+	}
+	public void setTrRejectedDate(Date trRejectedDate) {
+		this.trRejectedDate = trRejectedDate;
+	}
 	public Date getAcceptedOn() {
 		return acceptedOn;
 	}

@@ -83,6 +83,7 @@ public class UserServiceDaoImpl implements UserServiceDao {
 			Session session = sessionFactory.getCurrentSession();
 			Query query = session.createQuery("from NimaiClient n where n.userid = :userId ", NimaiClient.class);
 			query.setParameter("userId", userId);
+			
 			results = (NimaiClient) query.getSingleResult();
 		} catch (NoResultException nre) {
 			nre.printStackTrace();
@@ -1030,15 +1031,16 @@ public class UserServiceDaoImpl implements UserServiceDao {
 	}
 
 	@Override
-	public NimaiSubscriptionDetails getSplanDetails(String userid) {
+	public NimaiSubscriptionDetails getSplanDetail(String userid,String invoiceId) {
 		// TODO Auto-generated method stub
 		NimaiSubscriptionDetails results = null;
 		try {
 			Session session = sessionFactory.getCurrentSession();
 			Query query = session.createQuery(
-					"from NimaiSubscriptionDetails n where n.userid.userid = :subscriptionId ",
+					"from NimaiSubscriptionDetails n where n.userid.userid = :userid and  n.invoiceId=:invoiceId ",
 					NimaiSubscriptionDetails.class);
 			query.setParameter("userid", userid);
+			query.setParameter("invoiceId", invoiceId);
 			String Status = "ACTIVE";
 			query.setParameter("Status", Status);
 
@@ -1058,8 +1060,9 @@ public class UserServiceDaoImpl implements UserServiceDao {
 		try {
 			Session session = sessionFactory.getCurrentSession();
 			Query query = session.createQuery(
-					"from NimaiSubscriptionVas n where n.planName = :subscriptionName and n.userid.userid=:userId and n.status='ACTIVE'",
-					NimaiSubscriptionVas.class);
+					" from NimaiSubscriptionVas n where n.planName = :subscriptionName and n.userid.userid=:userId and n.status='ACTIVE'"
+					+ "order by n.id desc",
+					NimaiSubscriptionVas.class).setFirstResult(0).setMaxResults(1);
 			query.setParameter("subscriptionName", subscriptionName);
 			query.setParameter("userId", userid);
 			// query.setParameter("status", "ACTIVE");
@@ -1088,6 +1091,32 @@ public class UserServiceDaoImpl implements UserServiceDao {
 			return null;
 		}
 		return result;
+	}
+
+	@Override
+	public NimaiSubscriptionDetails getsPlanDetailsBySerialNumber(int splanSerialNumber) {
+		// TODO Auto-generated method stub
+		NimaiSubscriptionDetails results = null;
+		try {
+			Session session = sessionFactory.getCurrentSession();
+			Query query = session.createQuery(
+					"from NimaiSubscriptionDetails n where n.sPlSerialNUmber = :splanSerialNumber ",
+					NimaiSubscriptionDetails.class);
+			query.setParameter("splanSerialNumber", splanSerialNumber);
+
+			results = (NimaiSubscriptionDetails) query.getSingleResult();
+		} catch (NoResultException nre) {
+			nre.printStackTrace();
+			return null;
+		}
+
+		return results;
+	}
+
+	@Override
+	public NimaiSubscriptionVas getVasDetailsBySerialNumber(Integer getsPlSerialNUmber) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

@@ -1,6 +1,7 @@
 package com.nimai.email.bean;
 
 import java.io.File;
+
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -38,7 +39,7 @@ import com.nimai.email.emailproperties.PropertyHandler;
 import com.nimai.email.entity.NimaiSystemConfig;
 import com.nimai.email.repository.nimaiSystemConfigRepository;
 import com.nimai.email.utility.InlineImage;
-import com.sun.mail.smtp.SMTPAddressFailedException;
+//import com.sun.mail.smtp.SMTPAddressFailedException;
 
 @Component
 public class EmailContentBean {
@@ -84,8 +85,8 @@ nimaiSystemConfigRepository systemConfig;
 //	@Value("${mail.smtp.quitwait}")
 //	private String quitwait;
 //
-////	@Value("${mail.smtp.ssl.enable}")
-////	private String ssl;
+//	@Value("${mail.smtp.ssl.enable}")
+//	private String ssl;
 //
 //	@Value("${mail.debug}")
 //	private String debug;
@@ -237,6 +238,8 @@ nimaiSystemConfigRepository systemConfig;
 			properties.put("mail.smtp.starttls.enable", starttls);
 			properties.put("mail.smtp.user", emailaddress);
 			properties.put("mail.smtp.password", pwd);
+			//properties.put("mail.smtp.ssl.enable", ssl);
+			properties.put("mail.smtp.ssl.trust", "*");
 			
 //			properties.put("mail.smtp.host", configDetails.getEmaiHost());
 //			properties.put("mail.smtp.port", configDetails.getEmailPort());
@@ -264,6 +267,8 @@ nimaiSystemConfigRepository systemConfig;
 			logger.info("************* EmailContentBean Message Body *************\\n" + getEmailBody());
 			BodyPart messageBodyPart = new MimeBodyPart();
 			messageBodyPart.setContent(getEmailBody(), "text/html");
+			
+			//messageBodyPart.setContent(getEmailBody(), "text/html; charset=utf-8");
 
 			MimeMultipart multipart = new MimeMultipart("related");
 			multipart.addBodyPart(messageBodyPart);
@@ -484,7 +489,7 @@ nimaiSystemConfigRepository systemConfig;
 			for (Exception e1 : exceptionArray) {
 				if (e1 instanceof SendFailedException) {
 					Exception e2 = ((SendFailedException) e1).getNextException();
-					if (e2 instanceof SMTPAddressFailedException) {
+					if (e2 instanceof SendFailedException) {
 						logger.error("Caught SMTPAddressFailedException. Invalid email id of User/Dealer", e2);
 						// utilityService.formatBasicResponseWithMessage(response,
 						// ResponseCodes.INVALID_EMAILID, serviceRequestVO.getLanguageId());

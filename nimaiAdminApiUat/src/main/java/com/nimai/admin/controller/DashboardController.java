@@ -33,11 +33,29 @@ public class DashboardController {
 
 	@Autowired
 	DashboardService dashService;
+	
+	
+	@PostMapping("approvals/pendingRequests")
+	public ResponseEntity<?> getPendingRequests(@RequestBody SearchRequest request) {
+		logger.info("==========revenue/customer====================");
+		return new ResponseEntity<>(dashService.getPendingRequests(request), HttpStatus.OK);
+	}
+	
+	
+	
 
 	@GetMapping("approvals/payConfAwaited")
 	public int getConfCount() {
 		return dashService.getConfAwaited();
 	}
+	
+	
+		
+		@PostMapping("approvals/payConfAwaitedList")
+		public PagedResponse<?> getSearchCustomer(@RequestBody SearchRequest request) {
+			return dashService.getPendingWireTfList(request);
+		}
+	
 
 	@GetMapping("approvals/payApproval")
 	public int getAppCount() {
@@ -106,7 +124,28 @@ public class DashboardController {
 		logger.info("==========revenue/customer====================");
 		return new ResponseEntity<>(dashService.getCustomerRevenue(request), HttpStatus.OK);
 	}
+	
+	
+	@PostMapping("revenue/totalQuoteReceived")
+	public ResponseEntity<?> totalQuoteReceived(@RequestBody SearchRequest request) {
+		logger.info("==========revenue/totalQuoteReceived====================");
+		return new ResponseEntity<>(dashService.totalQuoteReceived(request), HttpStatus.OK);
+	}
 
+	
+	@PostMapping("revenue/totalQuoteAccepted")
+	public ResponseEntity<?> totalQuoteAccepted(@RequestBody SearchRequest request) {
+		logger.info("==========revenue/totalQuoteReceived====================");
+		return new ResponseEntity<>(dashService.totalQuoteAccepted(request), HttpStatus.OK);
+	}
+	
+	@PostMapping("revenue/totalQuoteClosed")
+	public ResponseEntity<?> totalQuoteClosed(@RequestBody SearchRequest request) {
+		logger.info("==========revenue/totalQuoteReceived====================");
+		return new ResponseEntity<>(dashService.totalQuoteClosed(request), HttpStatus.OK);
+	}
+	
+	
 	@PostMapping("revenue/bankAsCust")
 	public ResponseEntity<?> getBankCustRevenue(@RequestBody SearchRequest request) {
 		logger.info("==========INside revenue/bankAsCust====================");

@@ -6,8 +6,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,8 +50,6 @@ import com.nimai.admin.util.Utility;
 @Service
 public class CustomerServiceImpl implements CustomerService {
 
-	
-	
 	@Autowired
 	CustomerRepository customerRepository;
 
@@ -64,6 +64,9 @@ public class CustomerServiceImpl implements CustomerService {
 
 	@Autowired
 	TransactionsRepository transactionsRepository;
+	
+	@Autowired
+	CustomerRepository repo;
 
 	@Autowired
 	UserRoleRepository userRoleRepository;
@@ -76,13 +79,9 @@ public class CustomerServiceImpl implements CustomerService {
 
 	@Autowired
 	NimaiEmailSchedulerRepository schRepo;
-	
+
 	@Autowired
 	KycRepository kycRepo;
-	
-	
-	
-	
 
 	private static final Logger logger = LoggerFactory.getLogger(CustomerServiceImpl.class);
 
@@ -164,7 +163,7 @@ public class CustomerServiceImpl implements CustomerService {
 		customer.setApprovedBy(Utility.getUserId());
 		customer.setModifiedDate(Utility.getSysDate());
 		customerRepository.save(customer);
-		if(customer.getRmStatus().equalsIgnoreCase("Active")) {
+		if (customer.getRmStatus().equalsIgnoreCase("Active")) {
 			/*
 			 * changes done by dhiraj to send the notification to rm
 			 */
@@ -172,7 +171,7 @@ public class CustomerServiceImpl implements CustomerService {
 			schData.setrMemailId(rmDetails.getEmpEmail());
 			schData.setUserid(data.get("userId"));
 			schData.setsPLanCountry(customer.getCountryName());
-			
+
 			if (data.get("userId").substring(0, 2).equalsIgnoreCase("CU")) {
 				schData.setEvent("ASSIGN_NOTIFICATION_TO_RM");
 				schData.setUserName(customer.getCompanyName());
@@ -191,7 +190,6 @@ public class CustomerServiceImpl implements CustomerService {
 			schData.setInsertedDate(Utility.getSysDate());
 			schRepo.save(schData);
 		}
-
 
 		return new ResponseEntity<>(
 				new ApiResponse(true,
@@ -254,40 +252,201 @@ public class CustomerServiceImpl implements CustomerService {
 	}
 
 	public String collectInPlanName(List<NimaiSubscriptionDetails> subscriptionList) {
-		return subscriptionList.stream().filter(plan -> plan.getStatus().equalsIgnoreCase("INACTIVE")).
-				sorted(Comparator.comparingInt(NimaiSubscriptionDetails::getSplSerialNumber).reversed()).findFirst()
+		return subscriptionList.stream().filter(plan -> plan.getStatus().equalsIgnoreCase("INACTIVE"))
+				.sorted(Comparator.comparingInt(NimaiSubscriptionDetails::getSplSerialNumber).reversed()).findFirst()
 				.map(NimaiSubscriptionDetails::getSubscriptionName).get();
 
 	}
-	
+
 	@Override
 	public PagedResponse<?> getSearchCustomer(SearchRequest request) {
 		System.out.println(" Search Request " + request);
-		request.setBankType("CUSTOMER");
-		request.setSubscriberType("CUSTOMER");
-		Pageable pageable = PageRequest.of(request.getPage(), request.getSize(),
-				request.getDirection().equalsIgnoreCase("desc") ? Sort.by(request.getSortBy()).descending()
-						: Sort.by(request.getSortBy()).ascending());
+		//request.setBankType("CUSTOMER");
+		//request.setSubscriberType("CUSTOMER");
+		
+		Pageable pageable = null;
+		request.setSortBy("inserted_date");
+		if ((request.getUserId() != null && request.getTxtStatus() == null)
+				|| (request.getEmailId() != null && request.getTxtStatus() == null)
+				|| (request.getMobileNo() != null && request.getTxtStatus() == null)) {
+			request.setSize(1);
+			pageable = PageRequest.of(request.getPage(), request.getSize(),
+					request.getDirection().equalsIgnoreCase("desc") ? Sort.by(request.getSortBy()).descending()
+							: Sort.by(request.getSortBy()).ascending());
+		} else if ((request.getTxtStatus() == null)) {
+			pageable = (Pageable) PageRequest.of(request.getPage(), request.getSize(),
+					request.getDirection().equalsIgnoreCase("desc")
+							? Sort.by(new String[] { request.getSortBy() }).descending()
+							: Sort.by(new String[] { request.getSortBy() }).ascending());
+		} else if ((request.getTxtStatus().equalsIgnoreCase("Rejected"))) {
+			request.setSortBy("nfk.INSERTED_DATE");
+			pageable = (Pageable) PageRequest.of(request.getPage(), request.getSize(),
+					request.getDirection().equalsIgnoreCase("desc")
+							? Sort.by(new String[] { request.getSortBy() }).descending()
+							: Sort.by(new String[] { request.getSortBy() }).ascending());
 
-		Page<NimaiMCustomer> customerList;
+		} else {
+
+			pageable = PageRequest.of(request.getPage(), request.getSize(),
+					request.getDirection().equalsIgnoreCase("desc") ? Sort.by(request.getSortBy()).descending()
+							: Sort.by(request.getSortBy()).ascending());
+		}
+
+		Page<NimaiMCustomer> customerList = null;
+		NimaiMCustomer custDetails = new NimaiMCustomer();
+		
+		String countryNames = Utility.getUserCountry();
+		System.out.println("countryNames: " + countryNames);
+		if (countryNames != null && countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
+			countryNames = "";
+			final List<String> countryList = (List<String>) this.repo.getCountryList();
+			for (final String country : countryList) {
+				countryNames = countryNames + country + ",";
+			}
+			System.out.println("Country List: " + countryNames);
+			request.setCountryNames(countryNames);
+		} else if (countryNames != null && !countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
+			request.setCountryNames(countryNames);
+		}else if(countryNames!=null && request.getCountry()!=null) {
+			request.setCountryNames(request.getCountry());
+		} else if (countryNames == null && request.getCountry() == null) {
+		}
+		final List<String> value = Stream.of(request.getCountryNames().split(",", -1)).collect(Collectors.toList());
+		System.out.println("Values BankService: " + value);
+		System.out.println("BankType: "+request.getBankType());
+		System.out.println("SubscriberType: "+request.getSubscriberType());
+		
+		
 		if (request.getRole() != null && request.getRole().equalsIgnoreCase("Customer RM")) {
 			request.setLoginUserId(Utility.getUserId());
 			request.setRmStatus("Active");
 		} else {
-			String countryNames = Utility.getUserCountry();
-			if (countryNames != null && countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
-
-			} else if (countryNames != null && !countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
-				request.setCountryNames(countryNames);
-			} else if (countryNames == null && request.getCountry() == null) {
-				customerList = null;
-			}
+//			String countryNames = Utility.getUserCountry();
+//			if (countryNames != null && countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
+//
+//			} else if (countryNames != null && !countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
+//				request.setCountryNames(countryNames);
+//			} else if (countryNames == null && request.getCountry() == null) {
+//				customerList = null;
+//			}
 		}
 
-		customerList = customerRepository.findAll(customerSearchSpecification.getFilter(request), pageable);
+		List<CustomerResponse> responses = new ArrayList<>();
 
-		List<CustomerResponse> responses = customerList.map(cust -> {
+		
+		List<NimaiMCustomer> pendingRsponses;
+		if (request.getRole().equalsIgnoreCase("Customer RM")) {
+			String rmId = Utility.getUserId();
+			System.out.println("===========RM userId" + rmId);
+		//CustomerServiceImpl custList=new CustomerServiceImpl();
+		customerList=retiriveListOnRMId(rmId,request,value,pageable);
+		} else {
+			if (request.getUserId() != null && request.getTxtStatus() == null) {
+				logger.info(
+						"************=============inside request.getUserId()============***********" + request.getUserId());
+				customerList = customerRepository.getDetailsByUserId(request.getUserId(),value, pageable);
+				
+			} else if (request.getMobileNo() != null && request.getTxtStatus() == null) {
+				System.out.println("========= Searching Customer By Mobile no =========");
+				customerList = customerRepository.getDetailsByMobileNumber(request.getMobileNo(),value, pageable);
+
+			}
+
+			else if (request.getEmailId() != null && request.getTxtStatus() == null) {
+				System.out.println("========= Searching Customer By Email ID =========");
+				customerList = customerRepository.getDetailsByEmailId(request.getEmailId(),value, pageable);
+			} else if (request.getCountry() != null && request.getTxtStatus() == null) {
+				System.out.println("========= Searching Customer By Country =========");
+				customerList = customerRepository.getDetailsByCountry(request.getCountry(),value, pageable);
+			} else if (request.getCompanyName() != null && request.getTxtStatus() == null) {
+				System.out.println("========= Searching Customer By Company name =========");
+				customerList = customerRepository.getDetailsByCompanyName(request.getCompanyName(),value, pageable);
+			} else if (request.getTxtStatus() == null || request.getTxtStatus().equalsIgnoreCase("all")) {
+				// customerList =
+				// customerRepository.findAll(customerSearchSpecification.getFilter(request),
+				// pageable);
+				System.out.println("========= Searching All Customer =========");
+				customerList = customerRepository.getAllCustomerKYC(value,pageable);
+			} else if (request.getTxtStatus().equalsIgnoreCase("Pending") && (request.getBankType()==null || request.getBankType().isEmpty()) && (request.getSubscriberType()==null || request.getSubscriberType().isEmpty()) ) {
+				System.out.println("========= Searching Pending Customer KYC =========");
+				customerList = customerRepository.getPendingCustomerKYC(value,pageable);
+			} else if (request.getTxtStatus().equalsIgnoreCase("Approved")) {
+				System.out.println("========= Searching Approved Customer KYC =========");
+				customerList = customerRepository.getApprovedCustomerKYC(value,pageable);
+			} else if (request.getTxtStatus().equalsIgnoreCase("Rejected")) {
+				System.out.println("========= Searching Rejected Customer KYC =========");
+				customerList = customerRepository.getRejectedCustomerKYC(value,pageable);
+			} else if (request.getTxtStatus().equalsIgnoreCase("Not Uploaded")) {
+				System.out.println("========= Searching Not Uploaded Customer KYC =========");
+				customerList = customerRepository.getNotUploadCustomerKYC(value,pageable);
+//				List<NimaiMCustomer> notUploadedRsponses = customerList.stream()
+//						.filter(cust -> cust.getNimaiFKycList().size() == 0).collect(Collectors.toList());
+
+			}else if((request.getBankType()==null || request.getBankType().isEmpty()) && request.getSubscriberType().equalsIgnoreCase("Customer")) {
+				if(request.getTxtStatus().equalsIgnoreCase("PaymentPending"))
+				{
+					System.out.println("========= Searching PaymentPending Customer =========");
+					customerList = customerRepository.getCuPendingCustomerPayment(value,pageable);
+				}
+				else if (request.getTxtStatus().equalsIgnoreCase("subexpiry")) {
+					customerList = customerRepository.getSubscriptionExpiryCU(value, pageable);
+					System.out.println(
+							"************=============Subscription Expiry in 30 days============***********");
+				}
+				else if (request.getTxtStatus().equalsIgnoreCase("PaymentPendingUser")) {
+					customerList = customerRepository.getPaymentPendingUserCU(value, pageable);
+					System.out.println(
+							"************=============PaymentPaymentUser============***********"
+									+ request.getUserId());
+
+				}
+				else
+				{
+					System.out.println("========= Searching Customer =========");
+					customerList = customerRepository.getCuPendingCustomerKYC(value,pageable);
+				}
+			}else if(request.getBankType().equalsIgnoreCase("Customer") && request.getSubscriberType().equalsIgnoreCase("Bank")) {
+				if(request.getTxtStatus().equalsIgnoreCase("PaymentPending"))
+				{
+					System.out.println("========= Searching PaymentPending Bank As Customer =========");
+					customerList = customerRepository.getBCuPendingCustomerPayment(value,pageable);
+				}
+				else if (request.getTxtStatus().equalsIgnoreCase("subexpiry")) {
+					customerList = customerRepository.getSubscriptionExpiryBC(value, pageable);
+					System.out.println(
+							"************=============Subscription Expiry in 30 days============***********");
+				}
+				else if (request.getTxtStatus().equalsIgnoreCase("PaymentPendingUser")) {
+					customerList = customerRepository.getPaymentPendingUserBC(value, pageable);
+					System.out.println(
+							"************=============PaymentPaymentUser============***********"
+									+ request.getUserId());
+
+				}
+				else
+				{
+					System.out.println("========= Searching Bank As Customer =========");
+					customerList = customerRepository.getBCuPendingCustomerKYC(value,pageable);
+				}
+			}
+			else if (request.getTxtStatus().equalsIgnoreCase("Not Uploaded")) {
+				
+				if(request.getSubscriberType()==null &&  request.getBankType()==null) {
+					 customerList = customerRepository.getNotUploadCustomerKYC(value,pageable);
+				}else if(request.getSubscriberType().equals("CUSTOMER") && ( request.getBankType()==null) ) {
+					customerList = customerRepository.getNotUploadForCU(value,pageable);
+				}else if(request.getSubscriberType().equals("BANK") && request.getBankType().equals("CUSTOMER")) {
+					System.out.println("inside khkj");
+				     customerList = customerRepository.getNotUploadForBC(value,pageable);
+				}
+			}
+
+		}
+
+		// else
+		responses = customerList.map(cust -> {
 			CustomerResponse response = new CustomerResponse();
+			System.out.println("request");
 			response.setUserid(cust.getUserid());
 			response.setFirstName(cust.getFirstName());
 			response.setLastName(cust.getLastName());
@@ -298,22 +457,23 @@ public class CustomerServiceImpl implements CustomerService {
 			response.setPlanOfPayments(cust.getNimaiSubscriptionDetailsList().size() != 0
 					? collectPlanName(cust.getNimaiSubscriptionDetailsList())
 					: "No Active Plan");
-			if(response.getPlanOfPayments().isEmpty() || response.getPlanOfPayments()==null) {
-				response.setPlanOfPayments(("Latest Inactive_").concat(collectInPlanName(cust.getNimaiSubscriptionDetailsList())));
+			if (response.getPlanOfPayments().isEmpty() || response.getPlanOfPayments() == null) {
+				response.setPlanOfPayments(
+						("Latest Inactive_").concat(collectInPlanName(cust.getNimaiSubscriptionDetailsList())));
 			}
 //			response.setTotalTxn(transactionsRepository.countByUserId(cust.getUserid()));
 			response.setTotalTxn(
 					cust.getNimaiMmTransactionList() != null ? cust.getNimaiMmTransactionList().size() : 0);
-			String userId=response.getUserid();
-			System.out.println("==============useriD"+userId);
-		List<NimaiFKyc> kycdetails=kycRepo.findByUserid(cust);
-			if(kycdetails.size()==0)
-			{
+			String userId = response.getUserid();
+			System.out.println("==============useriD" + userId);
+			List<NimaiFKyc> kycdetails = kycRepo.findByUserid(cust);
+
+			if (kycdetails.size() == 0) {
 				response.setKyc("Not Uploaded");
-			}else {
+			} else {
 				response.setKyc(cust.getKycStatus());
-	}			
-			
+			}
+
 			response.setRegisteredCountry(cust.getRegisteredCountry());
 			return response;
 		}).getContent();
@@ -323,9 +483,60 @@ public class CustomerServiceImpl implements CustomerService {
 
 	}
 
+	private Page<NimaiMCustomer> retiriveListOnRMId(String rmId, SearchRequest request, List<String> value, Pageable pageable) {
+		Page<NimaiMCustomer> customerList = null;
+		//Pageable pageable = null;
+		// TODO Auto-generated method stub
+		
+	
+		
+		if (request.getUserId() != null && request.getTxtStatus() == null) {
+			logger.info(
+					"************=============insdie request.getUserId()============***********" + request.getUserId());
+			customerList = customerRepository.getDetailsByUserIdRmId(rmId,request.getUserId(),value, pageable);
+		
+		} else if (request.getMobileNo() != null && request.getTxtStatus() == null) {
+			customerList = customerRepository.getDetailsByMobileNumberRmId(request.getMobileNo(),rmId,value, pageable);
+
+		}
+
+		else if (request.getEmailId() != null && request.getTxtStatus() == null) {
+			customerList = customerRepository.getDetailsByEmailIdRmId(request.getEmailId(),rmId,value, pageable);
+		} else if (request.getCountry() != null && request.getTxtStatus() == null) {
+			customerList = customerRepository.getDetailsByCountryRmId(request.getCountry(),rmId,value, pageable);
+		} else if (request.getCompanyName() != null && request.getTxtStatus() == null) {
+			customerList = customerRepository.getDetailsByCompanyNameRmId(request.getCompanyName(),rmId,value, pageable);
+		} else if (request.getTxtStatus() == null || request.getTxtStatus().equalsIgnoreCase("all")) {
+			// customerList =
+			// customerRepository.findAll(customerSearchSpecification.getFilter(request),
+			// pageable);
+			System.out.println(rmId);
+			System.out.println(pageable);
+			try {
+				customerList = customerRepository.getAllCustomerKYCRmid(rmId,value,pageable);
+			}catch(Exception e){
+				e.printStackTrace();
+			}
+			
+			System.out.println(customerList.toString());
+		} else if (request.getTxtStatus().equalsIgnoreCase("Pending")) {
+			customerList = customerRepository.getPendingCustomerKYCRmId(rmId,value,pageable);
+		} else if (request.getTxtStatus().equalsIgnoreCase("Approved")) {
+			customerList = customerRepository.getApprovedCustomerKYCRmId(rmId,value,pageable);
+		} else if (request.getTxtStatus().equalsIgnoreCase("Rejected")) {
+			customerList = customerRepository.getRejectedCustomerKYCRmId(rmId,value,pageable);
+		} else if (request.getTxtStatus().equalsIgnoreCase("Not Uploaded")) {
+			customerList = customerRepository.getNotUploadCustomerKYCRmId(rmId,value,pageable);
+//			List<NimaiMCustomer> notUploadedRsponses = customerList.stream()
+//					.filter(cust -> cust.getNimaiFKycList().size() == 0).collect(Collectors.toList());
+
+		}
+		return customerList;
+	}
+
 	public String collectPlanName(List<NimaiSubscriptionDetails> subscriptionList) {
-		return subscriptionList.stream().filter(plan -> plan.getStatus().equalsIgnoreCase("Active")).
-				sorted(Comparator.comparingInt(NimaiSubscriptionDetails::getSplSerialNumber).reversed())
+		return subscriptionList.stream().filter(plan -> plan.getStatus().equalsIgnoreCase("Active"))
+				.sorted(Comparator.comparingInt(NimaiSubscriptionDetails::getSplSerialNumber).reversed())
 				.map(NimaiSubscriptionDetails::getSubscriptionName).collect(Collectors.joining(" ")).toString();
 
 	}

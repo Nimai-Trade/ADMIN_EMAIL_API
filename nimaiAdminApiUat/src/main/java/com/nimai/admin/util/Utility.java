@@ -1,5 +1,6 @@
 package com.nimai.admin.util;
 
+import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -42,11 +43,21 @@ public class Utility {
 		return userPrincipal.getUsername();
 	}
 public static void main(String[] args) {
+	 BigDecimal b1, b2;
 	Double x= 355.59;
 	int y=144;
-	double z=x-y;
-	 DecimalFormat f = new DecimalFormat("##.00");
-     System.out.println(f.format(z));
-	System.out.println(z);
+	b1 = new BigDecimal(67891.000012);
+    b2 = new BigDecimal("67891.000");
+    
+    System.out.println("max value"+b1.max(b2));
+    if (b1.compareTo(b2) == 0) {
+        System.out.println(b1 + " and " + b2 + " are equal.");
+    }
+    else if (b1.compareTo(b2) == 1) {
+        System.out.println(b1 + " is greater than " + b2 + ".");
+    }
+    else {
+        System.out.println(b1 + " is lesser than " + b2 + ".");
+    }
 }
 }

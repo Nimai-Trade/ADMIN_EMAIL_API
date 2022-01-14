@@ -27,6 +27,9 @@ public class NimaiSubscriptionVas implements Serializable {
 	@Column(name="SUBSCRIPTION_ID")
 	private String subscriptionId;
 	
+	@Column(name="SPL_SERIAL_NUMBER")
+	private int sPLanSerialNUmber;
+	
 	@Column(name="VAS_ID")
 	private Integer vasId;
 	
@@ -72,6 +75,9 @@ public class NimaiSubscriptionVas implements Serializable {
     @Column(name="MODIFIED_DATE")
 	private Date modifiedDate;
     
+    @Column(name="SPLAN_VAS_FLAG")
+    private int splanVasFlag;
+    
     @JoinColumn(name = "USERID", referencedColumnName = "USERID")
 	@ManyToOne(optional = false)
 	private NimaiClient userid;
@@ -97,6 +103,22 @@ public class NimaiSubscriptionVas implements Serializable {
 	
 	
 	
+
+	public int getSplanVasFlag() {
+		return splanVasFlag;
+	}
+
+	public void setSplanVasFlag(int splanVasFlag) {
+		this.splanVasFlag = splanVasFlag;
+	}
+
+	public int getsPLanSerialNUmber() {
+		return sPLanSerialNUmber;
+	}
+
+	public void setsPLanSerialNUmber(int sPLanSerialNUmber) {
+		this.sPLanSerialNUmber = sPLanSerialNUmber;
+	}
 
 	public String getInvoiceId() {
 		return invoiceId;

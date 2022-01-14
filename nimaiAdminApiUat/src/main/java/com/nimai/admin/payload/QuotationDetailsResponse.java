@@ -31,11 +31,33 @@ public class QuotationDetailsResponse {
 	private Date validityDate;
 	private String quotationStatus;
 	private String currency;
+	
+	
+	private String confChgsIssuanceToexp;
+	private String confChgsIssuanceToClaimExp;
 
 	private String ib;
 	private String tanor;
 	private String amount;
 	private String termCondition;
+
+	
+	
+	public String getConfChgsIssuanceToexp() {
+		return confChgsIssuanceToexp;
+	}
+
+	public void setConfChgsIssuanceToexp(String confChgsIssuanceToexp) {
+		this.confChgsIssuanceToexp = confChgsIssuanceToexp;
+	}
+
+	public String getConfChgsIssuanceToClaimExp() {
+		return confChgsIssuanceToClaimExp;
+	}
+
+	public void setConfChgsIssuanceToClaimExp(String confChgsIssuanceToClaimExp) {
+		this.confChgsIssuanceToClaimExp = confChgsIssuanceToClaimExp;
+	}
 
 	public QuotationDetailsResponse() {
 		super();

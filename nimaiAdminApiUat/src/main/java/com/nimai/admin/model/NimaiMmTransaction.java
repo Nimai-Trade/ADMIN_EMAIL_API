@@ -235,6 +235,33 @@ public class NimaiMmTransaction implements Serializable {
     @JoinColumn(name = "user_id", referencedColumnName = "USERID")
     @ManyToOne
     private NimaiMCustomer userId;
+    @Column(name="CLAIM_EXPIRY_DATE")
+	@Temporal(value=TemporalType.TIMESTAMP)
+	private Date claimExpiryDate;
+	
+	@Column(name="BG_TYPE")
+	private String bgType;
+	
+	@Column(name="maker_comment")
+	private String makerComment;
+	
+	@Column(name="checker_comment")
+	private String checkerComment;
+			
+	@Column(name="transaction_approved_by")
+	private String transactionApprovedBy;
+				
+	@Column(name="transaction_rejected_by")
+	private String transactionRejected;
+	
+	@Column(name="transaction_approaval_date")
+	@Temporal(value=TemporalType.TIMESTAMP)
+	private Date trApprovaldate;
+						
+	@Column(name="transaction_rejected_date")
+	@Temporal(value=TemporalType.TIMESTAMP)
+	private Date trRejectedDate;
+    
 //    @OneToMany(mappedBy = "transactionId1")
 //    private List<NimaiFTransgood> nimaiFTransgoodList;
 //    @OneToMany(mappedBy = "transactionId")
@@ -243,6 +270,70 @@ public class NimaiMmTransaction implements Serializable {
     private List<NimaiMQuotation> nimaiMQuotationList;
     
     
+
+	public Date getClaimExpiryDate() {
+		return claimExpiryDate;
+	}
+
+	public void setClaimExpiryDate(Date claimExpiryDate) {
+		this.claimExpiryDate = claimExpiryDate;
+	}
+
+	public String getBgType() {
+		return bgType;
+	}
+
+	public void setBgType(String bgType) {
+		this.bgType = bgType;
+	}
+
+	public String getMakerComment() {
+		return makerComment;
+	}
+
+	public void setMakerComment(String makerComment) {
+		this.makerComment = makerComment;
+	}
+
+	public String getCheckerComment() {
+		return checkerComment;
+	}
+
+	public void setCheckerComment(String checkerComment) {
+		this.checkerComment = checkerComment;
+	}
+
+	public String getTransactionApprovedBy() {
+		return transactionApprovedBy;
+	}
+
+	public void setTransactionApprovedBy(String transactionApprovedBy) {
+		this.transactionApprovedBy = transactionApprovedBy;
+	}
+
+	public String getTransactionRejected() {
+		return transactionRejected;
+	}
+
+	public void setTransactionRejected(String transactionRejected) {
+		this.transactionRejected = transactionRejected;
+	}
+
+	public Date getTrApprovaldate() {
+		return trApprovaldate;
+	}
+
+	public void setTrApprovaldate(Date trApprovaldate) {
+		this.trApprovaldate = trApprovaldate;
+	}
+
+	public Date getTrRejectedDate() {
+		return trRejectedDate;
+	}
+
+	public void setTrRejectedDate(Date trRejectedDate) {
+		this.trRejectedDate = trRejectedDate;
+	}
 
 	public static long getSerialversionuid() {
 		return serialVersionUID;

@@ -22,7 +22,7 @@ import com.nimai.admin.service.RefererService;
 @CrossOrigin(origins = "*")
 @RequestMapping("/api/referer") 
 public class RefererController {
-	@Autowired
+	@Autowired  
 	RefererService refService;
 
 	@PostMapping("/list")

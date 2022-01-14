@@ -3,6 +3,8 @@ package com.nimai.admin.repository;
 import java.util.Date;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
@@ -26,4 +28,10 @@ public interface VasRepository extends JpaRepository<NimaiMVas, Integer>, JpaSpe
 	@Query("FROM NimaiMVas v where v.countryName= :countryName and  (v.status='Active' or v.status='Pending')  and v.customerType= :custType")
 	List<NimaiMVas> getVasDetails(@Param("countryName") String countryName,@Param("custType") String custType);
 	
+	@Query(value = "SELECT sub.* FROM nimai_m_vas sub where sub.COUNTRY_NAME in :value ",
+	 		countQuery = "SELECT cnt FROM\n" + 
+	 				"(SELECT COUNT(*) AS cnt FROM nimai_m_vas sub \n" + 
+	 				"where  sub.COUNTRY_NAME IN :value  )\n" + 
+	 				"AS cnt",nativeQuery = true)
+	public Page<NimaiMVas> getAllVasPlan(List<String> value, Pageable pageable);
 }

@@ -122,7 +122,7 @@ public class DiscountController {
 
 	@PostMapping("/activeCoupons/list")
 	public PagedResponse<?> getActiveCoupons(@RequestBody SearchRequest request) {
-		return discountService.getActiveCoupons(request);
+		return discountService.getCouponDetails(request);
 	}
 
 	@PostMapping("/inactiveCoupons/list")

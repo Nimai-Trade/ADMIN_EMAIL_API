@@ -13,6 +13,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.nimai.admin.model.NimaiMSubscriptionPlan;
+import com.nimai.admin.model.NimaiMVas;
 
 @Repository
 public interface MasterSubsPlanRepository
@@ -39,5 +40,21 @@ public interface MasterSubsPlanRepository
 	List<NimaiMSubscriptionPlan> getPlanAmount(@Param("customerType") String customerType,
 			@Param("countryName") String countryName);
 
+	@Query(value = "SELECT sub.* FROM nimai_m_subscription sub where sub.country_name in :value and sub.customer_type=:custType",
+	 		countQuery = "SELECT cnt FROM\n" + 
+	 				"(SELECT COUNT(*) AS cnt FROM nimai_m_subscription sub \n" + 
+	 				"where sub.customer_type=:custType and sub.country_name IN :value  )\n" + 
+	 				"AS cnt",nativeQuery = true)
+	public Page<NimaiMSubscriptionPlan> getAllSubscriptionPlan(List<String> value, String custType, Pageable pageable);
+
+	
+
+
+	
+	
+	
+	
+	
+	
 //	NimaiMSubscriptionPlan getSplanBySPlanName(String getsPLanName);
 }

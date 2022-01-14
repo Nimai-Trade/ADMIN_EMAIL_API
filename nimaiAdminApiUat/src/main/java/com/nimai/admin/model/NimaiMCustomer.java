@@ -37,8 +37,10 @@ import com.nimai.admin.payload.OwenerBean;
  */
 @Entity
 @Table(name = "nimai_m_customer")
+@NamedStoredProcedureQuery(name = "get_eligible_banks", procedureName = "get_eligible_banks", parameters = {
+		@StoredProcedureParameter(mode = ParameterMode.IN, name = "inp_customer_userID", type = String.class),
+		@StoredProcedureParameter(mode = ParameterMode.IN, name = "inp_transaction_ID", type = String.class)})
 @NamedQueries({ @NamedQuery(name = "NimaiMCustomer.findAll", query = "SELECT n FROM NimaiMCustomer n") })
-
 @NamedStoredProcedureQuery(name = "dashboardCount", procedureName = "DASHBOARD_COUNT_PROCEDURE", parameters = {
 		@StoredProcedureParameter(mode = ParameterMode.IN, name = "query_no", type = Integer.class),
 		@StoredProcedureParameter(mode = ParameterMode.IN, name = "subscriberType", type = String.class),

@@ -30,5 +30,11 @@ JpaSpecificationExecutor<NimaiSystemConfig>{
 
 	@Query(value="select ns.system_config_entity_value from nimai_system_config ns where ns.system_config_entity='CUSTOMER_LINK_EXPIRES'",nativeQuery = true)
 	String findByLinkDays();
+	
+	@Query(value="select ns.system_config_entity_value from nimai_system_config ns where ns.system_config_entity='referrer_earnings'",nativeQuery = true)
+String findReferrerEarning();
+
+@Query(value="select ns.system_config_entity_value from nimai_system_config ns where ns.system_config_entity='PDF_NAME'",nativeQuery = true)
+String getPdfPath();
 
 }

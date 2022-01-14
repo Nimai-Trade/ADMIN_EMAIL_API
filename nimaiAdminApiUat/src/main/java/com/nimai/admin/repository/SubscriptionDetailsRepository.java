@@ -14,6 +14,7 @@ import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import com.nimai.admin.model.NimaiLCMaster;
 import com.nimai.admin.model.NimaiMCustomer;
 import com.nimai.admin.model.NimaiSubscriptionDetails;
 
@@ -53,6 +54,38 @@ public interface SubscriptionDetailsRepository
 	public Map<String, Object> getRevenues(@Param("query_no") int queryNo, @Param("dateFrom") Date dateFrom,
 			@Param("dateTo") Date dateTo, @Param("countryNames") String countryNames);
 
+	
+	@Query(value = "SELECT \n" + 
+			" sum(nq.total_quote_value/(nm.lc_value/nm.usd_currency_value )) as amount\n" + 
+			"  FROM  nimai_m_customer nc INNER JOIN nimai_mm_transaction nm ON nm.user_id=nc.USERID\n" + 
+			" INNER JOIN nimai_m_quotation nq ON nm.transaction_id=nq.transaction_id \n" + 
+			" WHERE   nm.lc_issuing_date BETWEEN :dateFrom AND :dateTo \n",nativeQuery =true)
+	public Double gettotalQuoteReceived(@Param("dateFrom") Date dateFrom,
+			@Param("dateTo") Date dateTo);
+
+	
+	
+	@Query(value = "SELECT \n" + 
+			" sum(nq.total_quote_value/(nm.lc_value/nm.usd_currency_value )) as amount\n" + 
+			"  FROM  nimai_m_customer nc INNER JOIN nimai_mm_transaction nm ON nm.user_id=nc.USERID\n" + 
+			" INNER JOIN nimai_m_quotation nq ON nm.transaction_id=nq.transaction_id\n" + 
+			" WHERE   nm.lc_issuing_date BETWEEN :dateFrom AND :dateTo AND \n" + 
+			"  nq.quotation_status='Accepted'",nativeQuery =true)
+	public Double gettotalQuoteAccepted(@Param("dateFrom") Date dateFrom,
+			@Param("dateTo") Date dateTo);
+	
+
+	@Query(value = "SELECT \n" + 
+			" sum(nq.total_quote_value/(nm.lc_value/nm.usd_currency_value )) as amount\n" + 
+			"  FROM  nimai_m_customer nc INNER JOIN nimai_mm_transaction nm ON nm.user_id=nc.USERID\n" + 
+			" INNER JOIN nimai_m_quotation nq ON nm.transaction_id=nq.transaction_id\n" + 
+			" WHERE   nm.lc_issuing_date BETWEEN :dateFrom AND :dateTo AND \n" + 
+			"  nm.transaction_status='Closed'",nativeQuery =true)
+	public Double gettotalQuoteClosed(@Param("dateFrom") Date dateFrom,
+			@Param("dateTo") Date dateTo);
+	
+
+	
 	@Query(value = "select monthname(s.splan_start_date) as month,count(s.userid)  as customers \r\n"
 			+ "from nimai_subscription_details s inner join nimai_m_customer m on s.userid=m.USERID \r\n"
 			+ "where m.SUBSCRIBER_TYPE='Customer' and year(s.SPLAN_START_DATE)= :year and s.`STATUS`='Active'\r\n"
@@ -101,6 +134,33 @@ List<Tuple> getCustomerDetailByUserID(@Param("fromDate")java.util.Date fromDate,
 		"WHERE ns.userid=:userid AND ns.`STATUS`=:planStatus and ns.SUBSCRIPTION_ID=:scubscriptionId",nativeQuery = true)
 	NimaiSubscriptionDetails getplanByUserIDAndSID(@Param("userid") String userid, @Param("planStatus") String planStatus,@Param("scubscriptionId") String scubscriptionId);
 
+@Query(value = "from NimaiSubscriptionDetails re where re.userid.userid= (:userId)")
+List<NimaiSubscriptionDetails> finSplanByReferId(@Param("userId") String userId);
 
+@Query(value="SELECT \n" + 
+		" sum(nq.total_quote_value/(nm.lc_value/nm.usd_currency_value )) as amount\n" + 
+		"  FROM  nimai_m_customer nc INNER JOIN nimai_mm_transaction nm ON nm.user_id=nc.USERID\n" + 
+		" INNER JOIN nimai_m_quotation nq ON nm.transaction_id=nq.transaction_id\n" + 
+		" WHERE  FIND_IN_SET(nc.COUNTRY_NAME, :countryNames) and  nm.lc_issuing_date BETWEEN :dateFrom AND :dateTo",nativeQuery = true)
+Double gettotalQuoteReceivedCountryNames(@Param("dateFrom") Date dateFrom,
+		@Param("dateTo") Date dateTo, @Param("countryNames") String countryNames);
+
+@Query(value="SELECT \n" + 
+		" sum(nq.total_quote_value/(nm.lc_value/nm.usd_currency_value )) as amount\n" + 
+		"  FROM  nimai_m_customer nc INNER JOIN nimai_mm_transaction nm ON nm.user_id=nc.USERID\n" + 
+		" INNER JOIN nimai_m_quotation nq ON nm.transaction_id=nq.transaction_id\n" + 
+		" WHERE  FIND_IN_SET(nc.COUNTRY_NAME, :countryNames) and  nm.lc_issuing_date BETWEEN :dateFrom AND :dateTo AND \n" + 
+		"  nq.quotation_status='Accepted'",nativeQuery = true)
+Double gettotalQuoteAcceptedCountryNames(@Param("dateFrom") Date dateFrom,
+		@Param("dateTo") Date dateTo, @Param("countryNames") String countryNames);
+
+@Query(value="SELECT \n" + 
+		" sum(nq.total_quote_value/(nm.lc_value/nm.usd_currency_value )) as amount\n" + 
+		"  FROM  nimai_m_customer nc INNER JOIN nimai_mm_transaction nm ON nm.user_id=nc.USERID\n" + 
+		" INNER JOIN nimai_m_quotation nq ON nm.transaction_id=nq.transaction_id\n" + 
+		" WHERE  FIND_IN_SET(nc.COUNTRY_NAME, :countryNames) and  nm.lc_issuing_date BETWEEN :dateFrom AND :dateTo AND \n" + 
+		"  nm.transaction_status='Closed'",nativeQuery = true)
+Double gettotalQuoteClosedCountryNames(@Param("dateFrom") Date dateFrom,
+		@Param("dateTo") Date dateTo, @Param("countryNames") String countryNames);
 
 }

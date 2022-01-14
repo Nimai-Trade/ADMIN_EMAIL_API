@@ -1,6 +1,7 @@
 package com.nimai.admin.repository;
 
 import java.util.Date;
+
 import java.util.HashMap;
 import java.util.List;
 
@@ -9,6 +10,7 @@ import javax.persistence.ParameterMode;
 import javax.persistence.StoredProcedureQuery;
 import javax.persistence.Tuple;
 
+import org.hibernate.annotations.Parameter;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -25,6 +27,7 @@ import com.nimai.admin.model.NimaiMRefer;
 import com.nimai.admin.model.NimaiMmTransaction;
 import com.nimai.admin.model.NimaiSubscriptionDetails;
 import com.nimai.admin.model.NimaiSubscriptionVas;
+
 
 @Repository
 public interface CustomerRepository
@@ -47,6 +50,13 @@ public interface CustomerRepository
 			@Param("mobileNumber") String mobileNo, @Param("companyName") String companyName);
 
 	public NimaiMCustomer findByUserid(String userid);
+	
+	
+	 @Query(value = "select m.userid,m.subscriber_type,m.company_name,m.mobile_number,m.landline,m.country_name,m.email_address\r\n,m.first_name,m.last_name,s.subscription_name,s.is_vas_applied,s.subscription_amount,"
+	 		+ "\r\nm.currency_code,m.mode_of_payment,s.inserted_date,s.splan_start_date,s.splan_end_date,s.DISCOUNT_ID,s.DISCOUNT"
+	 		+ "\r\n from nimai_subscription_details s inner join nimai_m_customer m on s.userid=m.USERID where s.userid= :userid and s.INSERTED_DATE between :dateFrom and :dateTo", nativeQuery = true)
+	    List<Tuple> getPaymentSubUserIdReport(@Param("dateFrom") final String dateFrom, @Param("dateTo") final Date dateTo, @Param("userid") final String userid);
+	
 
 	// @Query(value= "select quotation_id from nimai_m_quotation where
 	// transaction_id=(:transactionId) and userid=(:userId)", nativeQuery = true)
@@ -110,27 +120,29 @@ public interface CustomerRepository
 	// bashir 16-9 // bank Transaction details
 
 	@Query(value = "select q.bank_userid,q.mobile_number,q.email_address,q.inserted_date,q.bank_name,q.branch_name,q.country_name,\r\n"
-			+ "t.transaction_id,t.requirement_type,t.lc_issuance_bank,t.lc_value,t.lc_currency,t.original_tenor_days,q.applicable_benchmark,q.confirmation_charges,\r\n"
+			+ "t.transaction_id,t.requirement_type,t.lc_issuance_bank,t.lc_value,t.lc_currency,t.original_tenor_days,t.refinancing_period,t.confirmation_period,t.discounting_period,q.applicable_benchmark,q.confirmation_charges,\r\n"
 			+ "q.discounting_charges,q.refinancing_charges,q.banker_accept_charges,\r\n"
-			+ "q.conf_chgs_issuance_to_negot,q.conf_chgs_issuance_to_matur,q.negotiation_charges_fixed,q.negotiation_charges_perct,q.other_charges,q.minimum_transaction_charges,\r\n"
-			+ "count(q.quotation_id) as total_quotes,q.quotation_id,t.validity from nimai_m_customer m inner join nimai_mm_transaction t on m.userid=t.user_id \r\n"
+			+ "q.conf_chgs_issuance_to_negot,q.conf_chgs_issuance_to_matur,q.negotiation_charges_fixed,q.negotiation_charges_perct,q.other_charges,q.min_transaction_charges,\r\n"
+			+ "count(q.quotation_id) as total_quotes,q.quotation_id,q.validity_date from nimai_m_customer m inner join nimai_mm_transaction t on m.userid=t.user_id \r\n"
 			+ "inner join nimai_m_quotation q on t.transaction_id=q.transaction_id  where q.inserted_date between :startDate and :endDate Group by t.transaction_id", nativeQuery = true)
 	List<Tuple> getAllTransactionDetails(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
 
 	// bank Transaction Details User Id
-	@Query(value = "select m.userid,q.mobile_number,q.email_address,q.bank_userid,\n"
-			+ "			q.inserted_date,q.bank_name,q.branch_name,q.country_name, \n"
-			+ "				t.transaction_id,t.requirement_type, \n"
-			+ "				t.lc_issuance_bank,t.lc_value,t.lc_currency,t.original_tenor_days,q.applicable_benchmark, \n"
-			+ "				q.confirmation_charges,q.discounting_charges,q.refinancing_charges,q.banker_accept_charges, \n"
-			+ "				q.conf_chgs_issuance_to_negot,q.conf_chgs_issuance_to_matur,q.negotiation_charges_fixed,q.negotiation_charges_perct, \n"
-			+ "				q.other_charges,q.minimum_transaction_charges, \n"
-			+ "				count(q.quotation_id) as total_quotes,q.quotation_id,t.validity\n"
-			+ "				from nimai_m_customer m inner join nimai_mm_transaction t on \n"
-			+ "				m.userid=t.user_id\n" + "				inner join nimai_m_quotation q on  \n"
-			+ "				t.transaction_id=q.transaction_id  \n" + "				where \n"
-			+ "				 q.inserted_date between (:startDate) AND (:endDate)  \n"
-			+ "				AND q.bank_userid=(:userid) GROUP by t.transaction_id", nativeQuery = true)
+	@Query(value = "select m.userid,q.mobile_number,q.email_address,q.bank_userid,\n" + 
+			"			q.inserted_date,q.bank_name,q.branch_name,q.country_name, \n" + 
+			"				t.transaction_id,t.requirement_type, \n" + 
+			"				t.lc_issuance_bank,t.lc_value,t.lc_currency,t.original_tenor_days,t.refinancing_period,t.confirmation_period,t.discounting_period,q.applicable_benchmark, \n" + 
+			"				q.confirmation_charges,q.discounting_charges,q.refinancing_charges,q.banker_accept_charges, \n" + 
+			"				q.conf_chgs_issuance_to_negot,q.conf_chgs_issuance_to_matur,q.negotiation_charges_fixed,q.negotiation_charges_perct, \n" + 
+			"				q.other_charges,q.min_transaction_charges, \n" + 
+			"				count(q.quotation_id) as total_quotes,q.quotation_id,q.validity_date\n" + 
+			"				from nimai_m_customer m inner join nimai_mm_transaction t on \n" + 
+			"				m.userid=t.user_id\n" + 
+			"				inner join nimai_m_quotation q on  \n" + 
+			"				t.transaction_id=q.transaction_id  \n" + 
+			"				where \n" + 
+			"				 q.inserted_date between (:startDate) AND (:endDate)  \n" + 
+			"				AND q.bank_userid=(:userid) GROUP by t.transaction_id", nativeQuery = true)
 	List<Tuple> getAllTransactionDetailsUserId(@Param("startDate") String startDate, @Param("endDate") Date endDate,
 			@Param("userid") String userid);
 
@@ -153,15 +165,18 @@ public interface CustomerRepository
 	// PaymentAndSubscription
 	@Query(value = "select m.userid,m.subscriber_type,m.company_name,m.mobile_number,m.landline,m.country_name,m.email_address\r\n"
 			+ ",m.first_name,m.last_name,s.subscription_name,s.is_vas_applied,s.subscription_amount,\r\n"
-			+ "m.currency_code,m.mode_of_payment,s.inserted_date,s.splan_start_date,s.splan_end_date\r\n"
+			+ "m.currency_code,m.mode_of_payment,s.inserted_date,s.splan_start_date,s.splan_end_date,s.DISCOUNT_ID,s.DISCOUNT\r\n"
 			+ " from nimai_subscription_details s inner join nimai_m_customer m on s.userid=m.USERID where s.INSERTED_DATE between :dateFrom and :dateTo", nativeQuery = true)
 	public List<Tuple> getPaymentSubReport(@Param("dateFrom") String dateFrom, @Param("dateTo") Date dateTo);
 
+	@Query(value = "SELECT d.DISCOUNT_ID,d.AMOUNT,d.CURRENCY FROM nimai_m_discount d WHERE d.DISCOUNT_ID= :discountid", nativeQuery = true)
+	public List<Tuple> getPaymentSubDiscount(@Param("discountid") String discountid);
+	
 	@Query(value = "select m.userid,m.subscriber_type,m.company_name,m.mobile_number,m.landline,m.country_name,m.email_address\r\n"
 			+ ",m.first_name,m.last_name,s.subscription_name,s.is_vas_applied,s.subscription_amount,\r\n"
 			+ "m.currency_code,m.mode_of_payment,s.inserted_date,s.splan_start_date,s.splan_end_date\r\n"
 			+ " from nimai_subscription_details s inner join nimai_m_customer m on s.userid=m.USERID where s.userid= :userid and s.INSERTED_DATE between :dateFrom and :dateTo", nativeQuery = true)
-	public List<Tuple> getPaymentSubUserIdReport(@Param("dateFrom") String dateFrom, @Param("dateTo") Date dateTo,
+	public List<Tuple> b  (@Param("dateFrom") String dateFrom, @Param("dateTo") Date dateTo,
 			@Param("userid") String userid);
 
 	@Query(value = "select m.userid,m.subscriber_type,m.mobile_number,m.email_address,m.inserted_date,t.transaction_id,t.applicant_name\r\n"
@@ -193,27 +208,67 @@ public interface CustomerRepository
 	
 	
 	
-	@Query(value = "	select c.REGISTERED_COUNTRY,\n" + 
-			"				(select count(m.subscriber_type)from nimai_m_customer m \n" + 
-			"				where   m.REGISTERED_COUNTRY=c.REGISTERED_COUNTRY    \n" + 
-			"				AND\n" + 
-			"				 (m.SUBSCRIBER_TYPE='Customer'  OR m.SUBSCRIBER_TYPE='Referrer' OR(m.SUBSCRIBER_TYPE='Bank' \n" + 
-			"				and m.BANK_TYPE='Customer')) and\n" + 
-			"				m.KYC_STATUS='Approved' AND (m.PAYMENT_STATUS='Approved' OR m.PAYMENT_STATUS='Success'))as total_customers,\n" + 
-			"			(select count(u.subscriber_type)from nimai_m_customer u \n" + 
-			"			where u.REGISTERED_COUNTRY=c.REGISTERED_COUNTRY AND u.SUBSCRIBER_TYPE='Bank' and \n" + 
-			"			u.BANK_TYPE='UNDERWRITER' and (u.PAYMENT_STATUS='Approved' OR u.PAYMENT_STATUS='Success')AND u.KYC_STATUS='Approved')\n" + 
-			"			as total_underwriter,\n" + 
-			"			(select count(t.transaction_id) from nimai_mm_transaction t \n" + 
-			"			where t.lc_issuance_country=c.REGISTERED_COUNTRY) as total_trxn,\n" + 
-			"			(select COALESCE(SUM(tr.lc_value),0) from nimai_mm_transaction tr\n" + 
-			"			 where tr.lc_issuance_country=c.REGISTERED_COUNTRY) as cumulative_lc_amount\n" + 
-			"				from nimai_m_customer c where\n" + 
-			"		 c.KYC_STATUS='Approved' AND (c.PAYMENT_STATUS='Approved' OR c.PAYMENT_STATUS='Success')  \n" + 
-			"		group by c.REGISTERED_COUNTRY order by c.REGISTERED_COUNTRY;", nativeQuery = true)
+//	@Query(value = "	select c.REGISTERED_COUNTRY,\n" + 
+//			"				(select count(m.subscriber_type)from nimai_m_customer m \n" + 
+//			"				where   m.REGISTERED_COUNTRY=c.REGISTERED_COUNTRY    \n" + 
+//			"				AND\n" + 
+//			"				 (m.SUBSCRIBER_TYPE='Customer'  OR m.SUBSCRIBER_TYPE='Referrer' OR(m.SUBSCRIBER_TYPE='Bank' \n" + 
+//			"				and m.BANK_TYPE='Customer')) and\n" + 
+//			"				m.KYC_STATUS='Approved' AND (m.PAYMENT_STATUS='Approved' OR m.PAYMENT_STATUS='Success'))as total_customers,\n" + 
+//			"			(select count(u.subscriber_type)from nimai_m_customer u \n" + 
+//			"			where u.REGISTERED_COUNTRY=c.REGISTERED_COUNTRY AND u.SUBSCRIBER_TYPE='Bank' and \n" + 
+//			"			u.BANK_TYPE='UNDERWRITER' and (u.PAYMENT_STATUS='Approved' OR u.PAYMENT_STATUS='Success')AND u.KYC_STATUS='Approved')\n" + 
+//			"			as total_underwriter,\n" + 
+//			"			(select count(t.transaction_id) from nimai_mm_transaction t \n" + 
+//			"			where t.lc_issuance_country=c.REGISTERED_COUNTRY) as total_trxn,\n" + 
+//			"			(select COALESCE(SUM(tr.usd_currency_value),0) from nimai_mm_transaction tr\n" + 
+//			"			 where tr.lc_issuance_country=c.REGISTERED_COUNTRY) as cumulative_lc_amount\n" + 
+//			"				from nimai_m_customer c where\n" + 
+//			"		 c.KYC_STATUS='Approved' AND (c.PAYMENT_STATUS='Approved' OR c.PAYMENT_STATUS='Success')  \n" + 
+//			"		group by c.REGISTERED_COUNTRY order by c.REGISTERED_COUNTRY;", nativeQuery = true)
+//	List<Tuple> getCountryDetailsAnalysis();
+//	
+//	
+	@Query(value = "\n" + 
+			"(select c.REGISTERED_COUNTRY AS REGISTERED_COUNTRY,\n" + 
+			"	(select count(m.subscriber_type)from nimai_m_customer m\n" + 
+			"	where   m.REGISTERED_COUNTRY=c.REGISTERED_COUNTRY    \n" + 
+			"	AND \n" + 
+			"	(m.SUBSCRIBER_TYPE='Customer' OR m.SUBSCRIBER_TYPE='Referrer' OR(m.SUBSCRIBER_TYPE='Bank' \n" + 
+			"	and m.BANK_TYPE='Customer')) and\n" + 
+			"	m.KYC_STATUS='Approved' AND (m.PAYMENT_STATUS='Approved' OR m.PAYMENT_STATUS='Success'))as total_customers,\n" + 
+			"	(select count(u.subscriber_type)from nimai_m_customer u\n" + 
+			"	where u.REGISTERED_COUNTRY=c.REGISTERED_COUNTRY AND u.SUBSCRIBER_TYPE='Bank' and\n" + 
+			"	u.BANK_TYPE='UNDERWRITER' and (u.PAYMENT_STATUS='Approved' OR u.PAYMENT_STATUS='Success')\n" + 
+			"	AND u.KYC_STATUS='Approved') \n" + 
+			"	as total_underwriter,\n" + 
+			"	(select count(t.transaction_id) from nimai_mm_transaction t  \n" + 
+			"	where t.lc_issuance_country=c.REGISTERED_COUNTRY	\n" + 
+			"	) as total_trxn,\n" + 
+			"	(select COALESCE(SUM(tr.usd_currency_value),0) from nimai_mm_transaction tr \n" + 
+			"	where tr.lc_issuance_country=c.REGISTERED_COUNTRY\n" + 
+			"	) as cumulative_lc_amount \n" + 
+			"	FROM \n" + 
+			"	     nimai_m_customer c where c.KYC_STATUS='Approved' AND (c.PAYMENT_STATUS='Approved' OR c.PAYMENT_STATUS='Success')  \n" + 
+			"	group by c.REGISTERED_COUNTRY order by c.REGISTERED_COUNTRY) \n" + 
+			"	UNION\n" + 
+			"	(SELECT nmtt.lc_issuance_country AS REGISTERED_COUNTRY,0,0,\n" + 
+			"	(select COUNT(t11.transaction_id) FROM nimai_mm_transaction t11 \n" + 
+			"	WHERE t11.lc_issuance_country=nmtt.lc_issuance_country) as total_trxn\n" + 
+			"	,\n" + 
+			"	(select COALESCE(SUM(tr.usd_currency_value),0) from nimai_mm_transaction tr \n" + 
+			"	where tr.lc_issuance_country=nmtt.lc_issuance_country) as cumulative_lc_amount\n" + 
+			"	FROM nimai_mm_transaction nmtt \n" + 
+			"	where nmtt.lc_issuance_country NOT in\n" + 
+			"	(SELECT nmcc.registered_country FROM nimai_m_customer nmcc\n" + 
+			"	where\n" + 
+			"	nmcc.KYC_STATUS='Approved' AND (nmcc.PAYMENT_STATUS='Approved' \n" + 
+			"	OR nmcc.PAYMENT_STATUS='Success'))  \n" + 
+			"	\n" + 
+			"	#WHERE nmc.REGISTERED_COUNTRY!=nmtt.lc_issuance_country\n" + 
+			"	GROUP BY nmtt.lc_issuance_country)\n" + 
+			"	ORDER BY REGISTERED_COUNTRY", nativeQuery = true)
 	List<Tuple> getCountryDetailsAnalysis();
-	
-	
 	
 	
 
@@ -229,26 +284,84 @@ public interface CustomerRepository
 //																									// country
 
 	
-	@Query(value = "	select c.REGISTERED_COUNTRY,\n" + 
-			"				(select count(m.subscriber_type)from nimai_m_customer m \n" + 
-			"				where   m.REGISTERED_COUNTRY=c.REGISTERED_COUNTRY    \n" + 
-			"				AND\n" + 
-			"				 (m.SUBSCRIBER_TYPE='Customer'  OR m.SUBSCRIBER_TYPE='Referrer' OR(m.SUBSCRIBER_TYPE='Bank' \n" + 
-			"				and m.BANK_TYPE='Customer')) and\n" + 
-			"				m.KYC_STATUS='Approved' AND (m.PAYMENT_STATUS='Approved' OR m.PAYMENT_STATUS='Success'))as total_customers,\n" + 
-			"			(select count(u.subscriber_type)from nimai_m_customer u \n" + 
-			"			where u.REGISTERED_COUNTRY=c.REGISTERED_COUNTRY AND u.SUBSCRIBER_TYPE='Bank' and \n" + 
-			"			u.BANK_TYPE='UNDERWRITER' and (u.PAYMENT_STATUS='Approved' OR u.PAYMENT_STATUS='Success')AND u.KYC_STATUS='Approved')\n" + 
-			"			as total_underwriter,\n" + 
-			"			(select count(t.transaction_id) from nimai_mm_transaction t \n" + 
-			"			where t.lc_issuance_country=c.REGISTERED_COUNTRY) as total_trxn,\n" + 
-			"			(select COALESCE(SUM(tr.lc_value),0) from nimai_mm_transaction tr\n" + 
-			"			 where tr.lc_issuance_country=c.REGISTERED_COUNTRY) as cumulative_lc_amount\n" + 
-			"				from nimai_m_customer c where c.REGISTERED_COUNTRY IN (:userCountry)\n" + 
-			"		AND c.KYC_STATUS='Approved' AND (c.PAYMENT_STATUS='Approved' OR c.PAYMENT_STATUS='Success')  \n" + 
-			"		group by c.REGISTERED_COUNTRY order by c.REGISTERED_COUNTRY;", nativeQuery = true)
+//	@Query(value = "	select c.REGISTERED_COUNTRY,\n" + 
+//			"				(select count(m.subscriber_type)from nimai_m_customer m \n" + 
+//			"				where   m.REGISTERED_COUNTRY=c.REGISTERED_COUNTRY    \n" + 
+//			"				AND\n" + 
+//			"				 (m.SUBSCRIBER_TYPE='Customer'  OR m.SUBSCRIBER_TYPE='Referrer' OR(m.SUBSCRIBER_TYPE='Bank' \n" + 
+//			"				and m.BANK_TYPE='Customer')) and\n" + 
+//			"				m.KYC_STATUS='Approved' AND (m.PAYMENT_STATUS='Approved' OR m.PAYMENT_STATUS='Success'))as total_customers,\n" + 
+//			"			(select count(u.subscriber_type)from nimai_m_customer u \n" + 
+//			"			where u.REGISTERED_COUNTRY=c.REGISTERED_COUNTRY AND u.SUBSCRIBER_TYPE='Bank' and \n" + 
+//			"			u.BANK_TYPE='UNDERWRITER' and (u.PAYMENT_STATUS='Approved' OR u.PAYMENT_STATUS='Success')AND u.KYC_STATUS='Approved')\n" + 
+//			"			as total_underwriter,\n" + 
+//			"			(select count(t.transaction_id) from nimai_mm_transaction t \n" + 
+//			"			where t.lc_issuance_country=c.REGISTERED_COUNTRY) as total_trxn,\n" + 
+//			"			(select COALESCE(SUM(tr.usd_currency_value),0) from nimai_mm_transaction tr\n" + 
+//			"			 where tr.lc_issuance_country=c.REGISTERED_COUNTRY) as cumulative_lc_amount\n" + 
+//			"				from nimai_m_customer c where c.REGISTERED_COUNTRY IN (:userCountry)\n" + 
+//			"		AND c.KYC_STATUS='Approved' AND (c.PAYMENT_STATUS='Approved' OR c.PAYMENT_STATUS='Success')  \n" + 
+//			"		group by c.REGISTERED_COUNTRY order by c.REGISTERED_COUNTRY;", nativeQuery = true)
+//	public List<Tuple> getCountryFilteredDetails(@Param("userCountry") List<String> userCountry);// mgmnt based on
+//		
+	
+	
+	
+	
+	
+	@Query(value = "(select c.REGISTERED_COUNTRY AS REGISTERED_COUNTRY,\n" + 
+			"	(select count(m.subscriber_type)from nimai_m_customer m\n" + 
+			"	where   m.REGISTERED_COUNTRY=c.REGISTERED_COUNTRY    \n" + 
+			"	AND \n" + 
+			"	(m.SUBSCRIBER_TYPE='Customer' OR m.SUBSCRIBER_TYPE='Referrer' OR(m.SUBSCRIBER_TYPE='Bank' \n" + 
+			"	and m.BANK_TYPE='Customer')) and\n" + 
+			"	m.KYC_STATUS='Approved' AND (m.PAYMENT_STATUS='Approved' OR m.PAYMENT_STATUS='Success'))as total_customers,\n" + 
+			"	(select count(u.subscriber_type)from nimai_m_customer u\n" + 
+			"	where u.REGISTERED_COUNTRY=c.REGISTERED_COUNTRY AND u.SUBSCRIBER_TYPE='Bank' and\n" + 
+			"	u.BANK_TYPE='UNDERWRITER' and (u.PAYMENT_STATUS='Approved' OR u.PAYMENT_STATUS='Success')\n" + 
+			"	AND u.KYC_STATUS='Approved') \n" + 
+			"	as total_underwriter,\n" + 
+			"	(select count(t.transaction_id) from nimai_mm_transaction t  \n" + 
+			"	where t.lc_issuance_country=c.REGISTERED_COUNTRY	\n" + 
+			"	) as total_trxn,\n" + 
+			"	(select COALESCE(SUM(tr.usd_currency_value),0) from nimai_mm_transaction tr \n" + 
+			"	where tr.lc_issuance_country=c.REGISTERED_COUNTRY\n" + 
+			"	) as cumulative_lc_amount \n" + 
+			"	FROM \n" + 
+			"	     nimai_m_customer c where c.REGISTERED_COUNTRY IN (:userCountry)\n" + 
+			"	AND c.KYC_STATUS='Approved' AND (c.PAYMENT_STATUS='Approved' OR c.PAYMENT_STATUS='Success')  \n" + 
+			"	group by c.REGISTERED_COUNTRY order by c.REGISTERED_COUNTRY) \n" + 
+			"	UNION\n" + 
+			"	(SELECT nmtt.lc_issuance_country AS REGISTERED_COUNTRY,0,0,\n" + 
+			"	(select COUNT(t11.transaction_id) FROM nimai_mm_transaction t11 \n" + 
+			"	WHERE t11.lc_issuance_country=nmtt.lc_issuance_country) as total_trxn\n" + 
+			"	,\n" + 
+			"	(select COALESCE(SUM(tr.usd_currency_value),0) from nimai_mm_transaction tr \n" + 
+			"	where tr.lc_issuance_country=nmtt.lc_issuance_country) as cumulative_lc_amount\n" + 
+			"	FROM nimai_mm_transaction nmtt \n" + 
+			"	where nmtt.lc_issuance_country NOT in\n" + 
+			"	(SELECT nmcc.registered_country FROM nimai_m_customer nmcc\n" + 
+			"	where\n" + 
+			"	nmcc.KYC_STATUS='Approved' AND (nmcc.PAYMENT_STATUS='Approved' \n" + 
+			"	OR nmcc.PAYMENT_STATUS='Success'))  \n" + 
+			"	\n" + 
+			"	#WHERE nmc.REGISTERED_COUNTRY!=nmtt.lc_issuance_country\n" + 
+			"	GROUP BY nmtt.lc_issuance_country)\n" + 
+			"	ORDER BY REGISTERED_COUNTRY", nativeQuery = true)
 	public List<Tuple> getCountryFilteredDetails(@Param("userCountry") List<String> userCountry);// mgmnt based on
 		
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	
 	@Procedure(name = "dashboardCount", outputParameterName = "result")
 	int getDashboardCount(@Param("query_no") int query_no, @Param("subscriberType") String subsType,
@@ -458,7 +571,8 @@ public interface CustomerRepository
 	@Query(value = "SELECT * from nimai_m_customer nc INNER JOIN nimai_subscription_details nd  \n"
 			+ "			 ON nc.USERID=nd.userid  \n" + "			  where nc.REGISTERED_COUNTRY In(:country)  \n"
 			+ "					and nc.MODE_OF_PAYMENT='Wire' and nc.SUBSCRIBER_TYPE!='REFERRER'  \n"
-			+ "					and nc.PAYMENT_STATUS='Maker Approved'	and nd.`STATUS`='ACTIVE' AND nc.USERID=nd.userid", countQuery = "SELECT count(*) from nimai_m_customer nc INNER JOIN nimai_subscription_details nd  \n"
+			+ "					and nc.PAYMENT_STATUS='Maker Approved'	and nd.`STATUS`='ACTIVE' AND nc.USERID=nd.userid",
+			countQuery = "SELECT count(*) from nimai_m_customer nc INNER JOIN nimai_subscription_details nd  \n"
 					+ " ON nc.USERID=nd.userid  \n" + " where nc.REGISTERED_COUNTRY In(:country)  \n"
 					+ "	and nc.MODE_OF_PAYMENT='Wire' and nc.SUBSCRIBER_TYPE!='REFERRER'  \n"
 					+ "	and nc.PAYMENT_STATUS='Maker Approved'	and nd.`STATUS`='ACTIVE' AND nc.USERID=nd.userid", nativeQuery = true)
@@ -473,6 +587,26 @@ public interface CustomerRepository
 			+ "and k.MODE_OF_PAYMENT='Wire' and nd.`STATUS`='ACTIVE' "
 			+ "and k.SUBSCRIBER_TYPE!='REFERRER'   ", nativeQuery = true)
 	Page<NimaiMCustomer> findAllMakerApprovedPaymentDetails(Pageable pageable);
+	
+	@Query(value = "select * from nimai_m_customer k INNER JOIN nimai_subscription_details nd ON k.USERID=nd.userid  where k.PAYMENT_STATUS='Maker Approved' "
+			+ "and k.MODE_OF_PAYMENT='Wire' " + "and k.SUBSCRIBER_TYPE=:subsType and k.BANK_TYPE=:bankType and nd.`STATUS`='ACTIVE' "
+			+ "and k.REGISTERED_COUNTRY IN (:countries)  ", nativeQuery = true)
+	Page<NimaiMCustomer> findMakerApprovedPaymentDetailsSubsTypeBankType(String subsType,String bankType,@Param("countries") List<String> countries, Pageable pageable);
+	
+	@Query(value = "select * from nimai_m_customer k INNER JOIN nimai_subscription_details nd ON k.USERID=nd.userid  where k.PAYMENT_STATUS='Maker Approved' "
+			+ "and k.MODE_OF_PAYMENT='Wire' " + "and k.SUBSCRIBER_TYPE=:subsType and nd.`STATUS`='ACTIVE' "
+			+ "and k.REGISTERED_COUNTRY IN (:countries)  ", nativeQuery = true)
+	Page<NimaiMCustomer> findMakerApprovedPaymentDetailsSubsType(String subsType,@Param("countries") List<String> countries, Pageable pageable);
+
+	@Query(value = "select * from nimai_m_customer k INNER JOIN nimai_subscription_details nd ON k.USERID=nd.userid where k.PAYMENT_STATUS='Maker Approved' "
+			+ "and k.MODE_OF_PAYMENT='Wire' and nd.`STATUS`='ACTIVE' "
+			+ "and k.SUBSCRIBER_TYPE=:subsType and k.BANK_TYPE=:bankType", nativeQuery = true)
+	Page<NimaiMCustomer> findAllMakerApprovedPaymentDetailsSubsTypeBankType(String subsType,String bankType,Pageable pageable);
+	
+	@Query(value = "select * from nimai_m_customer k INNER JOIN nimai_subscription_details nd ON k.USERID=nd.userid where k.PAYMENT_STATUS='Maker Approved' "
+			+ "and k.MODE_OF_PAYMENT='Wire' and nd.`STATUS`='ACTIVE' "
+			+ "and k.SUBSCRIBER_TYPE=:subsType", nativeQuery = true)
+	Page<NimaiMCustomer> findAllMakerApprovedPaymentDetailsSubsType(String subsType,Pageable pageable);
 
 	@Query(value = "	select distinct count(t.transaction_id)  from nimai_mm_transaction "
 			+ "t inner join nimai_m_customer c \n" + "on c.USERID=t.user_id\n"
@@ -488,4 +622,841 @@ public interface CustomerRepository
 			+ "and (c.SUBSCRIBER_TYPE='Customer' or c.BANK_TYPE='Customer');", nativeQuery = true)
 	public int getDashboardRejectedCountByCountryWise(List<String> value);
 
+	@Query("from NimaiMCustomer nc where nc.accountSource=:userid")
+	public List<NimaiMCustomer> findReferListByReferrerUsrId(@Param("userid")String userid);
+
+	 @Query(value = "select * from nimai_m_customer where email_address=(:emailAddress) and account_type='Refer'", nativeQuery = true)
+	 NimaiMCustomer getUserIdByEmailId(@Param("emailAddress") String emailAddress);
+
+	 @Query(value="SELECT sum((nsd.SUBSCRIPTION_AMOUNT+nsd.VAS_AMOUNT)-(nsd.DISCOUNT)) FROM nimai_subscription_details nsd \r\n" + 
+				"	WHERE nsd.userid=(:userid) and nsd.PAYMENT_STATUS!='Rejected' AND nsd.PAYMENT_STATUS!='Pending'", nativeQuery = true )
+		Integer findTotalEarning(@Param("userid")String userid);
+
+	 @Query(value = "SELECT * FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+		 		"WHERE (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value\n" + 
+		 		"GROUP BY nc.USERID",
+					countQuery = "SELECT COUNT(cnt) from\n" + 
+							"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+							"WHERE (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value \n" + 
+							"GROUP BY nc.USERID) as cnt",
+					nativeQuery = true)
+			public Page<NimaiMCustomer> getAllCustomerKYC(List<String> value, Pageable p);
+		 
+		@Query(value = "SELECT * FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+				"WHERE nfk.kyc_status='Pending' AND (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value\n" + 
+				"GROUP BY nc.USERID ",
+				countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+						"WHERE nfk.kyc_status='Pending' AND (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value \n" + 
+						"GROUP BY nc.USERID) as cnt",
+				nativeQuery = true)
+		public Page<NimaiMCustomer> getPendingCustomerKYC(List<String> value, Pageable p);
+		
+		
+		
+		@Query(value = "SELECT * FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+				"WHERE nfk.kyc_status='Pending' AND (nc.SUBSCRIBER_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value\n" + 
+				"GROUP BY nc.USERID ",
+				countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+						"WHERE nfk.kyc_status='Pending' AND (nc.SUBSCRIBER_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value \n" + 
+						"GROUP BY nc.USERID) as cnt",
+				nativeQuery = true)
+		public Page<NimaiMCustomer> getCuPendingCustomerKYC(List<String> value, Pageable p);
+		
+		@Query(value = "SELECT * FROM nimai_m_customer nc " + 
+				"WHERE (nc.MODE_OF_PAYMENT='Wire' and nc.payment_status='Pending') AND (nc.SUBSCRIBER_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value\n" + 
+				"GROUP BY nc.USERID ",
+				countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc " + 
+						"WHERE (nc.MODE_OF_PAYMENT='Wire' and nc.payment_status='Pending') AND (nc.SUBSCRIBER_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value \n" + 
+						"GROUP BY nc.USERID) as cnt",
+				nativeQuery = true)
+		public Page<NimaiMCustomer> getCuPendingCustomerPayment(List<String> value, Pageable p);
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		@Query(value = "SELECT * FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+				"WHERE nfk.kyc_status='Approved' AND (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value\n" + 
+				"GROUP BY nc.USERID ",
+				countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+						"WHERE nfk.kyc_status='Approved' AND (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value \n" + 
+						"GROUP BY nc.USERID) as cnt",
+				nativeQuery = true)
+		public Page<NimaiMCustomer> getApprovedCustomerKYC(List<String> value, Pageable p);
+		
+		@Query(value = "SELECT * FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+				"WHERE nc.KYC_STATUS='Rejected' AND \n" + 
+				"(nc.SUBSCRIBER_TYPE='CUSTOMER' or nc.BANK_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value \n" + 
+				"GROUP BY nc.USERID ",
+				countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+						"WHERE nfk.kyc_status='Rejected' AND (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER')and nc.REGISTERED_COUNTRY IN :value \n" + 
+						"GROUP BY nc.USERID) as cnt",
+				nativeQuery = true)
+		public Page<NimaiMCustomer> getRejectedCustomerKYC(List<String> value, Pageable p);
+		
+		@Query(value = "SELECT * FROM nimai_m_customer nc WHERE nc.USERID NOT IN \n" + 
+				"			(SELECT nfk.userId from nimai_f_kyc nfk) \n" + 
+				"			and nc.REGISTERED_COUNTRY IN :value AND ((nc.SUBSCRIBER_TYPE='CUSTOMER' or nc.SUBSCRIBER_TYPE='BANK') AND (nc.BANK_TYPE='CUSTOMER' or\n" + 
+				"			nc.BANK_TYPE=''))",
+				countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) as cnt FROM nimai_m_customer nc WHERE nc.USERID NOT IN (SELECT nfk.userId from nimai_f_kyc nfk) \n" + 
+						"AND (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value\n" + 
+						"GROUP BY nc.USERID) as cnt",
+				nativeQuery = true)
+		public Page<NimaiMCustomer> getNotUploadCustomerKYC(List<String> value, Pageable p);
+		
+		@Query(value = "SELECT * FROM nimai_m_customer nc "
+				+ "left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+		 		"WHERE (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER')\n" + 
+		 		"AND nc.USERID= :userId and nc.REGISTERED_COUNTRY IN :value",
+		 		countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+						"WHERE (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value \n" + 
+						"GROUP BY nc.USERID) as cnt",nativeQuery = true)
+		public Page<NimaiMCustomer> getDetailsByUserId(String userId, List<String> value, Pageable p);
+		
+		@Query(value = "SELECT * FROM nimai_m_customer nc "
+				+ "left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+		 		"WHERE (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER')\n" + 
+		 		"AND nc.EMAIL_ADDRESS= :emailId and nc.REGISTERED_COUNTRY IN :value GROUP BY nc.USERID ",
+		 		countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+						"WHERE (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value \n" + 
+						"GROUP BY nc.USERID) as cnt ",nativeQuery = true)
+		public Page<NimaiMCustomer> getDetailsByEmailId(String emailId, List<String> value, Pageable p);
+		
+	
+		@Query(value = "SELECT * FROM nimai_m_customer nc "
+				+ "left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+		 		"WHERE (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER')\n" + 
+		 		"AND nc.MOBILE_NUMBER= :mobileNumber and nc.REGISTERED_COUNTRY IN :value GROUP BY nc.USERID ",
+		 		countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+						"WHERE (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value \n" + 
+						"GROUP BY nc.USERID) as cnt ",nativeQuery = true)
+		public Page<NimaiMCustomer> getDetailsByMobileNumber(String mobileNumber, List<String> value, Pageable p);
+		
+		
+		@Query(value = "SELECT * FROM nimai_m_customer nc "
+				+ "left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+		 		"WHERE (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER')\n" + 
+		 		"AND nc.COUNTRY_NAME= :country and nc.REGISTERED_COUNTRY IN :value GROUP BY nc.USERID ",
+		 		countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+						"WHERE (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value \n" + 
+						"GROUP BY nc.USERID) as cnt ",nativeQuery = true)
+		public Page<NimaiMCustomer> getDetailsByCountry(String country, List<String> value, Pageable p);
+		
+		
+		@Query(value = "SELECT * FROM nimai_m_customer nc "
+				+ "left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+		 		"WHERE (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER')\n" + 
+		 		"AND nc.COMPANY_NAME= :companyName and nc.REGISTERED_COUNTRY IN :value GROUP BY nc.USERID",
+		 		countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+						"WHERE (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value\n" + 
+						"GROUP BY nc.USERID) as cnt ",nativeQuery = true)
+		public Page<NimaiMCustomer> getDetailsByCompanyName(String companyName, List<String> value, Pageable p);
+		
+		
+		
+		
+		
+		
+		//----------------Bank details as per kyc status-------------------------
+		
+		
+		
+		@Query(value = "SELECT * FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+		 		"WHERE (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER') and nc.REGISTERED_COUNTRY IN :value\n" + 
+		 		"GROUP BY nc.USERID",
+					countQuery = "SELECT COUNT(cnt) from\n" + 
+							"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+							"WHERE (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER') and nc.REGISTERED_COUNTRY IN :value\n" + 
+							"GROUP BY nc.USERID) as cnt",
+					nativeQuery = true)
+			public Page<NimaiMCustomer> getAllBankKYC(List<String> value, Pageable p);
+	 
+	 
+		
+		
+		
+		
+		 @Query(value = "SELECT COUNT(cnt) from\n" + 
+								"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+								"WHERE nfk.kyc_status='Pending' \n" + 
+								"GROUP BY nc.USERID) as cnt",
+						nativeQuery = true)
+				public long getPendingAllKYC();
+		
+		 
+		 @Query(value = "SELECT COUNT(cnt) from\n" + 
+					"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+					"WHERE nfk.kyc_status='Pending' and nc.SUBSCRIBER_TYPE='Customer' \n" + 
+					"GROUP BY nc.USERID) as cnt",
+			nativeQuery = true)
+	public long getCustPendingAllKYC();
+		 
+		 @Query(value = "SELECT COUNT(cnt) from\n" + 
+					"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+					"WHERE nfk.kyc_status='Pending' and nc.SUBSCRIBER_TYPE='Bank' and nc.BANK_TYPE='Customer' \n" + 
+					"GROUP BY nc.USERID) as cnt",
+			nativeQuery = true)
+	public long getBankAsCustPendingAllKYC();
+		 
+		 @Query(value = "SELECT COUNT(cnt) from\n" + 
+					"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+					"WHERE (nfk.kyc_status='Pending' AND nc.KYC_STATUS='Pending') and nc.SUBSCRIBER_TYPE='Bank' and nc.BANK_TYPE='Underwriter' \n" + 
+					"GROUP BY nc.USERID) as cnt",
+			nativeQuery = true)
+	public long getBankAsUnderPendingAllKYC();
+		 
+		 @Query(value = "SELECT COUNT(cnt) from\n" + 
+					"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+					"WHERE nfk.kyc_status='Maker Approved' \n" + 
+					"GROUP BY nc.USERID) as cnt",
+			nativeQuery = true)
+	public long getGrantKYC();
+		 
+		 @Query(value = "SELECT COUNT(cnt) from\n" + 
+					"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+					"WHERE nfk.kyc_status='Maker Approved' and nc.SUBSCRIBER_TYPE='Bank' and nc.BANK_TYPE='Customer' \n" + 
+					"GROUP BY nc.USERID) as cnt",
+			nativeQuery = true)
+	public long getBankAsCustGrantKYC();
+		 
+		 @Query(value = "SELECT COUNT(cnt) from\n" + 
+					"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+					"WHERE nfk.kyc_status='Maker Approved' and nc.SUBSCRIBER_TYPE='Bank' and nc.BANK_TYPE='Underwriter' \n" + 
+					"GROUP BY nc.USERID) as cnt",
+			nativeQuery = true)
+	public long getBankAsUnderGrantKYC();
+		 
+		 @Query(value = "SELECT COUNT(cnt) from\n" + 
+					"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+					"WHERE nfk.kyc_status='Maker Approved' and nc.SUBSCRIBER_TYPE='Customer'\n" + 
+					"GROUP BY nc.USERID) as cnt",
+			nativeQuery = true)
+	public long getCustGrantKYC();
+
+
+		
+		
+	 @Query(value = "	SELECT * FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+	 		"				WHERE (nfk.KYC_STATUS='Pending' AND nc.KYC_STATUS='Pending')  AND \n" + 
+	 		"				(nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER') and nc.REGISTERED_COUNTRY IN :value\n" + 
+	 		"			GROUP BY nc.USERID",
+				countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+						"WHERE (nfk.kyc_status='Pending' AND nc.KYC_STATUS='Pending') AND (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER') and nc.REGISTERED_COUNTRY IN :value \n" + 
+						"GROUP BY nc.USERID) as cnt",
+				nativeQuery = true)
+		public Page<NimaiMCustomer> getPendingBankKYC(List<String> value, Pageable p);
+	 
+	 @Query(value = "	SELECT * FROM nimai_m_customer nc \n" + 
+		 		"				WHERE (nc.PAYMENT_STATUS='Pending' and nc.MODE_OF_PAYMENT='Wire')  AND \n" + 
+		 		"				(nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER') and nc.REGISTERED_COUNTRY IN :value\n" + 
+		 		"			GROUP BY nc.USERID",
+					countQuery = "SELECT COUNT(cnt) from\n" + 
+							"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc \n" + 
+							"WHERE (nc.PAYMENT_STATUS='Pending' and nc.MODE_OF_PAYMENT='Wire') AND (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER') and nc.REGISTERED_COUNTRY IN :value \n" + 
+							"GROUP BY nc.USERID) as cnt",
+					nativeQuery = true)
+			public Page<NimaiMCustomer> getPaymentPendingBank(List<String> value, Pageable p);
+	
+	 @Query(value = "	select * from nimai_m_customer c\n" + 
+	 		"where c.REGISTERED_COUNTRY IN :value and c.subscriber_type='BANK' and c.bank_type='UNDERWRITER' \n" + 
+	 		"and c.USERID not in (select s.userid from nimai_subscription_details s) ",
+					countQuery = "select count(cnt) from\n" + 
+							"(select count(*) as cnt from nimai_m_customer c\n" + 
+							"where c.REGISTERED_COUNTRY IN :value and c.subscriber_type='BANK' and c.bank_type='UNDERWRITER' \n" + 
+							"and c.USERID not in (select s.userid from nimai_subscription_details s)) \n" + 
+							"as cnt",
+					nativeQuery = true)
+			public Page<NimaiMCustomer> getPaymentPendingUserBank(List<String> value, Pageable p);
+	 
+	 @Query(value = "	select * from nimai_m_customer c\n" + 
+		 		"where c.REGISTERED_COUNTRY IN :value and c.subscriber_type='BANK' and c.bank_type='CUSTOMER' \n" + 
+		 		"and c.USERID not in (select s.userid from nimai_subscription_details s) ",
+						countQuery = "select count(cnt) from\n" + 
+								"(select count(*) as cnt from nimai_m_customer c\n" + 
+								"where c.REGISTERED_COUNTRY IN :value and c.subscriber_type='BANK' and c.bank_type='CUSTOMER' \n" + 
+								"and c.USERID not in (select s.userid from nimai_subscription_details s)) \n" + 
+								"as cnt",
+						nativeQuery = true)
+				public Page<NimaiMCustomer> getPaymentPendingUserBC(List<String> value, Pageable p);
+		 
+	 @Query(value = "	select * from nimai_m_customer c\n" + 
+		 		"where c.REGISTERED_COUNTRY IN :value and c.subscriber_type='CUSTOMER' \n" + 
+		 		"and c.USERID not in (select s.userid from nimai_subscription_details s) ",
+						countQuery = "select count(cnt) from\n" + 
+								"(select count(*) as cnt from nimai_m_customer c\n" + 
+								"where c.REGISTERED_COUNTRY IN :value and c.subscriber_type='CUSTOMER' \n" + 
+								"and c.USERID not in (select s.userid from nimai_subscription_details s)) \n" + 
+								"as cnt",
+						nativeQuery = true)
+				public Page<NimaiMCustomer> getPaymentPendingUserCU(List<String> value, Pageable p);
+		 
+	 
+	 @Query(value = "	select * from nimai_m_customer c\n" + 
+	 		"where c.subscriber_type='BANK' and c.bank_type='UNDERWRITER' \n" + 
+	 		"and c.USERID in (select s.userid from nimai_subscription_details s \n" + 
+	 		"where s.status='Active' and s.SPLAN_END_DATE between now() \n" + 
+	 		"and DATE_ADD(NOW(), INTERVAL 30 DAY)) and c.REGISTERED_COUNTRY IN :value",
+					countQuery = "select count(cnt) from\n" + 
+							"(select count(*) as cnt from nimai_m_customer c\n" + 
+							"where c.subscriber_type='BANK' and c.bank_type='UNDERWRITER' \n" + 
+							"and c.REGISTERED_COUNTRY IN :value and c.USERID in (select s.userid from nimai_subscription_details s \n" + 
+							"where s.status='Active' and s.SPLAN_END_DATE between now() \n" + 
+							"and DATE_ADD(NOW(), INTERVAL 30 DAY)) as cnt",
+					nativeQuery = true)
+			public Page<NimaiMCustomer> getSubscriptionExpiryBank(List<String> value, Pageable p);
+	 
+	 @Query(value = "	select * from nimai_m_customer c\n" + 
+		 		"where c.subscriber_type='BANK' and c.bank_type='CUSTOMER' \n" + 
+		 		"and c.USERID in (select s.userid from nimai_subscription_details s \n" + 
+		 		"where s.status='Active' and s.SPLAN_END_DATE between now() \n" + 
+		 		"and DATE_ADD(NOW(), INTERVAL 30 DAY)) and c.REGISTERED_COUNTRY IN :value",
+						countQuery = "select count(cnt) from\n" + 
+								"(select count(*) as cnt from nimai_m_customer c\n" + 
+								"where c.subscriber_type='BANK' and c.bank_type='CUSTOMER' \n" + 
+								"and c.REGISTERED_COUNTRY IN :value and c.USERID in (select s.userid from nimai_subscription_details s \n" + 
+								"where s.status='Active' and s.SPLAN_END_DATE between now() \n" + 
+								"and DATE_ADD(NOW(), INTERVAL 30 DAY)) as cnt",
+						nativeQuery = true)
+				public Page<NimaiMCustomer> getSubscriptionExpiryBC(List<String> value, Pageable p);
+		 
+	 @Query(value = "	select * from nimai_m_customer c\n" + 
+		 		"where c.subscriber_type='CUSTOMER' \n" + 
+		 		"and c.USERID in (select s.userid from nimai_subscription_details s \n" + 
+		 		"where s.status='Active' and s.SPLAN_END_DATE between now() \n" + 
+		 		"and DATE_ADD(NOW(), INTERVAL 30 DAY)) and c.REGISTERED_COUNTRY IN :value",
+						countQuery = "select count(cnt) from\n" + 
+								"(select count(*) as cnt from nimai_m_customer c\n" + 
+								"where c.subscriber_type='CUSTOMER' \n" + 
+								"and c.REGISTERED_COUNTRY IN :value and c.USERID in (select s.userid from nimai_subscription_details s \n" + 
+								"where s.status='Active' and s.SPLAN_END_DATE between now() \n" + 
+								"and DATE_ADD(NOW(), INTERVAL 30 DAY)) as cnt",
+						nativeQuery = true)
+				public Page<NimaiMCustomer> getSubscriptionExpiryCU(List<String> value, Pageable p);
+		 
+	 
+		@Query(value = "SELECT * FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+				"WHERE nfk.KYC_STATUS='Approved' AND (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER') and nc.REGISTERED_COUNTRY IN :value\n" + 
+				"GROUP BY nc.USERID ",
+				countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+						"WHERE nfk.kyc_status='Approved' AND (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER') and nc.REGISTERED_COUNTRY IN :value \n" + 
+						"GROUP BY nc.USERID) as cnt",
+				nativeQuery = true)
+		public Page<NimaiMCustomer> getApprovedBankKYC(List<String> value, Pageable p);
+		
+		@Query(value = "SELECT * FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+				"WHERE nc.KYC_STATUS='Rejected' AND \n" + 
+				"(nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER') and nc.REGISTERED_COUNTRY IN :value\n" + 
+				"GROUP BY nc.USERID",
+				countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+						"WHERE nfk.kyc_status='Rejected' AND (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER') and nc.REGISTERED_COUNTRY IN :value \n" + 
+						"GROUP BY nc.USERID) as cnt",
+				nativeQuery = true)
+		public Page<NimaiMCustomer> getRejectedBankKYC(List<String> value, Pageable p);
+		
+		@Query(value = "SELECT * FROM nimai_m_customer nc WHERE nc.USERID NOT IN \n" + 
+				"			(SELECT nfk.userId from nimai_f_kyc nfk)\n" + 
+				"			AND nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER' and nc.REGISTERED_COUNTRY IN :value",
+				countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) as cnt FROM nimai_m_customer nc WHERE nc.USERID NOT IN (SELECT nfk.userId from nimai_f_kyc nfk) \n" + 
+						"AND nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER' and nc.REGISTERED_COUNTRY IN :value\n" + 
+						"GROUP BY nc.USERID) as cnt",
+				nativeQuery = true)
+		public Page<NimaiMCustomer> getNotUploadBankKYC(List<String> value, Pageable p);
+		
+		
+		@Query(value = "SELECT * FROM nimai_m_customer nc "
+				+ "left join nimai_f_kyc nfk ON nc.USERID=nfk.userId \n" + 
+		 		"WHERE (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER')\n" + 
+		 		"AND nc.USERID= :userId and nc.REGISTERED_COUNTRY IN :value ",
+		 		countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+						"WHERE (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER') and nc.REGISTERED_COUNTRY IN :value \n" + 
+						"GROUP BY nc.USERID) as cnt",nativeQuery = true)
+		public Page<NimaiMCustomer> getBankDetailsByUserId(String userId, List<String> value, Pageable p);
+		
+		@Query(value = "SELECT * FROM nimai_m_customer nc "
+				+ "left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+		 		"WHERE (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER')\n" + 
+		 		"AND nc.EMAIL_ADDRESS= :emailId and nc.REGISTERED_COUNTRY IN :value GROUP BY nc.USERID",
+		 		countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+						"WHERE (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER') and nc.REGISTERED_COUNTRY IN :value \n" + 
+						"GROUP BY nc.USERID) as cnt ",nativeQuery = true)
+		public Page<NimaiMCustomer> getBankDetailsByEmailId(String emailId, List<String> value, Pageable p);
+		
+		@Query(value = "SELECT * FROM nimai_m_customer nc "
+				+ "left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+		 		"WHERE (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER')\n" + 
+		 		"AND nc.MOBILE_NUMBER= :mobileNUmber and nc.REGISTERED_COUNTRY IN :value GROUP BY nc.USERID ",
+		 		countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+						"WHERE (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER') and nc.REGISTERED_COUNTRY IN :value \n" + 
+						"GROUP BY nc.USERID) as cnt ",nativeQuery = true)
+		public Page<NimaiMCustomer> getBankDetailsByMobileNo(String mobileNUmber, List<String> value, Pageable p);
+		
+		@Query(value = "SELECT * FROM nimai_m_customer nc "
+				+ "left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+		 		"WHERE (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER')\n" + 
+		 		"AND nc.COUNTRY_NAME= :country and nc.REGISTERED_COUNTRY IN :value GROUP BY nc.USERID ",
+		 		countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+						"WHERE (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER') and nc.REGISTERED_COUNTRY IN :value \n" + 
+						"GROUP BY nc.USERID) as cnt ",nativeQuery = true)
+		public Page<NimaiMCustomer> getBankDetailsByCountry(String country, List<String> value, Pageable p);
+		
+		@Query(value = "SELECT * FROM nimai_m_customer nc "
+				+ "left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+		 		"WHERE (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER')\n" + 
+		 		"AND nc.BANK_NAME= :companyName and nc.REGISTERED_COUNTRY IN :value GROUP BY nc.USERID",
+		 		countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+						"WHERE (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER') and nc.REGISTERED_COUNTRY IN :value \n" + 
+						"GROUP BY nc.USERID) as cnt ",nativeQuery = true)
+		public Page<NimaiMCustomer> getBankDetailsByCompanyName(String companyName, List<String> value, Pageable p);
+
+		@Query(value = "SELECT * FROM nimai_m_customer nc "
+				+ "left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+		 		"WHERE (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER')\n" + 
+		 		"AND nc.USERID= :userId and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value",
+		 		countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+						"WHERE (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value and nc.USERID= :userId and nc.RM_ID= :rmId and nc.RM_STATUS='Active'  \n" + 
+						"GROUP BY nc.USERID) as cnt",nativeQuery = true)
+		public Page<NimaiMCustomer> getDetailsByUserIdRmId(String rmId,String userId,List<String> value, Pageable pageable);
+
+		@Query(value = "SELECT * FROM nimai_m_customer nc "
+				+ "left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+		 		"WHERE (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER')\n" + 
+		 		"AND nc.MOBILE_NUMBER= :mobileNumber and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value GROUP BY nc.USERID ",
+		 		countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+						"WHERE (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value "
+						+ "AND nc.MOBILE_NUMBER= :mobileNumber and nc.RM_ID= :rmId and nc.RM_STATUS='Active'\n" + 
+						"GROUP BY nc.USERID) as cnt ",nativeQuery = true)
+		public Page<NimaiMCustomer> getDetailsByMobileNumberRmId(String mobileNumber, String rmId,List<String> value, Pageable pageable);
+
+		@Query(value = "SELECT * FROM nimai_m_customer nc "
+				+ "left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+		 		"WHERE (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER')\n" + 
+		 		"AND nc.EMAIL_ADDRESS= :emailId and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value GROUP BY nc.USERID ",
+		 		countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+						"WHERE (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') "
+						+ "AND nc.EMAIL_ADDRESS= :emailId and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value \n" + 
+						"GROUP BY nc.USERID) as cnt ",nativeQuery = true)
+		public Page<NimaiMCustomer> getDetailsByEmailIdRmId(String emailId, String rmId,List<String> value, Pageable pageable);
+
+		@Query(value = "SELECT * FROM nimai_m_customer nc "
+				+ "left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+		 		"WHERE (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER')\n" + 
+		 		"AND nc.COUNTRY_NAME= :country and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value GROUP BY nc.USERID ",
+		 		countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+						"WHERE (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') "
+						+ "AND nc.COUNTRY_NAME= :country  and nc.REGISTERED_COUNTRY IN :value "
+						+ "and nc.RM_ID= :rmId and nc.RM_STATUS='Active'\n" + 
+						"GROUP BY nc.USERID) as cnt ",nativeQuery = true)
+		public Page<NimaiMCustomer> getDetailsByCountryRmId(String country, String rmId,List<String> value, Pageable pageable);
+
+		@Query(value = "SELECT * FROM nimai_m_customer nc"
+				+ "left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+		 		"WHERE (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER')\n" + 
+		 		"AND nc.COMPANY_NAME= :companyName and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value GROUP BY nc.USERID",
+		 		countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+						"WHERE (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') and"
+						+ " nc.COMPANY_NAME= :companyName and nc.REGISTERED_COUNTRY IN :value"
+						+ "and nc.RM_ID= :rmId and nc.RM_STATUS='Active' \n" + 
+						"GROUP BY nc.USERID) as cnt ",nativeQuery = true)
+		public Page<NimaiMCustomer> getDetailsByCompanyNameRmId(String companyName, String rmId,List<String> value, Pageable pageable);
+
+		 @Query(value = "SELECT * FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+			 		"WHERE (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value\n" + 
+			 		"GROUP BY nc.USERID",
+						countQuery = "SELECT COUNT(cnt) from\n" + 
+								"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+								"WHERE (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value\n" + 
+								"GROUP BY nc.USERID) as cnt",
+						nativeQuery = true)
+		public Page<NimaiMCustomer> getAllCustomerKYCRmid(@Param("rmId") String rmId,List<String> value, Pageable pageable);
+
+		 @Query(value = "SELECT * FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+					"WHERE nfk.kyc_status='Pending' AND (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value\n" + 
+					"GROUP BY nc.USERID ",
+					countQuery = "SELECT COUNT(cnt) from\n" + 
+							"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+							"WHERE nfk.kyc_status='Pending' AND (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value\n" + 
+							"GROUP BY nc.USERID) as cnt",
+					nativeQuery = true)
+		public Page<NimaiMCustomer> getPendingCustomerKYCRmId(String rmId,List<String> value, Pageable pageable);
+
+		 @Query(value = "SELECT * FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+					"WHERE nfk.kyc_status='Approved' AND (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value\n" + 
+					"GROUP BY nc.USERID ",
+					countQuery = "SELECT COUNT(cnt) from\n" + 
+							"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+							"WHERE nfk.kyc_status='Approved' AND (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value\n" + 
+							"GROUP BY nc.USERID) as cnt",
+					nativeQuery = true)
+		public Page<NimaiMCustomer> getApprovedCustomerKYCRmId(String rmId,List<String> value, Pageable pageable);
+
+		 @Query(value = "SELECT * FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+					"WHERE nc.KYC_STATUS='Rejected' AND \n" + 
+					"(nc.SUBSCRIBER_TYPE='CUSTOMER' or nc.BANK_TYPE='CUSTOMER')  and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value\n" + 
+					"GROUP BY nc.USERID ",
+					countQuery = "SELECT COUNT(cnt) from\n" + 
+							"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+							"WHERE nfk.kyc_status='Rejected' AND (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') and nc.RM_ID= :rmId and nc.RM_STATUS='Active'and nc.REGISTERED_COUNTRY IN :value \n" + 
+							"GROUP BY nc.USERID) as cnt",
+					nativeQuery = true)
+		public Page<NimaiMCustomer> getRejectedCustomerKYCRmId(String rmId,List<String> value, Pageable pageable);
+
+			@Query(value = "SELECT * FROM nimai_m_customer nc WHERE nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.USERID NOT IN \n" + 
+					"			(SELECT nfk.userId from nimai_f_kyc nfk) \n" + 
+					"			AND ((nc.SUBSCRIBER_TYPE='CUSTOMER' or nc.SUBSCRIBER_TYPE='BANK') AND (nc.BANK_TYPE='CUSTOMER' or\n" + 
+					"			nc.BANK_TYPE='')) and nc.REGISTERED_COUNTRY IN :value",
+					countQuery = "SELECT COUNT(cnt) from\n" + 
+							"(SELECT COUNT(*) as cnt FROM nimai_m_customer nc WHERE  nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value and nc.USERID NOT IN (SELECT nfk.userId from nimai_f_kyc nfk) \n" + 
+							"AND nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER'\n" + 
+							"GROUP BY nc.USERID) as cnt",
+					nativeQuery = true)
+		public Page<NimaiMCustomer> getNotUploadCustomerKYCRmId(String rmId,List<String> value, Pageable pageable);
+
+			@Query(value = "SELECT * FROM nimai_m_customer nc WHERE nc.USERID NOT IN \n" + 
+					"			(SELECT nfk.userId from nimai_f_kyc nfk)\n" + 
+					"			AND nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER'"
+					+ "and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value",
+					countQuery = "SELECT COUNT(cnt) from\n" + 
+							"(SELECT COUNT(*) as cnt FROM nimai_m_customer nc WHERE nc.USERID NOT IN (SELECT nfk.userId from nimai_f_kyc nfk) \n" + 
+							"AND nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER'"
+							+ "and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value\n" + 
+							"GROUP BY nc.USERID) as cnt",
+					nativeQuery = true)
+			public Page<NimaiMCustomer> getNotUploadBankKYCRmId(String rmId, List<String> value, Pageable pageable);
+
+			
+			@Query(value = "SELECT * FROM nimai_m_customer nc "
+					+ "left join nimai_f_kyc nfk ON nc.USERID=nfk.userId \n" + 
+			 		"WHERE (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER')\n" + 
+			 		"AND nc.USERID= :userId and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value",
+			 		countQuery = "SELECT COUNT(cnt) from\n" + 
+							"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+							"WHERE (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER')"
+							+ " AND nc.USERID= :userId and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value) \n" + 
+							"GROUP BY nc.USERID) as cnt",nativeQuery = true)
+			public Page<NimaiMCustomer> getBankDetailsByUserIdRmId(String userId, String rmId, List<String> value,
+					Pageable pageable);
+
+			
+			@Query(value = "SELECT * FROM nimai_m_customer nc "
+					+ "left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+			 		"WHERE (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER')\n" + 
+			 		"AND nc.MOBILE_NUMBER= :mobileNUmber and nc.RM_ID= :rmId and nc.RM_STATUS='Active'"
+			 		+ " and nc.REGISTERED_COUNTRY IN :value GROUP BY nc.USERID ",
+			 		countQuery = "SELECT COUNT(cnt) from\n" + 
+							"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+							"WHERE (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER') AND nc.MOBILE_NUMBER= :mobileNUmber"
+							+ "and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value) \n" + 
+							"GROUP BY nc.USERID) as cnt ",nativeQuery = true)
+			public Page<NimaiMCustomer> getBankDetailsByMobileNoRmId(String mobileNUmber, String rmId, List<String> value,
+					Pageable pageable);
+
+			
+			
+			
+			@Query(value = "SELECT * FROM nimai_m_customer nc "
+					+ "left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+			 		"WHERE (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER')\n" + 
+			 		"AND nc.COUNTRY_NAME= :country and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value GROUP BY nc.USERID ",
+			 		countQuery = "SELECT COUNT(cnt) from\n" + 
+							"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+							"WHERE (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER') AND nc.COUNTRY_NAME= :country"
+							+ "and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value) \n" + 
+							"GROUP BY nc.USERID) as cnt ",nativeQuery = true)
+			public Page<NimaiMCustomer> getBankDetailsByCountryRmId(String country, String rmId, List<String> value,
+					Pageable pageable);
+
+			@Query(value = "SELECT * FROM nimai_m_customer nc "
+					+ "left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+			 		"WHERE (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER')\n" + 
+			 		"AND nc.BANK_NAME= :companyName and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value GROUP BY nc.USERID",
+			 		countQuery = "SELECT COUNT(cnt) from\n" + 
+							"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+							"WHERE (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER') AND nc.BANK_NAME= :companyName"
+							+ "and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value) \n" + 
+							"GROUP BY nc.USERID) as cnt ",nativeQuery = true)
+			public Page<NimaiMCustomer> getBankDetailsByCompanyNameRmId(String companyName, String rmId, List<String> value,
+					Pageable pageable);
+
+			@Query(value = "SELECT * FROM nimai_m_customer nc "
+					+ "left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+			 		"WHERE (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER')\n" + 
+			 		"AND nc.EMAIL_ADDRESS= :emailId and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value GROUP BY nc.USERID",
+			 		countQuery = "SELECT COUNT(cnt) from\n" + 
+							"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+							"WHERE (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER') AND nc.EMAIL_ADDRESS= :emailId "
+							+ "and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value) \n" + 
+							"GROUP BY nc.USERID) as cnt ",nativeQuery = true)
+			public Page<NimaiMCustomer> getBankDetailsByEmailIdRmId(String emailId, String rmId, List<String> value,
+					Pageable pageable);
+
+			@Query(value = "SELECT * FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+			 		"WHERE (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER')"
+			 		+ "and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value\n" + 
+			 		"GROUP BY nc.USERID",
+						countQuery = "SELECT COUNT(cnt) from\n" + 
+								"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+								"WHERE (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER')"
+								+ "and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value \n" + 
+								"GROUP BY nc.USERID) as cnt",
+						nativeQuery = true)
+			public Page<NimaiMCustomer> getAllBankKYCRmId(String rmId, List<String> value, Pageable pageable);
+
+			 @Query(value = "	SELECT * FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+				 		"				WHERE (nfk.KYC_STATUS='Pending' AND nc.KYC_STATUS='Pending')  AND \n" + 
+				 		"				(nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER') "
+				 		+ "and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value\n" + 
+				 		"			GROUP BY nc.USERID",
+							countQuery = "SELECT COUNT(cnt) from\n" + 
+									"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+									"WHERE nfk.kyc_status='Pending' AND (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER') "
+									+ "and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value\n" + 
+									"GROUP BY nc.USERID) as cnt",
+							nativeQuery = true)
+			public Page<NimaiMCustomer> getPendingBankKYCRmId(String rmId, List<String> value, Pageable pageable);
+
+				@Query(value = "SELECT * FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+						"WHERE nfk.KYC_STATUS='Approved' AND (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER')"
+						+ "and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value\n" + 
+						"GROUP BY nc.USERID ",
+						countQuery = "SELECT COUNT(cnt) from\n" + 
+								"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+								"WHERE nfk.kyc_status='Approved' AND (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER') \n" + 
+								"GROUP BY nc.USERID) as cnt",
+						nativeQuery = true)
+			public Page<NimaiMCustomer> getApprovedBankKYCRmId(String rmId, List<String> value, Pageable pageable);
+
+				@Query(value = "SELECT * FROM nimai_m_customer nc WHERE nc.USERID NOT IN \n" + 
+						"			(SELECT nfk.userId from nimai_f_kyc nfk)\n" + 
+						"			AND nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER'"
+						+ "and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value GROUP BY nc.USERID",
+						countQuery = "SELECT COUNT(cnt) from\n" + 
+								"(SELECT COUNT(*) as cnt FROM nimai_m_customer nc WHERE nc.USERID NOT IN (SELECT nfk.userId from nimai_f_kyc nfk) \n" + 
+								"AND nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='UNDERWRITER'"
+								+ "and nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value\n" + 
+								"GROUP BY nc.USERID) as cnt",
+						nativeQuery = true)
+			public Page<NimaiMCustomer> getRejectedBankKYCRmId(String rmId, List<String> value, Pageable pageable);
+
+				@Query(value = "SELECT * FROM nimai_m_customer nc WHERE  \n" + 
+				 " nc.RM_ID= :rmId and nc.RM_STATUS='Active' and nc.REGISTERED_COUNTRY IN :value GROUP BY nc.USERID",nativeQuery = true)
+				public List<NimaiMCustomer> getCountryWiseRmData(List<String> value, String rmId);
+
+				@Query(value = "SELECT * FROM nimai_m_customer nc WHERE  \n" + 
+						 " nc.RM_ID= :rmId and (nc.RM_STATUS='Pending' or nc.RM_STATUS='Active') and nc.REGISTERED_COUNTRY IN :value GROUP BY nc.USERID",nativeQuery = true)
+				public List<NimaiMCustomer> getCountryWiseRmPendingdata(List<String> value, String rmId);
+
+		
+				@Query(value = "SELECT * FROM nimai_m_customer nc WHERE  \n" + 
+						 " nc.RM_ID= :rmId and (nc.RM_STATUS='Pending' or nc.RM_STATUS='Active') and nc.REGISTERED_COUNTRY IN :value "
+						 + "and nc.SUBSCRIBER_TYPE='Customer' GROUP BY nc.USERID",nativeQuery = true)
+				public List<NimaiMCustomer> getCustCountryWiseRmPendingdata(List<String> value, String rmId);
+
+	 
+	 
+	 
+	 @Query(value = "SELECT COUNT(cnt) from\n" + 
+				"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+				"WHERE nfk.kyc_status='Pending' and nc.RM_STATUS='Active' and nc.RM_ID= :rmId and nc.REGISTERED_COUNTRY IN :value \n" + 
+				"GROUP BY nc.USERID) as cnt",
+		nativeQuery = true)
+				public long getPendingAllKYCRmWise(List<String> value, String rmId);
+	 
+	 @Query(value = "SELECT COUNT(cnt) from\n" + 
+				"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+				"WHERE nfk.kyc_status='Pending' and nc.RM_STATUS='Active' and nc.RM_ID= :rmId and nc.REGISTERED_COUNTRY IN :value "
+				+ "and nc.SUBSCRIBER_TYPE='Customer'\n" + 
+				"GROUP BY nc.USERID) as cnt",
+		nativeQuery = true)
+				public long getPendingCustKYCRmWise(List<String> value, String rmId);
+
+	 @Query(value = "SELECT COUNT(cnt) from\n" + 
+				"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+				"WHERE nfk.kyc_status='Maker Approved' and nc.RM_STATUS='Active' and nc.RM_ID= :rmId and nc.REGISTERED_COUNTRY IN :value \n" + 
+				"GROUP BY nc.USERID) as cnt",
+		nativeQuery = true)
+				public long getGrantKYCRmWise(List<String> value, String rmId);
+	 
+	 @Query(value = "SELECT COUNT(cnt) from\n" + 
+				"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+				"WHERE nfk.kyc_status='Maker Approved' and nc.RM_STATUS='Active' and nc.RM_ID= :rmId and nc.REGISTERED_COUNTRY IN :value "
+				+ "and nc.SUBSCRIBER_TYPE='Customer'\n" + 
+				"GROUP BY nc.USERID) as cnt",
+		nativeQuery = true)
+				public long getGrantCustKYCRmWise(List<String> value, String rmId);
+
+	 @Query(value = "SELECT COUNT(cnt) from\n" + 
+				"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+				"WHERE nfk.kyc_status='Pending' and nc.SUBSCRIBER_TYPE='Referrer' \n" + 
+				"GROUP BY nc.USERID) as cnt",
+		nativeQuery = true)
+	public long getRefPendingAllKYC();
+
+	 @Query(value = "SELECT COUNT(cnt) from\n" + 
+				"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+				"WHERE nfk.kyc_status='Maker Approved' and nc.SUBSCRIBER_TYPE='Referrer'\n" + 
+				"GROUP BY nc.USERID) as cnt",
+		nativeQuery = true)
+	public long getRefCustGrantKYC();
+
+	 @Query(value=" select count(c.userid) from nimai_m_customer c \n" + 
+		 		"	where c.USERID not in (select nk.userid from nimai_f_kyc nk) ",nativeQuery=true)
+	public long getpendingKycNullNew();
+	 
+	 
+	 @Query(value=" select count(c.userid)  from nimai_m_customer c\n" + 
+		 		"   where (c.KYC_STATUS='Pending' OR c.KYC_STATUS IS NULL) "
+		 		+ "and  c.SUBSCRIBER_TYPE='Customer'",nativeQuery=true)
+		public long getCustpendingKycNull();
+	 
+	 @Query(value=" select count(c.userid) from nimai_m_customer c \n" + 
+	 		"	where c.USERID not in (select nk.userid from nimai_f_kyc nk) "
+		 		+ "and c.SUBSCRIBER_TYPE='Customer'",nativeQuery=true)
+		public long getCustpendingKycNullNew();
+	 
+	 @Query(value=" select count(c.userid)  from nimai_m_customer c\n" + 
+		 		"   where (c.KYC_STATUS='Pending' OR c.KYC_STATUS IS NULL) "
+		 		+ "and c.SUBSCRIBER_TYPE='Bank' and c.bank_type='Customer'",nativeQuery=true)
+		public long getBankAsCustpendingKycNull();
+	 
+	 @Query(value=" select count(c.userid) from nimai_m_customer c \n" + 
+	 		"		where c.USERID not in (select nk.userid from nimai_f_kyc nk)"
+		 		+ "and c.SUBSCRIBER_TYPE='Bank' and c.bank_type='Customer'",nativeQuery=true)
+		public long getBankAsCustpendingKycNullNew();
+	 
+	 @Query(value=" select count(c.userid)  from nimai_m_customer c\n" + 
+		 		"   where (c.KYC_STATUS='Pending' OR c.KYC_STATUS IS NULL) "
+		 		+ "and  c.SUBSCRIBER_TYPE='Bank' and c.bank_type='Underwriter'",nativeQuery=true)
+		public long getBankAsUndependingKycNull();
+	 
+	 @Query(value=" select count(c.userid) from nimai_m_customer c \n" + 
+	 		"	where c.USERID not in (select nk.userid from nimai_f_kyc nk) "
+		 		+ "and  c.SUBSCRIBER_TYPE='Bank' and c.bank_type='Underwriter'",nativeQuery=true)
+		public long getBankAsUndependingKycNullNew();
+	 
+	 @Query(value=" select count(c.userid)  from nimai_m_customer c\n" + 
+		 		"   where (c.KYC_STATUS='Pending' OR c.KYC_STATUS IS NULL) and  c.SUBSCRIBER_TYPE='Referrer'",nativeQuery=true)
+		public long getRefpendingKycNull();
+	 
+	 @Query(value=" select count(c.userid)  from nimai_m_customer c \n" + 
+	 		"where c.USERID not in (select nk.userid from nimai_f_kyc nk) \n" + 
+	 		"and  c.SUBSCRIBER_TYPE='Referrer'",nativeQuery=true)
+		public long getRefpendingKycNullNew();
+
+	 @Query(value=" select count(c.userid) from nimai_m_customer c\n" + 
+		 		"   where c.USERID not in (select nk.userid from nimai_f_kyc nk) and c.COUNTRY_NAME IN :value",nativeQuery=true)
+	public long getCountrypendingKycNullNew(List<String> value);
+	 
+	 @Query(value=" select count(c.userid) from nimai_m_customer c\n" + 
+		 		"   where (c.KYC_STATUS='Pending' OR c.KYC_STATUS IS NULL) and  c.SUBSCRIBER_TYPE='Customer'"
+		 		+ "and  c.COUNTRY_NAME IN :value",nativeQuery=true)
+		public long getCountryCustpendingKycNull(List<String> value);
+	 
+	 @Query(value=" select count(c.userid) from nimai_m_customer c \n" + 
+	 		"		where c.USERID not in (select nk.userid from nimai_f_kyc nk) "
+		 		+ "and  c.SUBSCRIBER_TYPE='Customer'"
+		 		+ "and  c.COUNTRY_NAME IN :value",nativeQuery=true)
+		public long getCountryCustpendingKycNullNew(List<String> value);
+	 
+	 @Query(value=" select count(c.userid) from nimai_m_customer c\n" + 
+		 		"   where (c.KYC_STATUS='Pending' OR c.KYC_STATUS IS NULL) and c.SUBSCRIBER_TYPE='Bank' and c.bank_type='Customer'"
+		 		+ "and c.COUNTRY_NAME IN :value",nativeQuery=true)
+		public long getCountryBankAsCustpendingKycNull( List<String> value);
+	 
+	 @Query(value=" select count(c.userid) from nimai_m_customer c \n" + 
+	 		"	where c.USERID not in (select nk.userid from nimai_f_kyc nk) "
+		 		+ "and c.SUBSCRIBER_TYPE='Bank' and c.bank_type='Customer'"
+		 		+ "and c.COUNTRY_NAME IN :value",nativeQuery=true)
+		public long getCountryBankAsCustpendingKycNullNew( List<String> value);
+	 
+	 @Query(value=" select count(c.userid)  from nimai_m_customer c\n" + 
+		 		"   where (c.KYC_STATUS='Pending' OR c.KYC_STATUS IS NULL) and  c.SUBSCRIBER_TYPE='Bank' and c.bank_type='Underwriter'"
+		 		+ "and c.COUNTRY_NAME IN :value",nativeQuery=true)
+		public long getCountryBankAsUndependingKycNull(List<String> value);
+	 
+	 @Query(value=" select count(c.userid) from nimai_m_customer c \n" + 
+	 		"	where c.USERID not in (select nk.userid from nimai_f_kyc nk) "
+		 		+ "and  c.SUBSCRIBER_TYPE='Bank' and c.bank_type='Underwriter'"
+		 		+ "and c.COUNTRY_NAME IN :value",nativeQuery=true)
+		public long getCountryBankAsUndependingKycNullNew(List<String> value);
+
+		@Query(value = "SELECT * FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+				"WHERE nfk.kyc_status='Pending' AND (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value\n" + 
+				"GROUP BY nc.USERID ",
+				countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc left join nimai_f_kyc nfk ON nc.USERID=nfk.userId\n" + 
+						"WHERE nfk.kyc_status='Pending' AND (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value \n" + 
+						"GROUP BY nc.USERID) as cnt",
+				nativeQuery = true)
+	public Page<NimaiMCustomer> getBCuPendingCustomerKYC(List<String> value, Pageable pageable);
+	 
+		
+		@Query(value = "SELECT * FROM nimai_m_customer nc " + 
+				"WHERE (nc.MODE_OF_PAYMENT='Wire' and nc.payment_status='Pending') AND (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value\n" + 
+				"GROUP BY nc.USERID ",
+				countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) AS cnt FROM nimai_m_customer nc " + 
+						"WHERE (nc.MODE_OF_PAYMENT='Wire' and nc.payment_status='Pending') AND (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value \n" + 
+						"GROUP BY nc.USERID) as cnt",
+				nativeQuery = true)
+	public Page<NimaiMCustomer> getBCuPendingCustomerPayment(List<String> value, Pageable pageable);
+	 
+		@Query(value = "SELECT * FROM nimai_m_customer nc WHERE nc.USERID NOT IN \n" + 
+				"			(SELECT nfk.userId from nimai_f_kyc nfk) \n" + 
+				"			and nc.REGISTERED_COUNTRY IN :value AND (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='CUSTOMER')",
+				countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) as cnt FROM nimai_m_customer nc WHERE nc.USERID NOT IN (SELECT nfk.userId from nimai_f_kyc nfk) \n" + 
+						"AND (nc.SUBSCRIBER_TYPE='BANK' AND nc.BANK_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value\n" + 
+						"GROUP BY nc.USERID) as cnt",
+				nativeQuery = true)
+		public Page<NimaiMCustomer> getNotUploadForBC(List<String> value, Pageable p);
+		
+		
+		@Query(value = "SELECT * FROM nimai_m_customer nc WHERE nc.USERID NOT IN \n" + 
+				"			(SELECT nfk.userId from nimai_f_kyc nfk) \n" + 
+				"			and nc.REGISTERED_COUNTRY IN :value AND (nc.SUBSCRIBER_TYPE='CUSTOMER' AND nc.BANK_TYPE='')",
+				countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) as cnt FROM nimai_m_customer nc WHERE nc.USERID NOT IN (SELECT nfk.userId from nimai_f_kyc nfk) \n" + 
+						"AND (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value\n" + 
+						"GROUP BY nc.USERID) as cnt",
+				nativeQuery = true)
+		public Page<NimaiMCustomer> getNotUploadForCU(List<String> value, Pageable p);
+		
+		@Query(value = "SELECT * FROM nimai_m_customer nc WHERE nc.USERID NOT IN \n" + 
+				"			(SELECT nfk.userId from nimai_f_kyc nfk) \n" + 
+				"			and nc.REGISTERED_COUNTRY IN :value AND (nc.SUBSCRIBER_TYPE='REFERRER' AND nc.BANK_TYPE='')",
+				countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) as cnt FROM nimai_m_customer nc WHERE nc.USERID NOT IN (SELECT nfk.userId from nimai_f_kyc nfk) \n" + 
+						"AND (nc.SUBSCRIBER_TYPE='REFERRER' AND nc.BANK_TYPE='') and nc.REGISTERED_COUNTRY IN :value\n" + 
+						"GROUP BY nc.USERID) as cnt",
+				nativeQuery = true)
+		public Page<NimaiMCustomer> getNotUploadForRE(List<String> value, Pageable p);
 }

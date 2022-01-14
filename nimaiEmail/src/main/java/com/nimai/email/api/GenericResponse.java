@@ -5,6 +5,7 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -27,11 +28,37 @@ private String message;
 	
 	private File file;
 	
+	private InputStreamResource fileNew;
+	
+	private byte[] fileBytes;
 	
 	
 	
 	
 	
+	
+	
+	
+	
+	
+	
+	
+
+	public byte[] getFileBytes() {
+		return fileBytes;
+	}
+
+	public void setFileBytes(byte[] fileBytes) {
+		this.fileBytes = fileBytes;
+	}
+
+	public InputStreamResource getFileNew() {
+		return fileNew;
+	}
+
+	public void setFileNew(InputStreamResource fileNew) {
+		this.fileNew = fileNew;
+	}
 
 	public File getFile() {
 		return file;
@@ -95,6 +122,11 @@ private String message;
 
 	public void setMap(Map map) {
 		this.map = map;
+	}
+
+	public void setFile(InputStreamResource file2) {
+		// TODO Auto-generated method stub
+		
 	}
 
 

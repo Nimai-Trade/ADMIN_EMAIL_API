@@ -1,7 +1,9 @@
 package com.nimai.email.service;
 
 import java.io.ByteArrayInputStream;
-
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -42,6 +44,7 @@ import com.nimai.email.bean.BankDetailsBean;
 import com.nimai.email.bean.BranchUserPassCodeBean;
 import com.nimai.email.bean.BranchUserRequest;
 import com.nimai.email.bean.EodReport;
+import com.nimai.email.bean.InvoiceBeanResponse;
 import com.nimai.email.bean.KycEmailRequest;
 import com.nimai.email.bean.LcUploadBean;
 import com.nimai.email.bean.ResetPassBean;
@@ -71,6 +74,7 @@ import com.nimai.email.repository.NimaiMCustomerRepo;
 import com.nimai.email.repository.NimaiTokenRepository;
 import com.nimai.email.repository.OnlinePaymentRepository;
 import com.nimai.email.repository.SubscriptionDetailsRepository;
+import com.nimai.email.repository.SubscriptionVasRepository;
 import com.nimai.email.repository.nimaiSystemConfigRepository;
 import com.nimai.email.utility.AppConstants;
 import com.nimai.email.utility.EmaiInsert;
@@ -95,6 +99,8 @@ public class UserServiceImpl implements UserService {
 
 	@Autowired
 	OnlinePaymentRepository payRepo;
+	
+	
 
 	@Autowired
 	UserServiceDao userDao;
@@ -119,6 +125,9 @@ public class UserServiceImpl implements UserService {
 
 	@Autowired
 	NimaiEmailSchedulerRepo schRepo;
+
+	@Autowired
+	SubscriptionVasRepository vasRepo;
 
 	@Autowired
 	SubscriptionDetailsRepository sPlanRepo;
@@ -251,8 +260,8 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
-	// @Scheduled(fixedDelay = 30000L)
-	// @Transactional(propagation = Propagation.NESTED)
+	@Scheduled(fixedDelay = 30000L)
+	@Transactional(propagation = Propagation.NESTED)
 	public void sendAccountEmail() throws Exception {
 
 		String emailStatus = "";
@@ -454,13 +463,14 @@ public class UserServiceImpl implements UserService {
 				try {
 					// NimaiClient clientUseId =
 					// userDao.getcliDetailsByEmailId(schdulerData.getEmailId());
+
 					NimaiClient clientUseId = userDao.getClientDetailsbyUserId(schdulerData.getUserid());
 					logger.info("============Inside VAS_ADDED condition==========");
 					logger.info("====================================UserId Id:-" + schdulerData.getUserid()
 							+ "====================================");
 					if (clientUseId != null) {
-						NimaiSubscriptionVas vasDetails = userDao.getVasDetails(schdulerData.getSubscriptionName(),
-								clientUseId.getUserid());
+						NimaiSubscriptionVas vasDetails = vasRepo.getVasDetails(clientUseId.getUserid(),
+								schdulerData.getSubscriptionName());
 						logger.info("====================vasdetails" + vasDetails.getVasId());
 						NimaiSubscriptionDetails subDetails = userDao.getSplanDetails(vasDetails.getSubscriptionId(),
 								schdulerData.getUserid());
@@ -997,7 +1007,9 @@ public class UserServiceImpl implements UserService {
 				logger.info("====================================ACCOUNT_REFER:-" + schdulerData.toString()
 						+ "====================================");
 				try {
-					emailInsert.sendCustAccountReferredEmailToSource(schdulerData);
+
+					String referPercentage = systemConfig.findReferrerEarning();
+					emailInsert.sendCustAccountReferredEmailToSource(schdulerData, referPercentage);
 					userDao.updateEmailStatus(schdulerData.getAccountSchedulerId());
 				} catch (Exception e) {
 					if (e instanceof NullPointerException) {
@@ -1216,13 +1228,22 @@ public class UserServiceImpl implements UserService {
 							userDao.saveSubDetails(schData);
 						}
 						UserIdentificationBean beanResponse = new UserIdentificationBean();
-						if (nimaiLogin.getUserid().getAccountType().equalsIgnoreCase("MASTER")) {
-							beanResponse.setUserIdentification(nimaiLogin.getUserid().getAccountType());
-							response.setData(beanResponse);
+						Integer leadId = custRepo.findLeadIdByUserId(nimaiLogin.getUserid().getUserid());
+						if (leadId == null || leadId == 0) {
+							if (nimaiLogin.getUserid().getAccountType().equalsIgnoreCase("MASTER")) {
+								beanResponse.setUserIdentification(nimaiLogin.getUserid().getAccountType());
+								response.setData(beanResponse);
+							}
+						} else {
+							if (nimaiLogin.getUserid().getAccountType().equalsIgnoreCase("MASTER") || leadId > 0) {
+								beanResponse.setUserIdentification("MASTER");
+								response.setData(beanResponse);
+							}
 						}
 						response.setMessage(tokenKey);
 						response.setFlag(1);
 						return new ResponseEntity<Object>(response, HttpStatus.OK);
+
 					} else {
 						response.setFlag(0);
 						response.setErrCode("ASA004");
@@ -1726,6 +1747,7 @@ public class UserServiceImpl implements UserService {
 
 				if (dnow.before(branchUser.getExpryTime())) {
 					String passcodeValue = utility.passcodeValue();
+					// String passcodeValue="1234";
 					try {
 						// userDao.updateBranchUser(branchUserLink.getEmailId(), dnow, passcodeValue,
 						// token);
@@ -2330,7 +2352,7 @@ public class UserServiceImpl implements UserService {
 		Date expirydate = branchUser.getExpryTime();
 		if (dnow.before(expirydate)) {
 			String passcodeValue = utility.passcodeValue();
-			// String passcodeValue = "1234";
+//	 String passcodeValue = "1234";
 			try {
 				// userDao.updateBranchUserDetails(clientUseId.getEmailAddress(), dnow,
 				// passcodeValue, token);
@@ -2655,6 +2677,7 @@ public class UserServiceImpl implements UserService {
 				}
 				response.setMessage("Unauthorise Access");
 			}
+			// response.setMessage("Authorise Access");
 			return new ResponseEntity<Object>(response, HttpStatus.OK);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -2663,7 +2686,282 @@ public class UserServiceImpl implements UserService {
 			return new ResponseEntity<Object>(response, HttpStatus.OK);
 
 		}
+	}
 
+	@Override
+	public InvoiceBeanResponse getSplanInvoiceString(String userId, String invoiceId) {
+		String path = null;
+		InvoiceBeanResponse file = null;
+		NimaiSubscriptionVas vasDetails = null;
+		try {
+			NimaiClient clientUseId = userDao.getClientDetailsbyUserId(userId);
+			logger.info("============Inside Cust_Splan_email condition==========" + userId);
+			if (clientUseId != null) {
+				NimaiSubscriptionDetails subDetails = sPlanRepo.getSplanDetails(userId, invoiceId);
+				System.out.println("sub details for the nimaisubscriptiondetails" + subDetails.toString());
+				logger.info("===========CUST_SPLAN_EVENT:" + subDetails.getSubscriptionId());
+				logger.info("===========CUST_SPLAN_EVENT:" + subDetails.toString());
+				if (subDetails.getPaymentMode().equalsIgnoreCase("Credit")) {
+					String status = "Success";
+					String aStatus = "Approved";
+					OnlinePayment paymentDetails = payRepo.findByuserId(userId, status, aStatus);
+					if (paymentDetails == null) {
+						String planFailureName = "SPLAN_FAILURE";
+						logger.info("===========SPLAN_FAILURE:" + subDetails.toString());
+					} else {
+						NimaiSystemConfig configDetails = null;
+						configDetails = systemConfig.findBySystemId(1);
+						NimaiSystemConfig configDetail = null;
+						try {
+							configDetail = systemConfig.getOne(14);
+							System.out.println("configDetail image value" + configDetail.getSystemEntityValue());
+
+							InvoiceTemplate link = new InvoiceTemplate();
+							vasDetails=vasRepo.getVasDetailsBySerialNumber(subDetails.getUserid().getUserid(),subDetails.getsPlSerialNUmber());
+
+							if (subDetails.getPaymentMode().equalsIgnoreCase("Wire")
+									&& !clientUseId.getPaymentStatus().equalsIgnoreCase("Rejected")) {
+								System.out.println("Inside Wire mode");
+								
+ 
+
+								file = link.genStringSplanInvoiceTemplatePdf(subDetails, paymentDetails, configDetails,
+										configDetail.getSystemEntityValue(),vasDetails);
+							} else if (subDetails.getPaymentMode().equalsIgnoreCase("Credit")) {
+								System.out.println("Inside credit mode");
+
+								file = link.genStringSplanInvoiceTemplatePdf(subDetails, paymentDetails, configDetails,
+										configDetail.getSystemEntityValue(),vasDetails);
+							}
+
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+
+					}
+
+				} else {
+					String status = "Success";
+					String aStatus = "Approved";
+					OnlinePayment paymentDetails = payRepo.findByuserId(userId, status, aStatus);
+					NimaiSystemConfig configDetails = null;
+					configDetails = systemConfig.findBySystemId(1);
+					NimaiSystemConfig configDetail = null;
+					try {
+						configDetail = systemConfig.getOne(14);
+						System.out.println("configDetail image value" + configDetail.getSystemEntityValue());
+
+						InvoiceTemplate link = new InvoiceTemplate();
+						 vasDetails=vasRepo.getVasDetailsBySerialNumber(subDetails.getUserid().getUserid(),subDetails.getsPlSerialNUmber());
+
+						if (subDetails.getPaymentMode().equalsIgnoreCase("Wire")
+								&& !clientUseId.getPaymentStatus().equalsIgnoreCase("Rejected")) {
+							System.out.println("Inside Wire mode");
+
+							file = link.genStringSplanInvoiceTemplatePdf(subDetails, paymentDetails, configDetails,
+									configDetail.getSystemEntityValue(),vasDetails);
+						} else if (subDetails.getPaymentMode().equalsIgnoreCase("Credit")) {
+							System.out.println("Inside credit mode");
+
+							file = link.genStringSplanInvoiceTemplatePdf(subDetails, paymentDetails, configDetails,
+									configDetail.getSystemEntityValue(),vasDetails);
+						}
+
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+
+			} else {
+				logger.info("Inside Cust_Splan_email condition user id not found");
+
+				response.setMessage("Details not found");
+			}
+
+		} catch (Exception e) {
+			if (e instanceof NullPointerException) {
+
+				EmailErrorCode emailError = new EmailErrorCode("EmailNull", 409);
+
+				logger.info("Customer Splan catch block" + emailError);
+
+			}
+
+		}
+		return file;
+	}
+
+	
+
+	@Override
+	public void saveConfigEntity(NimaiSystemConfig config) {
+		// TODO Auto-generated method stub
+		System.out.println("Inside saveConfigEntity");
+		systemConfig.save(config);
+	}
+
+
+
+	@Override
+	public InvoiceBeanResponse getVasplanInvoiceString(String userId, String invoiceId) {
+		// TODO Auto-generated method stub
+		InvoiceTemplate link = new InvoiceTemplate();
+		InvoiceBeanResponse response = null;
+		try {
+			
+			NimaiClient clientUseId = userDao.getClientDetailsbyUserId(userId);
+			logger.info("============Inside VAS_ADDED condition==========");
+			logger.info("====================================UserId Id:-" + userId
+					+ "====================================");
+			if (clientUseId != null) {
+				NimaiSubscriptionVas vasDetails = vasRepo.getVasDetailsByInvoiceId(clientUseId.getUserid(),
+						invoiceId);
+				logger.info("====================vasdetails" + vasDetails.getVasId());
+				NimaiSubscriptionDetails subDetails = userDao.getSplanDetails(vasDetails.getSubscriptionId(),
+						userId);
+
+				logger.info("==========================subdetails" + subDetails.getsPlSerialNUmber());
+				if (!vasDetails.getMode().equalsIgnoreCase("Wire")) {
+					String status = "Success";
+					String aStatus = "Approved";
+					try {
+						OnlinePayment paymentDetails = payRepo.findByuserId(userId, status,
+								aStatus);
+						if (paymentDetails == null) {
+							logger.info("==================null paymentdetails");
+							logger.info("=============Inside paymet failure mode===============");
+							logger.info("==============Inside paymet failure wire==============");
+						} else {
+							logger.info("================" + paymentDetails.toString());
+							logger.info("==================paymentdetails" + paymentDetails.getId());
+							logger.info("==============Inside paymet success==============");
+							NimaiSystemConfig configDetails = null;
+							configDetails = systemConfig.findBySystemId(1);
+							NimaiSystemConfig configDetail = null;
+							
+							configDetail = systemConfig.getOne(14);
+							response=link.generateVasInvoiceResponse( vasDetails, subDetails,
+									paymentDetails, configDetails);
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}else {
+
+					try {
+					
+						logger.info("============Inside VAS_ADDED condition==========");
+						logger.info("====================================UserId Id:-" + userId
+								+ "====================================");
+						
+							NimaiSubscriptionVas vasDetail = vasRepo.getVasDetailsByInvoiceId(clientUseId.getUserid(),
+									invoiceId);
+							logger.info("====================vasdetails" + vasDetails.getVasId());
+							NimaiSubscriptionDetails subDetail = userDao.getSplanDetails(vasDetails.getSubscriptionId(),
+									userId);
+							logger.info("====================vasdetails" + vasDetails.getVasId());
+							
+							logger.info("==========================subdetails" + subDetails.getsPlSerialNUmber());
+							String status = "Success";
+							String aStatus = "Approved";
+							try {
+								OnlinePayment paymentDetail = new OnlinePayment();
+
+								logger.info("================" + paymentDetail.toString());
+								logger.info("==================paymentdetails" + paymentDetail.getId());
+								logger.info("==============Inside paymet success==============");
+								NimaiSystemConfig configDetails = null;
+								configDetails = systemConfig.findBySystemId(1);
+								NimaiSystemConfig configDetail = null;
+								configDetail = systemConfig.getOne(14);
+								response=link.generateVasInvoiceResponse(vasDetail, subDetail, paymentDetail,
+										configDetails);
+								System.out.println("payment details outside the codition" + paymentDetail.toString());
+
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+
+					
+
+					} catch (Exception e) {
+						if (e instanceof NullPointerException) {
+
+							EmailErrorCode emailError = new EmailErrorCode("EmailNull", 409);
+							logger.info("Vas added catch block" + emailError);
+						
+						}
+					}
+				
+				}
+
+			} else {
+				logger.info("Inside Cust_Splan_email condition user id not found");
+			}
+
+		} catch (Exception e) {
+			if (e instanceof NullPointerException) {
+
+				EmailErrorCode emailError = new EmailErrorCode("EmailNull", 409);
+				logger.info("Vas added catch block" + emailError);
+				
+			}
+		}
+	
+
+		return response;
+	}
+
+	@Override
+	public int chkForInvoiceId(String userId, String invoiceId) {
+		// TODO Auto-generated method stub
+		try {
+			NimaiClient clientUseId = userDao.getClientDetailsbyUserId(userId);
+			if (clientUseId == null) {
+				return 2;
+			} else {
+				try {
+					NimaiSubscriptionDetails subDetails = sPlanRepo.getSplanDetails(userId, invoiceId);
+					if (subDetails == null) {
+						return 0;
+					} else {
+						return 1;
+					}
+				} catch (Exception e) {
+					logger.info("Exception occurs in userserviceImpl chkForInvoiceId method");
+					e.printStackTrace();
+					return 2;
+				}
+
+			}
+
+		} catch (Exception e) {
+			logger.info("Exception occurs in userserviceImpl chkForInvoiceId method");
+			e.printStackTrace();
+			return 2;
+		}
+
+	}
+
+	@Override
+	public byte[] getSplanInvoice(String userId) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String getSplanInvoicePath(String userId) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public NimaiSubscriptionDetails getSubDetails(int splanSerialNumber) {
+		// TODO Auto-generated method stub
+		
+		NimaiSubscriptionDetails details=userDao.getsPlanDetailsBySerialNumber(splanSerialNumber);
+		
+		return details;
 	}
 
 }

@@ -4,9 +4,10 @@ import java.util.Date;
 
 public class ReportCustomerTransaction {
 
+	
 	private String user_ID;
 	private String user_Type;
-	
+	private String landline_no;
 	private String mobile;
 	private String email;
 	
@@ -16,11 +17,11 @@ public class ReportCustomerTransaction {
 	
 	private String applicant;
 	
-	private String country;
+	private String applicant_country;
 	
 	private String beneficiary;
 	
-	private String b_Country;
+	private String beneficiary_Country;
 	private String contact_Person;
 	private String contact_Persons_Email;
 	private String bank_Country;
@@ -29,7 +30,7 @@ public class ReportCustomerTransaction {
 	private String iB;
 	private String branch;
 	private String swift_Code;
-	private String o_Country;
+	private String country;
 	private String requirement;
 	private Double amount;
 
@@ -38,12 +39,12 @@ public class ReportCustomerTransaction {
 	private Date lsd;
 	private Date negotiation_Date;
 	private String goods;
-	private Integer usance;
+	private String usance;
 	
 
 
 	private Integer orignal_tenor_of_LC;
-	private String refinancing_Period;
+	//private String refinancing_Period;
 	private Date lc_Maturity_Date;
 
 	private String lc_Number;
@@ -61,10 +62,14 @@ public class ReportCustomerTransaction {
 	private String applicant_Contact_Person;
 	private String applicant_contact_Person_Email;
 	
-	
-	
+		
+	public String getLandline_no() {
+		return landline_no;
+	}
 
-
+	public void setLandline_no(String landline_no) {
+		this.landline_no = landline_no;
+	}
 
 	public String getApplicant_Contact_Person() {
 		return applicant_Contact_Person;
@@ -148,12 +153,13 @@ public class ReportCustomerTransaction {
 		this.applicant = applicant;
 	}
 
-	public String getCountry() {
-		return country;
+
+	public String getApplicant_country() {
+		return applicant_country;
 	}
 
-	public void setCountry(String country) {
-		this.country = country;
+	public void setApplicant_country(String applicant_country) {
+		this.applicant_country = applicant_country;
 	}
 
 	public String getBeneficiary() {
@@ -164,12 +170,14 @@ public class ReportCustomerTransaction {
 		this.beneficiary = beneficiary;
 	}
 
-	public String getB_Country() {
-		return b_Country;
+	
+
+	public String getBeneficiary_Country() {
+		return beneficiary_Country;
 	}
 
-	public void setB_Country(String b_Country) {
-		this.b_Country = b_Country;
+	public void setBeneficiary_Country(String beneficiary_Country) {
+		this.beneficiary_Country = beneficiary_Country;
 	}
 
 	public String getBranch() {
@@ -236,12 +244,13 @@ public class ReportCustomerTransaction {
 		this.swift_Code = swift_Code;
 	}
 
-	public String getO_Country() {
-		return o_Country;
+
+	public String getCountry() {
+		return country;
 	}
 
-	public void setO_Country(String o_Country) {
-		this.o_Country = o_Country;
+	public void setCountry(String country) {
+		this.country = country;
 	}
 
 	public String getRequirement() {
@@ -300,11 +309,11 @@ public class ReportCustomerTransaction {
 		this.goods = goods;
 	}
 
-	public Integer getUsance() {
+	public String getUsance() {
 		return usance;
 	}
 
-	public void setUsance(Integer usance) {
+	public void setUsance(String usance) {
 		this.usance = usance;
 	}
 
@@ -318,13 +327,13 @@ public class ReportCustomerTransaction {
 		this.orignal_tenor_of_LC = orignal_tenor_of_LC;
 	}
 
-	public String getRefinancing_Period() {
-		return refinancing_Period;
-	}
-
-	public void setRefinancing_Period(String refinancing_Period) {
-		this.refinancing_Period = refinancing_Period;
-	}
+//	public String getRefinancing_Period() {
+//		return refinancing_Period;
+//	}
+//
+//	public void setRefinancing_Period(String refinancing_Period) {
+//		this.refinancing_Period = refinancing_Period;
+//	}
 
 	public Date getLc_Maturity_Date() {
 		return lc_Maturity_Date;

@@ -1,6 +1,10 @@
 package com.nimai.admin.service.impl;
 
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+
 import java.util.List;
+
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -16,12 +20,17 @@ import org.springframework.stereotype.Service;
 import com.nimai.admin.model.NimaiMCustomer;
 import com.nimai.admin.model.NimaiMEmployee;
 import com.nimai.admin.model.NimaiMRefer;
+import com.nimai.admin.model.NimaiSubscriptionDetails;
 import com.nimai.admin.payload.CustomerResponse;
 import com.nimai.admin.payload.PagedResponse;
+import com.nimai.admin.payload.RefBean;
+import com.nimai.admin.payload.ReferrerBean;
 import com.nimai.admin.payload.SearchRequest;
 import com.nimai.admin.repository.CustomerRepository;
 import com.nimai.admin.repository.EmployeeRepository;
 import com.nimai.admin.repository.ReferrerRepository;
+import com.nimai.admin.repository.SubscriptionDetailsRepository;
+import com.nimai.admin.repository.nimaiSystemConfigRepository;
 import com.nimai.admin.service.RefererService;
 import com.nimai.admin.specification.CustomerSearchSpecification;
 import com.nimai.admin.specification.ReferrerSpecification;
@@ -44,24 +53,72 @@ public class RefererServiceImpl implements RefererService {
 	@Autowired
 	EmployeeRepository employeeRepository;
 
+	@Autowired
+	SubscriptionDetailsRepository subRepo;
+
+	@Autowired
+	nimaiSystemConfigRepository systemConfig;
+
 	@Override
 	public PagedResponse<?> getRefDetails(SearchRequest request) {
 		request.setSubscriberType("REFERRER");
-		Pageable pageable = PageRequest.of(request.getPage(), request.getSize(),
-				request.getDirection().equalsIgnoreCase("desc") ? Sort.by(request.getSortBy()).descending()
-						: Sort.by(request.getSortBy()).ascending());
-
+		//Pageable pageable = PageRequest.of(request.getPage(), request.getSize(),
+		//		request.getDirection().equalsIgnoreCase("desc") ? Sort.by(request.getSortBy()).descending()
+		//				: Sort.by(request.getSortBy()).ascending());
+		Pageable pageable;
 		Page<NimaiMCustomer> referDetails;
-		String countryNames = Utility.getUserCountry();
-		if (countryNames != null && countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
+//		String countryNames = Utility.getUserCountry();
+//		if (countryNames != null && countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
+//
+//		} else if (countryNames != null && !countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
+//			request.setCountryNames(countryNames);
+//		} else if (countryNames == null && request.getCountry() == null) {
+//			referDetails = null;
+//		}
 
+		if (request.getRole() != null && ((request.getRole().equalsIgnoreCase("Bank RM"))||
+				(request.getRole().equalsIgnoreCase("Customer RM")))) {
+			request.setLoginUserId(Utility.getUserId());
+			request.setRmStatus("Active");
+		}
+		String countryNames = Utility.getUserCountry();
+		System.out.println("countryNames: " + countryNames);
+		if (countryNames != null && countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
+			countryNames = "";
+			final List<String> countryList = (List<String>) this.customerRepository.getCountryList();
+			for (final String country : countryList) {
+				countryNames = countryNames + country + ",";
+				request.setCountryNames(countryNames);
+			}
+			System.out.println("Country List: " + countryNames);
+			request.setCountryNames(countryNames);
 		} else if (countryNames != null && !countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
 			request.setCountryNames(countryNames);
 		} else if (countryNames == null && request.getCountry() == null) {
-			referDetails = null;
 		}
-
-		referDetails = customerRepository.findAll(customerSearchSpecification.getFilter(request), pageable);
+		final List<String> countryValue = Stream.of(request.getCountryNames().split(",", -1)).collect(Collectors.toList());
+		//final List<String> value = Stream.of(request.getCountryNames().split(",", -1)).collect(Collectors.toList());
+		//System.out.println("Values BankService: " + value);
+		if(request.getTxtStatus().equalsIgnoreCase("Not Uploaded"))
+		{
+			request.setSortBy("inserted_date");
+			pageable=PageRequest.of(request.getPage(), request.getSize(),
+					request.getDirection().equalsIgnoreCase("desc") ? Sort.by(request.getSortBy()).descending()
+					: Sort.by(request.getSortBy()).ascending());
+			System.out.println("======= Getting Not Uploaded KYC of Referrer =======");
+			referDetails = customerRepository.getNotUploadForRE(countryValue, pageable);
+		}
+		else
+		{
+			pageable=PageRequest.of(request.getPage(), request.getSize(),
+					request.getDirection().equalsIgnoreCase("desc") ? Sort.by(request.getSortBy()).descending()
+					: Sort.by(request.getSortBy()).ascending());
+			System.out.println("======= Getting Referrer Data =======");
+			referDetails = customerRepository.findAll(customerSearchSpecification.getFilter(request), pageable);
+		}
+			//		for (NimaiMCustomer ref : referDetails) {
+//
+//		}
 
 		List<CustomerResponse> responses = referDetails.map(ref -> {
 			CustomerResponse response = new CustomerResponse();
@@ -76,11 +133,92 @@ public class RefererServiceImpl implements RefererService {
 			response.setCompanyName(ref.getCompanyName());
 			response.setKyc(ref.getKycStatus());
 			response.setTotalReference(ref.getNimaiMReferList().size());
+//			List<NimaiMCustomer> data = customerRepository.findReferListByReferrerUsrId(ref.getUserid());
+//			response.setEarning(earning);
+
+			// if(!ref.getAccountSource().equalsIgnoreCase("WEBSITE")) {
+			List<NimaiMRefer> refer = referRepository.findReferByUserId(ref.getUserid());
+
+			RefBean referBean = new RefBean();
+			List<ReferrerBean> rfb = new ArrayList<>();
+			Float totalEarning = (float) 0.0;
+			for (NimaiMRefer rf : refer) {
+				NimaiMCustomer customer = new NimaiMCustomer();
+				ReferrerBean rb = new ReferrerBean();
+				try {
+					customer = customerRepository.getUserIdByEmailId(rf.getEmailAddress());
+				} catch (Exception e) {
+					e.printStackTrace();
+					System.out.println("Customer id which is not present :" + rf.getEmailAddress());
+					continue;
+				}
+
+				List<NimaiSubscriptionDetails> details = new ArrayList<>();
+
+				try {
+					details = subRepo.finSplanByReferId(customer.getUserid());
+					Float referEarning = Float.valueOf(systemConfig.earningPercentage());
+					Float actualREarning = (Float) (referEarning / 100);
+					Float userTotalEarning = (float) 0.0;
+
+					if (details.size() == 1) {
+						if ((customer.getPaymentStatus().equalsIgnoreCase("Approved")
+								|| customer.getPaymentStatus().equalsIgnoreCase("Success"))
+								&& customer.getKycStatus().equalsIgnoreCase("Approved")) {
+							Integer totalEarn = customerRepository.findTotalEarning(customer.getUserid());
+							if (totalEarn == null) {
+								userTotalEarning = (float) 0.0;
+							} else {
+								Float value = Float
+										.parseFloat(new DecimalFormat("##.##").format(totalEarn * actualREarning));
+								// ncb.setTotalEarning(String.valueOf(value));
+								userTotalEarning = value;
+								// ncb.setTotalEarning(currency + " " + (int) ((int) Math.round(totalEarn *
+								// 0.07)));
+							}
+						} else {
+							userTotalEarning = (float) 0.0;
+						}
+					} else {
+						Integer totalEarn = customerRepository.findTotalEarning(customer.getUserid());
+						if (totalEarn == null) {
+							userTotalEarning = (float) 0.0;
+						} else {
+							Float value = Float
+									.parseFloat(new DecimalFormat("##.##").format(totalEarn * actualREarning));
+							// ncb.setTotalEarning(String.valueOf(value));
+							userTotalEarning = value;
+							// ncb.setTotalEarning(currency + " " + (int) ((int) Math.round(totalEarn *
+							// 0.07)));
+						}
+					}
+					rb.setUserWiseTotalEarning(userTotalEarning);
+					rb.setUserId(customer.getUserid());
+					rfb.add(rb);
+				} catch (Exception e) {
+					e.printStackTrace();
+					continue;
+				}
+
+			}
+			referBean.setRfb(rfb);
+
+			for (ReferrerBean rEarn : rfb) {
+				totalEarning += rEarn.getUserWiseTotalEarning();
+			}
+			referBean.setTotalEarning(Float.parseFloat(new DecimalFormat("##.##").format(totalEarning)));
+
+			float Earning = Float.parseFloat(new DecimalFormat("##.##").format(totalEarning));
+			String earning = String.valueOf(Earning);
+
+			// }
+
 			int approve = 0;
 			int reject = 0;
 			for (int i = 0; i < ref.getNimaiMReferList().size(); i++) {
 				NimaiMCustomer data = customerRepository
 						.findByEmailAddress(ref.getNimaiMReferList().get(i).getEmailAddress().toLowerCase());
+
 				if (data != null) {
 					if (data.getKycStatus() != null && data.getKycStatus().equalsIgnoreCase("Approved")) {
 						approve = approve + 1;
@@ -94,8 +232,8 @@ public class RefererServiceImpl implements RefererService {
 			response.setRejectedReference(reject);
 			response.setPendingReference(ref.getNimaiMReferList().size() - approve - reject);
 			response.setInsertedDate(ref.getInsertedDate());
-
 			response.setInsertedDate(ref.getInsertedDate());
+			response.setEarning(earning);
 			return response;
 		}).getContent();
 
@@ -175,15 +313,32 @@ public class RefererServiceImpl implements RefererService {
 
 		if (request.getTxtStatus().equalsIgnoreCase("all")) {
 			responses = referDetails.map(ref -> {
+				System.out.println("");
 				CustomerResponse response = new CustomerResponse();
 				response.setFirstName(ref.getFirstName());
+
+				NimaiMCustomer customer = customerRepository.findByEmailAddress(ref.getEmailAddress());
+				if (customer == null) {
+					response.setAccountStatus("Pending");
+				} else {
+					String paymentSts = customer.getPaymentStatus();
+					String kycSts = customer.getKycStatus();
+					if (paymentSts == null || kycSts == null) {
+						response.setAccountStatus("Pending");
+					} else if ((paymentSts.equalsIgnoreCase("Approved") || paymentSts.equalsIgnoreCase("Success"))
+							&& kycSts.equalsIgnoreCase("Approved")) {
+						response.setAccountStatus("Active");
+					} else {
+						response.setAccountStatus("Pending");
+					}
+				}
+
 				response.setLastName(ref.getLastName());
 				response.setEmailAddress(ref.getEmailAddress());
 				response.setMobileNumber(ref.getMobileNo());
 				response.setCountryName(ref.getCountryName());
 				response.setCompanyName(ref.getCompanyName());
 				response.setInsertedDate(ref.getInsertedDate());
-				response.setAccountStatus(ref.getStatus());
 				response.setReferId(ref.getId());
 				return response;
 			}).getContent();
@@ -193,6 +348,7 @@ public class RefererServiceImpl implements RefererService {
 				String customer = customerRepository.findKycByEmailAddress(ref.getEmailAddress().toLowerCase());
 				if (customer != null && customer.equalsIgnoreCase(request.getTxtStatus())) {
 					CustomerResponse response = new CustomerResponse();
+
 					response.setFirstName(ref.getFirstName());
 					response.setLastName(ref.getLastName());
 					response.setEmailAddress(ref.getEmailAddress());
@@ -200,7 +356,25 @@ public class RefererServiceImpl implements RefererService {
 					response.setCountryName(ref.getCountryName());
 					response.setCompanyName(ref.getCompanyName());
 					response.setInsertedDate(ref.getInsertedDate());
-					response.setAccountStatus(ref.getStatus());
+					NimaiMCustomer customer1 = customerRepository.findByEmailAddress(ref.getEmailAddress());
+					if (customer1 == null) {
+						response.setAccountStatus("Pending");
+					} else {
+						String paymentSts = customer1.getPaymentStatus();
+
+						String kycSts = customer1.getKycStatus();
+
+						if (paymentSts == null || kycSts == null) {
+							response.setAccountStatus("Pending");
+						} else if ((paymentSts.equalsIgnoreCase("Approved") || paymentSts.equalsIgnoreCase("Success"))
+								&& kycSts.equalsIgnoreCase("Approved")) {
+							response.setAccountStatus("Active");
+						} else {
+							response.setAccountStatus("Pending");
+						}
+					}
+
+					// response.setAccountStatus(ref.getStatus());
 					response.setReferId(ref.getId());
 					return response;
 				}
@@ -218,7 +392,23 @@ public class RefererServiceImpl implements RefererService {
 					response.setCountryName(ref.getCountryName());
 					response.setCompanyName(ref.getCompanyName());
 					response.setInsertedDate(ref.getInsertedDate());
-					response.setAccountStatus(ref.getStatus());
+					NimaiMCustomer customer1 = customerRepository.findByEmailAddress(ref.getEmailAddress());
+
+					if (customer1 == null) {
+						response.setAccountStatus("Pending");
+					} else {
+						String paymentSts = customer1.getPaymentStatus();
+						String kycSts = customer1.getKycStatus();
+						if (paymentSts == null || kycSts == null) {
+							response.setAccountStatus("Pending");
+						} else if ((paymentSts.equalsIgnoreCase("Approved") || paymentSts.equalsIgnoreCase("Success"))
+								&& kycSts.equalsIgnoreCase("Approved")) {
+							response.setAccountStatus("Active");
+						} else {
+							response.setAccountStatus("Pending");
+						}
+					}
+
 					response.setReferId(ref.getId());
 					return response;
 				}
@@ -245,10 +435,68 @@ public class RefererServiceImpl implements RefererService {
 			response.setCountryName(refer.getCountryName());
 			response.setInsertedDate(refer.getInsertedDate());
 
+			String Status = "Active";
+			NimaiSubscriptionDetails detail = subRepo.getplanByUserID(customer.getUserid(), Status);
+			if (detail == null) {
+				response.setSubscriptionValidity(" ");
+				response.setPlanName(" ");
+				response.setPlanAmount(" ");
+			} else {
+				response.setSubscriptionValidity(detail.getSubscriptionValidity());
+				response.setPlanName(detail.getSubscriptionName());
+				response.setPlanAmount(String.valueOf(detail.getGrandAmount()));
+				List<NimaiSubscriptionDetails> details = new ArrayList<>();
+				details = subRepo.finSplanByReferId(customer.getUserid());
+				Float referEarning = Float.valueOf(systemConfig.earningPercentage());
+				Float actualREarning = (Float) (referEarning / 100);
+				Float userTotalEarning = (float) 0.0;
+				if (details.size() == 0) {
+					response.setUserWiseTotalEarning(0);
+				} else if (details.size() == 1) {
+					if ((customer.getPaymentStatus().equalsIgnoreCase("Approved")
+							|| customer.getPaymentStatus().equalsIgnoreCase("Success"))
+							&& customer.getKycStatus().equalsIgnoreCase("Approved")) {
+						Integer totalEarn = customerRepository.findTotalEarning(customer.getUserid());
+						if (totalEarn == null) {
+							userTotalEarning = (float) 0.0;
+						} else {
+							Float value = Float
+									.parseFloat(new DecimalFormat("##.##").format(totalEarn * actualREarning));
+							// ncb.setTotalEarning(String.valueOf(value));
+							userTotalEarning = value;
+							// ncb.setTotalEarning(currency + " " + (int) ((int) Math.round(totalEarn *
+							// 0.07)));
+						}
+					} else {
+						userTotalEarning = (float) 0.0;
+					}
+				} else {
+					Integer totalEarn = customerRepository.findTotalEarning(customer.getUserid());
+					if (totalEarn == null) {
+						userTotalEarning = (float) 0.0;
+					} else {
+						Float value = Float.parseFloat(new DecimalFormat("##.##").format(totalEarn * actualREarning));
+						// ncb.setTotalEarning(String.valueOf(value));
+						userTotalEarning = value;
+						// ncb.setTotalEarning(currency + " " + (int) ((int) Math.round(totalEarn *
+						// 0.07)));
+					}
+				}
+				response.setUserWiseTotalEarning(userTotalEarning);
+			}
+
 			if (customer != null) {
 				response.setUserid(customer.getUserid());
 				response.setSignUpDate(customer.getInsertedDate());
-				response.setAccountStatus(customer.getKycStatus());
+
+				if ((customer.getPaymentStatus().equalsIgnoreCase("Approved")
+						|| customer.getPaymentStatus().equalsIgnoreCase("Success"))
+						&& customer.getKycStatus().equalsIgnoreCase("Approved")) {
+					response.setAccountStatus("Active");
+				} else {
+					response.setAccountStatus("Pending");
+				}
+
 				response.setSubscriberType(customer.getSubscriberType());
 				if (customer.getRmId() != null) {
 					NimaiMEmployee emp = employeeRepository.findByEmpCode(customer.getRmId());

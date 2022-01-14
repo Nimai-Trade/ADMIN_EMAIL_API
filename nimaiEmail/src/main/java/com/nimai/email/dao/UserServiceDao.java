@@ -80,8 +80,10 @@ NimaiMBranch getInvalidCaptchaStatus(BranchUserPassCodeBean passCodeBean);
 NimaiToken isTokenExists(String userId);
 void updateInvalCaptcha(String userId, String flag);
 void updatepasscodeFlag(String userId, String flag);
-NimaiSubscriptionDetails getSplanDetails(String userid);
+NimaiSubscriptionDetails getSplanDetail(String userid,String invoiceId);
 NimaiSubscriptionVas getVasDetails(String subscriptionName, String userid);
 NimaiMBranch getBranchUserDetailsByEMpId(String emailAddress, String empId);
+NimaiSubscriptionDetails getsPlanDetailsBySerialNumber(int splanSerialNumber);
+NimaiSubscriptionVas getVasDetailsBySerialNumber(Integer getsPlSerialNUmber);
 
 }

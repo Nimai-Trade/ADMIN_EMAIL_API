@@ -1,6 +1,7 @@
 package com.nimai.admin.repository;
 
 import java.util.Date;
+
 import java.util.List;
 
 import javax.persistence.Tuple;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Repository;
 
 import com.nimai.admin.model.NimaiMRefer;
 import com.nimai.admin.model.NimaiSubscriptionDetails;
+
 
 @Repository
 public interface ReferrerRepository extends JpaRepository<NimaiMRefer, Integer>, JpaSpecificationExecutor<NimaiMRefer> {
@@ -38,7 +40,8 @@ public interface ReferrerRepository extends JpaRepository<NimaiMRefer, Integer>,
 	
 	
 	
-	
+	@Query("select re from NimaiMRefer re where re.userid.userid= (:userId)")
+	List<NimaiMRefer> findReferByUserId(@Param("userId") String userId);
 	
 	
 }

@@ -36,6 +36,8 @@ public class NimaiMRefer {
 	@Size(max = 30)
 	@Column(name = "EMAIL_ADDRESS")
 	private String emailAddress;
+	@Column(name = "REFER_EMAIL_ID")
+	private String referemailAddress;
 	@Size(max = 20)
 	@Column(name = "MOBILE_NO")
 	private String mobileNo;
@@ -75,6 +77,14 @@ public class NimaiMRefer {
 	public NimaiMRefer() {
 		super();
 
+	}
+
+	public String getReferemailAddress() {
+		return referemailAddress;
+	}
+
+	public void setReferemailAddress(String referemailAddress) {
+		this.referemailAddress = referemailAddress;
 	}
 
 	public String getBranchUserId() {

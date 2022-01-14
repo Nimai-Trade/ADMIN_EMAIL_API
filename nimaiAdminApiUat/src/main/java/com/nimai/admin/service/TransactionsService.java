@@ -12,6 +12,8 @@ import com.nimai.admin.payload.TransactionDetails;
 public interface TransactionsService {
 
 	PagedResponse<?> getAllTransaction(SearchRequest request);
+	
+	PagedResponse<?> getmakerApprovedTransaction(SearchRequest request);
 
 	List<String> userIdSearch(String userId);
 

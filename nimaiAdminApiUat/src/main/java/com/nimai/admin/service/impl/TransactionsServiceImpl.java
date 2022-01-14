@@ -64,6 +64,48 @@ public class TransactionsServiceImpl implements TransactionsService {
 
 	@Override
 	public PagedResponse<?> getAllTransaction(SearchRequest request) {
+		System.out.println("================_+++++++++++Login userId" + Utility.getUserId());
+//		List<String> userIdList = null;
+//		if (request.getEmailId() != null || request.getMobileNo() != null || request.getCompanyName() != null) {
+//
+//			userIdList = customerRepository.getUserIdOnEmailMobileNumberCompanyName(request.getEmailId(),
+//					request.getMobileNo(), request.getCompanyName());
+//		}
+
+		Pageable pageable = PageRequest.of(request.getPage(), request.getSize(),
+				request.getDirection().equalsIgnoreCase("desc") ? Sort.by(request.getSortBy()).descending()
+						: Sort.by(request.getSortBy()).ascending());
+		Page<NimaiMmTransaction> transactionList;
+		String countryNames = Utility.getUserCountry();
+		if (request.getCountry() == null) {
+			System.out.println("============inside firstcondiiton" + countryNames);
+			if (countryNames != null && countryNames.equalsIgnoreCase("all")) {
+				System.out.println("============inside Seconcondiiton" + countryNames);
+			} else if (countryNames != null && !countryNames.equalsIgnoreCase("all")) {
+				System.out.println("============inside Thirddiiton" + countryNames);
+				request.setCountryNames(countryNames);
+			}
+		} else if (request.getCountry() == null && countryNames == null) {
+			System.out.println("============inside fourthdiiton" + countryNames);
+			transactionList = null;
+		}
+		System.out.println("final countries inside method" + countryNames);
+		transactionList = transactionsRepository.findAll(transactionsSpecification.getFilter(request), pageable);
+		for (NimaiMmTransaction tr : transactionList) {
+			System.out.println("===========+++++++++++==================transaction lIst" + tr.toString());
+		}
+
+		List<TransactionSearchResponse> responses = transactionList.map(cust -> {
+			return ModelMapper.mapTransactionToResponse(cust);
+		}).getContent();
+
+		return new PagedResponse<>(responses, transactionList.getNumber(), transactionList.getSize(),
+				transactionList.getTotalElements(), transactionList.getTotalPages(), transactionList.isLast());
+
+	}
+
+	@Override
+	public PagedResponse<?> getmakerApprovedTransaction(SearchRequest request) {
 //		List<String> userIdList = null;
 //		if (request.getEmailId() != null || request.getMobileNo() != null || request.getCompanyName() != null) {
 //
@@ -90,7 +132,7 @@ public class TransactionsServiceImpl implements TransactionsService {
 		transactionList = transactionsRepository.findAll(transactionsSpecification.getFilter(request), pageable);
 
 		List<TransactionSearchResponse> responses = transactionList.map(cust -> {
-			return ModelMapper.mapTransactionToResponse(cust);
+			return ModelMapper.mapMakerAppTransactionToResponse(cust);
 		}).getContent();
 
 		return new PagedResponse<>(responses, transactionList.getNumber(), transactionList.getSize(),
@@ -212,6 +254,9 @@ public class TransactionsServiceImpl implements TransactionsService {
 			response.setConfChgsIssuanceToMatur(quotation.getConfChgsIssuanceToMatur() != null
 					? quotation.getConfChgsIssuanceToMatur().toUpperCase()
 					: "");
+			response.setConfChgsIssuanceToClaimExp(quotation.getConfChgsIssToClaimExp());
+			response.setConfChgsIssuanceToexp(quotation.getConfChgsIssuanceToExp());
+			response.setTermCondition(quotation.getTermsConditions());
 			if (quotation.getApplicableBenchmark() != null)
 				response.setApplicableBenchmark(quotation.getApplicableBenchmark());
 			if (quotation.getCommentsBenchmark() != null)
@@ -259,7 +304,7 @@ public class TransactionsServiceImpl implements TransactionsService {
 		}
 		return null;
 	}
-	
+
 	@Override
 	public List<String> customerUserIdSearch(String userId) {
 		String val = Utility.getUserCountry();

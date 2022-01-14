@@ -217,4 +217,26 @@ public class NimaiMVas {
 		this.currency = currency;
 	}
 
+	public NimaiMVas(int vasid, String customerType, String countryName, String planName, String description1,
+			String description2, String description3, String description4, String description5, float pricing,
+			String status, String currency, String createdBy, Date createdDate, String modifiedBy, Date modifiedDate) {
+		super();
+		this.vasid = vasid;
+		this.customerType = customerType;
+		this.countryName = countryName;
+		this.planName = planName;
+		this.description1 = description1;
+		this.description2 = description2;
+		this.description3 = description3;
+		this.description4 = description4;
+		this.description5 = description5;
+		this.pricing = pricing;
+		this.status = status;
+		this.currency = currency;
+		this.createdBy = createdBy;
+		this.createdDate = createdDate;
+		this.modifiedBy = modifiedBy;
+		this.modifiedDate = modifiedDate;
+	}
+	
 }

@@ -4,6 +4,9 @@ import static org.springframework.data.jpa.domain.Specification.where;
 
 import java.sql.Date;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
@@ -20,6 +23,8 @@ public class DiscountSpecification extends BaseSpecification<NimaiMDiscount, Sea
 
 		return (root, query, cb) -> {
 			return where(likeValuesContains("status", request.getStatus()))
+					
+					.and(iN("country", request.getCountryNames()))
 					.and(valueBetween("createdDate", request.getDateFrom(), request.getDateTo()))
 					.and(valuesContains("couponFor", request.getCustomerType())).toPredicate(root, query, cb);
 		};
@@ -34,6 +39,19 @@ public class DiscountSpecification extends BaseSpecification<NimaiMDiscount, Sea
 			}
 		};
 	}
+	
+	
+	private Specification<NimaiMDiscount> iN(String attribute, String inValue) {
+		return (root, query, cb) -> {
+			if (inValue != null) {
+				List<String> value = Stream.of(inValue.split(",", -1)).collect(Collectors.toList());
+				return root.get(attribute).in(value);
+			} else {
+				return null;
+			}
+		};
+	}
+	
 
 	private Specification<NimaiMDiscount> valueBetween(String attribute, String dateFrom, String dateTo) {
 		System.out.println(dateFrom + " " + dateTo);
@@ -55,5 +73,7 @@ public class DiscountSpecification extends BaseSpecification<NimaiMDiscount, Sea
 			return cb.equal(root.get(attribute), value);
 		};
 	}
+
+
 
 }

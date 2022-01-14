@@ -2,8 +2,10 @@
 package com.nimai.admin.service.impl;
 
 import org.slf4j.LoggerFactory;
+
 import com.nimai.admin.payload.SPlanBean;
 import com.nimai.admin.payload.CouponBean;
+import com.nimai.admin.payload.EligibleEmailList;
 import com.nimai.admin.payload.VasUpdateRequestBody;
 import java.util.stream.Stream;
 import com.nimai.admin.payload.QuotationListResponse;
@@ -11,18 +13,27 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.Map;
 import com.nimai.admin.model.NimaiKyc;
+import com.nimai.admin.model.NimaiLCMaster;
+
 import java.util.Calendar;
+
+import com.nimai.admin.model.GenericResponse;
 import com.nimai.admin.model.NimaiEmailScheduler;
+import com.nimai.admin.model.NimaiEmailSchedulerAlertToBanks;
+
 import java.util.Date;
 import com.nimai.admin.payload.ApiResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import com.nimai.admin.util.Utility;
+
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import com.nimai.admin.payload.PagedResponse;
 import com.nimai.admin.payload.SearchRequest;
+import com.nimai.admin.payload.TransactionRequestBody;
+
 import java.util.Iterator;
 import com.nimai.admin.model.NimaiMDiscount;
 import com.nimai.admin.model.NimaiSubscriptionVas;
@@ -35,10 +46,12 @@ import java.util.function.Function;
 import java.util.Comparator;
 import com.nimai.admin.model.NimaiFKyc;
 import com.nimai.admin.payload.KycBDetailResponse;
+import com.nimai.admin.payload.KycFiledBean;
 import com.nimai.admin.model.NimaiMQuotation;
 import com.nimai.admin.payload.QuotationDetailsResponse;
 import com.nimai.admin.model.NimaiFOwner;
 import com.nimai.admin.model.NimaiMEmployee;
+import com.nimai.admin.model.NimaiMKycfileds;
 import com.nimai.admin.model.NimaiMCustomer;
 import com.nimai.admin.controller.BankController;
 import com.nimai.admin.exception.ResourceNotFoundException;
@@ -53,11 +66,17 @@ import com.nimai.admin.payload.BankDetailsResponse;
 import org.springframework.http.ResponseEntity;
 import com.nimai.admin.util.SPlanSerialComparator;
 import org.slf4j.Logger;
+
+import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import javax.persistence.ParameterMode;
+import javax.persistence.StoredProcedureQuery;
+
 import com.nimai.admin.repository.NimaiEmailSchedulerRepository;
 import com.nimai.admin.specification.KycSpecification;
 import com.nimai.admin.specification.QuotationSpecification;
 import com.nimai.admin.repository.EmployeeRepository;
+import com.nimai.admin.repository.KycFiledRepository;
 import com.nimai.admin.repository.DiscountRepository;
 import com.nimai.admin.repository.TransactionsRepository;
 import com.nimai.admin.specification.NimaiSubscriptionVasSpecification;
@@ -66,10 +85,13 @@ import com.nimai.admin.repository.ReferrerRepository;
 import com.nimai.admin.repository.SubscriptionDetailsRepository;
 import com.nimai.admin.repository.KycRepository;
 import com.nimai.admin.repository.NimaiKycRepository;
+import com.nimai.admin.repository.NimaiLcMasterRepository;
 import com.nimai.admin.repository.QuotationRepository;
 import com.nimai.admin.repository.SubscriptionVasRepository;
 import com.nimai.admin.repository.CustomerRepository;
 import com.nimai.admin.repository.MasterSubsPlanRepository;
+import com.nimai.admin.repository.NimaiEmailSchedulerAlertToBanksRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import com.nimai.admin.repository.OwnerMasterRepository;
 import org.springframework.stereotype.Service;
@@ -77,15 +99,21 @@ import com.nimai.admin.service.BankService;
 
 @Service
 public class BankServiceImpl implements BankService {
-	
+
 	private static Logger logger = LoggerFactory.getLogger(BankServiceImpl.class);
-	
+
 	@Autowired
 	OwnerMasterRepository owrepo;
 	@Autowired
 	MasterSubsPlanRepository sPlanMasterRepo;
 	@Autowired
+	QuotationRepository quotemasterrepo;
+	@Autowired
+	SubscriptionDetailsRepository sPlanRepo;
+	@Autowired
 	CustomerRepository repo;
+	@Autowired
+	NimaiLcMasterRepository lcMasterrepo;
 	@Autowired
 	SubscriptionVasRepository vasRep;
 	@Autowired
@@ -98,6 +126,8 @@ public class BankServiceImpl implements BankService {
 	SubscriptionDetailsRepository planRepo;
 	@Autowired
 	ReferrerRepository referrerRepo;
+	@Autowired
+	KycFiledRepository fieldRepo;
 	@Autowired
 	CustomerSearchSpecification customerSearchSpecification;
 	@Autowired
@@ -118,6 +148,8 @@ public class BankServiceImpl implements BankService {
 	SubscriptionVasRepository vasRepo;
 	@Autowired
 	EntityManagerFactory em;
+	@Autowired
+	NimaiEmailSchedulerAlertToBanksRepository userDao;
 //	private static final Logger logger;
 	@Autowired
 	SPlanSerialComparator comparatorSplan;
@@ -162,26 +194,36 @@ public class BankServiceImpl implements BankService {
 						.findAdditionalUserByUserId(userid);
 				if (subsidiaryList != null && subsidiaryList.size() != 0) {
 					AssociatedAccountsDetails associatedAccountsDetails = null;
-					final List<AssociatedAccountsDetails> data = subsidiaryList.stream().map(sub -> {
-						new AssociatedAccountsDetails(sub.getUserid(), sub.getFirstName() + " " + sub.getLastName(),
-								sub.getEmailAddress(), sub.getMobileNumber(), sub.getCountryName(), sub.getLandline(),
-								sub.getAccountStatus());
-						return associatedAccountsDetails;
-					}).collect(Collectors.toList());
-					response.setSubsidiary((List) data);
+					List<AssociatedAccountsDetails> data = new ArrayList<>();
+					for (NimaiMCustomer sub : subsidiaryList) {
+						AssociatedAccountsDetails subdetails = new AssociatedAccountsDetails();
+						subdetails.setUserId(sub.getUserid());
+						subdetails.setName(sub.getFirstName());
+						subdetails.setStatus(sub.getAccountStatus());
+						subdetails.setEmailId(sub.getEmailAddress());
+						subdetails.setCountry(sub.getRegisteredCountry());
+						subdetails.setLandline(sub.getLandline());
+						data.add(subdetails);
+					}
+					response.setSubsidiary(data);
 				}
 			} else {
 				final List<NimaiMCustomer> subsidiaryList = (List<NimaiMCustomer>) this.repo
 						.findSubsidiaryByUserId(userid);
 				if (subsidiaryList != null && subsidiaryList.size() != 0) {
-					AssociatedAccountsDetails associatedAccountsDetails2 = null;
-					final List<AssociatedAccountsDetails> data = subsidiaryList.stream().map(sub -> {
-						new AssociatedAccountsDetails(sub.getUserid(), sub.getFirstName() + " " + sub.getLastName(),
-								sub.getEmailAddress(), sub.getMobileNumber(), sub.getCountryName(), sub.getLandline(),
-								sub.getAccountStatus());
-						return associatedAccountsDetails2;
-					}).collect(Collectors.toList());
-					response.setSubsidiary((List) data);
+					List<AssociatedAccountsDetails> data = new ArrayList<>();
+					for (NimaiMCustomer sub : subsidiaryList) {
+						AssociatedAccountsDetails subdetails = new AssociatedAccountsDetails();
+						subdetails.setUserId(sub.getUserid());
+						subdetails.setName(sub.getFirstName());
+						subdetails.setStatus(sub.getAccountStatus());
+						subdetails.setEmailId(sub.getEmailAddress());
+						subdetails.setCountry(sub.getRegisteredCountry());
+						subdetails.setLandline(sub.getLandline());
+						data.add(subdetails);
+					}
+
+					response.setSubsidiary(data);
 				}
 			}
 			final List<NimaiFOwner> owener = (List<NimaiFOwner>) this.owrepo.findDataByUserId(userid);
@@ -213,7 +255,7 @@ public class BankServiceImpl implements BankService {
 
 	@Override
 	public List<KycBDetailResponse> getKycDetailsUserId(NimaiMCustomer userId) {
-		List<NimaiFKyc> fkyc = kycRepo.findByUserid(userId);
+		List<NimaiFKyc> fkyc = kycRepo.findKycByUserid(userId.getUserid());
 //		String country = Utility.getUserCountry();
 //		List<String> cNames = Stream.of(country.split(",", -1)).collect(Collectors.toList());
 //		if (country != null && country.equalsIgnoreCase("all")) {
@@ -223,7 +265,7 @@ public class BankServiceImpl implements BankService {
 //		}
 		List<KycBDetailResponse> kycResp = fkyc.stream().sorted(Comparator.comparing(NimaiFKyc::getId).reversed())
 				.map(kyc -> new KycBDetailResponse(kyc.getId(), kyc.getDocumentName(), kyc.getCountry(),
-						kyc.getKycType(), kyc.getDocumentType(), kyc.getReason(), kyc.getKycStatus(),
+						kyc.getKycType(), kyc.getDocumentType(), kyc.getComment(), kyc.getKycStatus(),
 						kyc.getCheckerComment(), kyc.getEncodedFileContent().substring(
 								kyc.getEncodedFileContent().indexOf("|") + 1, kyc.getEncodedFileContent().length())))
 				.collect(Collectors.toList());
@@ -354,27 +396,184 @@ public class BankServiceImpl implements BankService {
 	public PagedResponse<?> getSearchBankDetail(final SearchRequest request) {
 		request.setSubscriberType("BANK");
 		request.setBankType("UNDERWRITER");
-		final Pageable pageable = (Pageable) PageRequest.of(request.getPage(), request.getSize(),
-				request.getDirection().equalsIgnoreCase("desc")
-						? Sort.by(new String[] { request.getSortBy() }).descending()
-						: Sort.by(new String[] { request.getSortBy() }).ascending());
+		Pageable pageable = null;
+		request.setSortBy("inserted_date");
+		if ((request.getUserId() != null && request.getTxtStatus() == null)
+				|| (request.getEmailId() != null && request.getTxtStatus() == null)
+				|| (request.getMobileNo() != null && request.getTxtStatus() == null)) {
+			request.setSize(1);
+			pageable = (Pageable) PageRequest.of(request.getPage(), request.getSize(),
+					request.getDirection().equalsIgnoreCase("desc")
+							? Sort.by(new String[] { request.getSortBy() }).descending()
+							: Sort.by(new String[] { request.getSortBy() }).ascending());
+		} else if ((request.getTxtStatus() == null)) {
+			pageable = (Pageable) PageRequest.of(request.getPage(), request.getSize(),
+					request.getDirection().equalsIgnoreCase("desc")
+							? Sort.by(new String[] { request.getSortBy() }).descending()
+							: Sort.by(new String[] { request.getSortBy() }).ascending());
+		} else if ((request.getTxtStatus().equalsIgnoreCase("Pending"))) {
+			request.setSortBy("nfk.INSERTED_DATE");
+			pageable = (Pageable) PageRequest.of(request.getPage(), request.getSize(),
+					request.getDirection().equalsIgnoreCase("desc")
+							? Sort.by(new String[] { request.getSortBy() }).descending()
+							: Sort.by(new String[] { request.getSortBy() }).ascending());
+
+		} else if ((request.getTxtStatus().equalsIgnoreCase("Rejected"))) {
+			request.setSortBy("nfk.INSERTED_DATE");
+			pageable = (Pageable) PageRequest.of(request.getPage(), request.getSize(),
+					request.getDirection().equalsIgnoreCase("desc")
+							? Sort.by(new String[] { request.getSortBy() }).descending()
+							: Sort.by(new String[] { request.getSortBy() }).ascending());
+
+		} else {
+
+			pageable = (Pageable) PageRequest.of(request.getPage(), request.getSize(),
+					request.getDirection().equalsIgnoreCase("desc")
+							? Sort.by(new String[] { request.getSortBy() }).descending()
+							: Sort.by(new String[] { request.getSortBy() }).ascending());
+		}
+
+		String countryNames = Utility.getUserCountry();
+		System.out.println("countryNames: " + countryNames);
+		if (countryNames != null && countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
+			countryNames = "";
+			final List<String> countryList = (List<String>) this.repo.getCountryList();
+			for (final String country : countryList) {
+				countryNames = countryNames + country + ",";
+			}
+			System.out.println("Country List: " + countryNames);
+			request.setCountryNames(countryNames);
+		} else if (countryNames != null && !countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
+			request.setCountryNames(countryNames);
+		} else if (countryNames == null && request.getCountry() == null) {
+		}
+		final List<String> value = Stream.of(request.getCountryNames().split(",", -1)).collect(Collectors.toList());
+		System.out.println("Values BankService: " + value);
+
 		if (request.getRole() != null && request.getRole().equalsIgnoreCase("Bank RM")) {
 			request.setLoginUserId(Utility.getUserId());
 			request.setRmStatus("Active");
 		} else {
-			final String countryNames = Utility.getUserCountry();
-			if (countryNames == null || !countryNames.equalsIgnoreCase("all") || request.getCountry() != null) {
-				if (countryNames != null && !countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
-					request.setCountryNames(countryNames);
-				} else if (countryNames == null && request.getCountry() == null) {
-				}
+//			final String countryNames = Utility.getUserCountry();
+//			if (countryNames == null || !countryNames.equalsIgnoreCase("all") || request.getCountry() != null) {
+//				if (countryNames != null && !countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
+//					request.setCountryNames(countryNames);
+//				} else if (countryNames == null && request.getCountry() == null) {
+//				}
+//			}
+		}
+		Page<NimaiMCustomer> bankDetails = null;
+		if (request.getRole().equalsIgnoreCase("Bank RM")) {
+			String userId = Utility.getUserId();
+			System.out.println("===========RM userId" + userId);
+			// CustomerServiceImpl custList=new CustomerServiceImpl();
+			bankDetails = retiriveListOnRMId(userId, request, value, pageable);
+		} else {
+			// (Page<NimaiMCustomer>) this.repo
+//			.findAll(this.customerSearchSpecification.getBankFilter(request), pageable);
+			if (request.getUserId() != null && request.getTxtStatus() == null) {
+				System.out.println("************=============1.insdie request.getUserId()============***********"
+						+ request.getUserId());
+				bankDetails = repo.getBankDetailsByUserId(request.getUserId(), value, pageable);
+
+			}
+
+			else if (request.getMobileNo() != null && request.getTxtStatus() == null) {
+				System.out.println("************=============2.request.getMobileNo()============***********"
+						+ request.getUserId());
+				bankDetails = repo.getBankDetailsByMobileNo(request.getMobileNo(), value, pageable);
+
+			}
+
+			else if (request.getCountry() != null && request.getTxtStatus() == null) {
+				System.out.println(
+						"************=============3.request.getCountry()============***********" + request.getUserId());
+				bankDetails = repo.getBankDetailsByCountry(request.getCountry(), value, pageable);
+
+			}
+
+			else if (request.getBankName() != null && request.getTxtStatus() == null) {
+				System.out.println("************=============4.request.getCompanyName()============***********"
+						+ request.getUserId());
+				bankDetails = repo.getBankDetailsByCompanyName(request.getBankName(), value, pageable);
+
+			}
+
+			else if (request.getEmailId() != null && request.getTxtStatus() == null) {
+				System.out.println(
+						"************=============5.request.getEmailId()============***********" + request.getUserId());
+				bankDetails = repo.getBankDetailsByEmailId(request.getEmailId(), value, pageable);
+
+			}
+
+			else if (request.getTxtStatus() == null || request.getTxtStatus().equalsIgnoreCase("all")) {
+				bankDetails = repo.getAllBankKYC(value, pageable);
+				System.out.println("************=============6.request.getTxtStatus() == null============***********"
+						+ request.getUserId());
+
+			}
+
+			else if (request.getTxtStatus().equalsIgnoreCase("Pending")) {
+				bankDetails = repo.getPendingBankKYC(value, pageable);
+				System.out.println(
+						"************=============7.request.getTxtStatus().equalsIgnoreCase(\"Pending\") == null============***********"
+								+ request.getUserId());
+
+			}
+			
+			else if (request.getTxtStatus().equalsIgnoreCase("PaymentPending")) {
+				bankDetails = repo.getPaymentPendingBank(value, pageable);
+				System.out.println(
+						"************=============7.request.getTxtStatus().equalsIgnoreCase(\"PaymentPending\") ============***********"
+								+ request.getUserId());
+
+			}
+			
+			else if (request.getTxtStatus().equalsIgnoreCase("subexpiry")) {
+				bankDetails = repo.getSubscriptionExpiryBank(value, pageable);
+				System.out.println(
+						"************=============Subscription Expiry in 30 days============***********");
+
+			}
+			
+			else if (request.getTxtStatus().equalsIgnoreCase("PaymentPendingUser")) {
+				bankDetails = repo.getPaymentPendingUserBank(value, pageable);
+				System.out.println(
+						"************=============PaymentPaymentUser============***********"
+								+ request.getUserId());
+
+			}
+			
+			else if (request.getTxtStatus().equalsIgnoreCase("Approved")) {
+				bankDetails = repo.getApprovedBankKYC(value, pageable);
+				System.out.println(
+						"************=============8.request.getTxtStatus().equalsIgnoreCase(\"Approved\")============***********"
+								+ request.getUserId());
+
+			}
+
+			else if (request.getTxtStatus().equalsIgnoreCase("Rejected")) {
+				bankDetails = repo.getRejectedBankKYC(value, pageable);
+				System.out.println(
+						"************=============10.request.getTxtStatus().equalsIgnoreCase(\"Rejected\")============***********"
+								+ request.getUserId());
+
+			}
+
+			else if (request.getTxtStatus().equalsIgnoreCase("Not Uploaded")) {
+				bankDetails = repo.getNotUploadBankKYC(value, pageable);
+				System.out.println(
+						"************=============11.request.getTxtStatus().equalsIgnoreCase(\"Not Uploaded\")============***********"
+								+ request.getUserId());
+
 			}
 		}
-		final Page<NimaiMCustomer> bankDetails = (Page<NimaiMCustomer>) this.repo
-				.findAll(this.customerSearchSpecification.getBankFilter(request), pageable);
+
 		// final BankDetailsResponse response;
 		final List<BankDetailsResponse> responses = (List<BankDetailsResponse>) bankDetails.map(cust -> {
 			BankDetailsResponse response = new BankDetailsResponse();
+
+			// System.out.println(bankDetails.toString());
 			response.setUserid(cust.getUserid());
 			response.setFirstName(cust.getFirstName());
 			response.setLastName(cust.getLastName());
@@ -391,12 +590,100 @@ public class BankServiceImpl implements BankService {
 						"Latest Inactive_".concat(this.collectInPlanName(cust.getNimaiSubscriptionDetailsList())));
 			}
 			response.setTotalQuotes(this.quoteRepo.quoteCout(cust.getUserid()));
-			response.setKyc(cust.getKycStatus());
+			// response.setKyc(cust.getKycStatus());
+			// System.out.println("==============useriD"+userId);
+			List<NimaiFKyc> kycdetails = kycRepo.findByUserid(cust);
+			if (kycdetails.size() == 0) {
+				response.setKyc("Not Uploaded");
+			} else {
+				response.setKyc(cust.getKycStatus());
+			}
 			response.setRegisteredCountry(cust.getRegisteredCountry());
 			return response;
 		}).getContent();
 		return (PagedResponse<?>) new PagedResponse((List) responses, bankDetails.getNumber(), bankDetails.getSize(),
 				bankDetails.getTotalElements(), bankDetails.getTotalPages(), bankDetails.isLast());
+
+	}
+
+	private Page<NimaiMCustomer> retiriveListOnRMId(String rmId, SearchRequest request, List<String> value,
+			Pageable pageable) {
+		// TODO Auto-generated method stub
+		Page<NimaiMCustomer> bankDetails = null;
+		if (request.getUserId() != null && request.getTxtStatus() == null) {
+			System.out.println("************=============1.insdie request.getUserId()============***********"
+					+ request.getUserId());
+			bankDetails = repo.getBankDetailsByUserIdRmId(request.getUserId(), rmId, value, pageable);
+
+		}
+
+		else if (request.getMobileNo() != null && request.getTxtStatus() == null) {
+			System.out.println(
+					"************=============2.request.getMobileNo()============***********" + request.getUserId());
+			bankDetails = repo.getBankDetailsByMobileNoRmId(request.getMobileNo(), rmId, value, pageable);
+
+		}
+
+		else if (request.getCountry() != null && request.getTxtStatus() == null) {
+			System.out.println(
+					"************=============3.request.getCountry()============***********" + request.getUserId());
+			bankDetails = repo.getBankDetailsByCountryRmId(request.getCountry(), rmId, value, pageable);
+
+		}
+
+		else if (request.getBankName() != null && request.getTxtStatus() == null) {
+			System.out.println(
+					"************=============4.request.getCompanyName()============***********" + request.getUserId());
+			bankDetails = repo.getBankDetailsByCompanyNameRmId(request.getBankName(), rmId, value, pageable);
+
+		}
+
+		else if (request.getEmailId() != null && request.getTxtStatus() == null) {
+			System.out.println(
+					"************=============5.request.getEmailId()============***********" + request.getUserId());
+			bankDetails = repo.getBankDetailsByEmailIdRmId(request.getEmailId(), rmId, value, pageable);
+
+		}
+
+		else if (request.getTxtStatus() == null || request.getTxtStatus().equalsIgnoreCase("all")) {
+			bankDetails = repo.getAllBankKYCRmId(rmId, value, pageable);
+			System.out.println("************=============6.request.getTxtStatus() == null============***********"
+					+ request.getUserId());
+
+		}
+
+		else if (request.getTxtStatus().equalsIgnoreCase("Pending")) {
+			bankDetails = repo.getPendingBankKYCRmId(rmId, value, pageable);
+			System.out.println(
+					"************=============7.request.getTxtStatus().equalsIgnoreCase(\"Pending\") == null============***********"
+							+ request.getUserId());
+
+		}
+
+		else if (request.getTxtStatus().equalsIgnoreCase("Approved")) {
+			bankDetails = repo.getApprovedBankKYCRmId(rmId, value, pageable);
+			System.out.println(
+					"************=============8.request.getTxtStatus().equalsIgnoreCase(\"Approved\")============***********"
+							+ request.getUserId());
+
+		}
+
+		else if (request.getTxtStatus().equalsIgnoreCase("Rejected")) {
+			bankDetails = repo.getRejectedBankKYCRmId(rmId, value, pageable);
+			System.out.println(
+					"************=============10.request.getTxtStatus().equalsIgnoreCase(\"Rejected\")============***********"
+							+ request.getUserId());
+
+		}
+
+		else if (request.getTxtStatus().equalsIgnoreCase("Not Uploaded")) {
+			bankDetails = repo.getNotUploadBankKYCRmId(rmId, value, pageable);
+			System.out.println(
+					"************=============11.request.getTxtStatus().equalsIgnoreCase(\"Not Uploaded\")============***********"
+							+ request.getUserId());
+
+		}
+		return bankDetails;
 	}
 
 	public ResponseEntity<?> kycStatusUpdate(final KycBDetailResponse data) {
@@ -412,8 +699,8 @@ public class BankServiceImpl implements BankService {
 			fkyc.setKycStatus(data.getKycStatus());
 			fkyc.setApprovedBy(data.getApproverName());
 			fkyc.setApprovedDate(new Date());
-			fkyc.setCheckerComment(data.getApprovalReason().concat(" - "+Utility.getUserId()));
-			//fkyc.setComment(data.getComment());
+			fkyc.setCheckerComment(data.getApprovalReason().concat(" " + "-" + " " + Utility.getUserId()));
+			// fkyc.setComment(data.getComment());
 			this.kycRepo.save(fkyc);
 			final NimaiMCustomer customer = (NimaiMCustomer) this.repo.getOne(fkyc.getUserid().getUserid());
 			final NimaiMEmployee emp = this.employeeRepository.findByEmpCode(customer.getRmId());
@@ -526,16 +813,15 @@ public class BankServiceImpl implements BankService {
 				schdata2.setEmailStatus("Pending");
 				schdata2.setEmailId(customer.getEmailAddress());
 				final String planStatus = "ACTIVE";
-				
-				if(!customer.getUserid().substring(0, 2).equalsIgnoreCase("RE")) {
-					if((!customer.getAccountType().equalsIgnoreCase("SUBSIDIARY"))
-							|| (!customer.getAccountType().equalsIgnoreCase("BANKUSER"))) {
+
+				if ((!customer.getUserid().substring(0, 2).equalsIgnoreCase("RE"))
+						&& ((!customer.getAccountType().equalsIgnoreCase("SUBSIDIARY"))
+								&& (!customer.getAccountType().equalsIgnoreCase("BANKUSER")))) {
 					final Calendar cal2 = Calendar.getInstance();
 					final Date today2 = cal2.getTime();
 					schdata2.setInsertedDate(today2);
 					this.schRepo.save(schdata2);
-					 NimaiSubscriptionDetails details = this.planRepo.getplanByUserID(customer.getUserid(),
-							planStatus);
+					NimaiSubscriptionDetails details = this.planRepo.getplanByUserID(customer.getUserid(), planStatus);
 					final int noOfdays = 30;
 					final int validityInNumber = Integer.valueOf(details.getSubscriptionValidity());
 					final int actualEndDaysOfPLan = validityInNumber * noOfdays - 1;
@@ -550,10 +836,8 @@ public class BankServiceImpl implements BankService {
 					calforEndDate.add(5, actualEndDaysOfPLan);
 					details.setSplanEndDate(endDate);
 					this.planRepo.save(details);
-					}
 				}
-				
-				
+
 				if (customer.getAccountType().equalsIgnoreCase("SUBSIDIARY")) {
 					final NimaiEmailScheduler schData = new NimaiEmailScheduler();
 					schData.setSubUserId(customer.getUserid());
@@ -569,7 +853,10 @@ public class BankServiceImpl implements BankService {
 					final NimaiSubscriptionDetails details = this.planRepo.getplanByUserID(customer.getUserid(),
 							planStatus);
 					accountReferEmail.setSubscriptionAmount(String.valueOf(details.getSubscriptionAmount()));
-					accountReferEmail.setDescription1(companyName);
+					if (customer.getCompanyName() == null || customer.getCompanyName().isEmpty())
+						accountReferEmail.setDescription1("NA");
+					else
+						accountReferEmail.setDescription1(customer.getCompanyName());
 					final NimaiMCustomer accounSourceDetails = (NimaiMCustomer) this.repo
 							.getOne(customer.getAccountSource());
 					accountReferEmail.setUserid(customer.getAccountSource());
@@ -580,6 +867,8 @@ public class BankServiceImpl implements BankService {
 					this.schRepo.save(accountReferEmail);
 				}
 			} else if (status.equals("Rejected")) {
+				customer.setKycStatus("Rejected");
+			} else if (customer.getKycStatus().equalsIgnoreCase("Rejected")) {
 				customer.setKycStatus("Rejected");
 			} else {
 				customer.setKycStatus("Pending");
@@ -596,7 +885,7 @@ public class BankServiceImpl implements BankService {
 			return (ResponseEntity<?>) new ResponseEntity(
 					new ApiResponse(Boolean.valueOf(true), "Error while updating kyc status."), HttpStatus.BAD_REQUEST);
 		}
-	}  
+	}
 
 	public PagedResponse<?> getBankQuoteList(final SearchRequest request) {
 		final Pageable pageable = (Pageable) PageRequest.of(request.getPage(), request.getSize(),
@@ -697,7 +986,7 @@ public class BankServiceImpl implements BankService {
 				cust.setKycStatus("Rejected");
 				this.repo.save(cust);
 			}
-			fkyc.setComment(data.getComment().concat("_"+data.getApproverName()));
+			fkyc.setComment(data.getComment().concat(" " + "-" + "  " + data.getApproverName()));
 			fkyc.setReason(data.getReason());
 			fkyc.setKycStatus(data.getKycStatus());
 			fkyc.setApprovedMaker(data.getApproverName());
@@ -768,6 +1057,7 @@ public class BankServiceImpl implements BankService {
 						: Sort.by(new String[] { request.getSortBy() }).ascending());
 		String countryNames = Utility.getUserCountry();
 		System.out.println("countryNames: " + countryNames);
+		
 		if (countryNames != null && countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
 			countryNames = "";
 			final List<String> countryList = (List<String>) this.repo.getCountryList();
@@ -782,8 +1072,34 @@ public class BankServiceImpl implements BankService {
 		}
 		final List<String> value = Stream.of(request.getCountryNames().split(",", -1)).collect(Collectors.toList());
 		System.out.println("Values BankService: " + value);
-		final Page<NimaiFKyc> kycDetails = (Page<NimaiFKyc>) this.kycRepo.findMakerApprovedKycByCountries((List) value,
-				pageable);
+		System.out.println("subsType: "+request.getSubscriberType());
+		System.out.println("bankType: "+request.getBankType());
+		Page<NimaiFKyc> kycDetails;
+		try
+		{
+		if((request.getSubscriberType().equalsIgnoreCase("CUSTOMER") || request.getSubscriberType().equalsIgnoreCase("REFERRER")) && request.getBankType()==null)
+			kycDetails = (Page<NimaiFKyc>) this.kycRepo.findCustomerReferrerMakerApprovedKycByCountries((List) value,request.getSubscriberType(),pageable);
+		else if((request.getSubscriberType().equalsIgnoreCase("BANK") 
+				&& request.getBankType().equalsIgnoreCase("UNDERWRITER")) 
+				|| (request.getSubscriberType().equalsIgnoreCase("BANK") && request.getBankType().equalsIgnoreCase("CUSTOMER")))
+			kycDetails = (Page<NimaiFKyc>) this.kycRepo.findMakerApprovedKycByCountriesSubsTypeBankType((List) value,request.getSubscriberType(),request.getBankType(),pageable);
+		else if((request.getSubscriberType()==null && request.getBankType()==null) || (request.getSubscriberType().isEmpty() && request.getBankType().isEmpty()) || (request.getSubscriberType().equalsIgnoreCase("null") && request.getBankType().equalsIgnoreCase("null")))
+		{
+			System.out.println("Getting value by clicking on TAB");
+			kycDetails = (Page<NimaiFKyc>) this.kycRepo.findMakerApprovedKycByCountries((List) value,pageable);
+		}
+		else
+		{
+			System.out.println("Getting value by clicking on TAB");
+			kycDetails = (Page<NimaiFKyc>) this.kycRepo.findMakerApprovedKycByCountries((List) value,pageable);
+		}
+		}
+		catch(Exception e)
+		{
+			System.out.println("=========== In CATCH ============");
+			kycDetails = (Page<NimaiFKyc>) this.kycRepo.findMakerApprovedKycByCountries((List) value,pageable);
+		}
+		
 		// final KycBDetailResponse response;
 		final List<KycBDetailResponse> responses = (List<KycBDetailResponse>) kycDetails.map(kyc -> {
 			KycBDetailResponse response = new KycBDetailResponse();
@@ -792,7 +1108,7 @@ public class BankServiceImpl implements BankService {
 			response.setCountry(kyc.getCountry());
 			response.setKycType(kyc.getKycType());
 			response.setDocType(kyc.getDocumentType());
-			//response.setReason(kyc.getReason());
+			// response.setReason(kyc.getReason());
 			response.setReason(kyc.getComment());
 			response.setKycStatus(kyc.getKycStatus());
 			response.setUserid(kyc.getUserid().getUserid());
@@ -805,22 +1121,24 @@ public class BankServiceImpl implements BankService {
 
 	@SuppressWarnings("unchecked")
 	public ResponseEntity<?> wireTranferStatusUpdate(final VasUpdateRequestBody request) {
-		
+
 		try {
 			if (request.getVasid() != 0) {
-				logger.debug("VASID:"+request.getVasid());
+				logger.debug("VASID:" + request.getVasid());
 				NimaiSubscriptionVas vasDetails = (NimaiSubscriptionVas) this.vasRep.getOne(request.getVasid());
-				logger.debug("vasDetails:"+vasDetails.toString());
+				logger.debug("vasDetails:" + vasDetails.toString());
 				if (vasDetails.getPaymentApprovedBy() != null
 						&& vasDetails.getPaymentApprovedBy().equalsIgnoreCase(request.getUserId())) {
 					return (ResponseEntity<?>) new ResponseEntity(new ApiResponse(Boolean.valueOf(false),
 							"You dont have the authority for this operation!!!"), HttpStatus.OK);
 				}
 				if (request.getVasMakerComment() != null) {
-					vasDetails.setMakerComment(request.getVasMakerComment().concat("_"+Utility.getUserId()));
+					vasDetails.setMakerComment(
+							request.getVasMakerComment().concat(" " + "-" + "  " + Utility.getUserId()));
 				}
 				if (request.getVasCheckerComment() != null) {
-					vasDetails.setCheckerComment(request.getVasCheckerComment().concat("_"+Utility.getUserId()));
+					vasDetails.setCheckerComment(
+							request.getVasCheckerComment().concat(" " + "-" + "  " + Utility.getUserId()));
 				}
 				vasDetails.setPaymentApprovalDate(new Date());
 				vasDetails.setPaymentSts(request.getStatus());
@@ -876,10 +1194,10 @@ public class BankServiceImpl implements BankService {
 				final NimaiSubscriptionDetails details = (NimaiSubscriptionDetails) this.planRepo
 						.getOne(request.getSubcriptionId());
 				if (request.getMakerComment() != null) {
-					details.setMakerComment(request.getMakerComment().concat("_"+Utility.getUserId()));
+					details.setMakerComment(request.getMakerComment().concat("_" + Utility.getUserId()));
 				}
 				if (request.getCheckerComment() != null) {
-					details.setCheckerComment(request.getCheckerComment().concat("_"+Utility.getUserId()));
+					details.setCheckerComment(request.getCheckerComment().concat("_" + Utility.getUserId()));
 				}
 				details.setPaymentStatus(request.getStatus());
 
@@ -888,10 +1206,12 @@ public class BankServiceImpl implements BankService {
 							.getVasDetailsBySplanId(details.getSubscriptionId(), details.getUserid().getUserid());
 					vasDetails2.setPaymentSts(request.getStatus());
 					if (request.getMakerComment() != null) {
-						vasDetails2.setMakerComment(request.getMakerComment().concat("_"+Utility.getUserId()));
+						vasDetails2.setMakerComment(
+								request.getMakerComment().concat(" " + "-" + "  " + Utility.getUserId()));
 					}
 					if (request.getCheckerComment() != null) {
-						vasDetails2.setCheckerComment(request.getCheckerComment().concat("_"+Utility.getUserId()));
+						vasDetails2.setCheckerComment(
+								request.getCheckerComment().concat(" " + "-" + "  " + Utility.getUserId()));
 					}
 					this.vasRep.save(vasDetails2);
 				}
@@ -917,7 +1237,7 @@ public class BankServiceImpl implements BankService {
 				if (request.getStatus().equalsIgnoreCase("Approved")
 						&& details.getUserid().getPaymentStatus().equalsIgnoreCase("Approved")) {
 					logger.debug("Inside subscriptionplan approved status");
-					logger.debug("subscriptionplan:"+request.getStatus());
+					logger.debug("subscriptionplan:" + request.getStatus());
 					schedulerData.setUserid(customer2.getUserid());
 					schedulerData.setUserName(customer2.getFirstName());
 					schedulerData.setEmailId(customer2.getEmailAddress());
@@ -949,12 +1269,13 @@ public class BankServiceImpl implements BankService {
 					schedulerData.setEmailStatus("Pending");
 					schedulerData.setInsertedDate(new Date());
 					this.schRepo.save(schedulerData);
-					logger.debug("details to be save of subscription plan"+details.toString());
+					logger.debug("details to be save of subscription plan" + details.toString());
 				}
 				this.planRepo.save(details);
 			}
 			return (ResponseEntity<?>) new ResponseEntity(
 					new ApiResponse(Boolean.valueOf(true), "Payment status updated successfully... "), HttpStatus.OK);
+
 		} catch (Exception e) {
 			System.out.println("Exception in Payment status update :" + e.getMessage());
 			e.printStackTrace();
@@ -966,23 +1287,64 @@ public class BankServiceImpl implements BankService {
 
 	@SuppressWarnings("unchecked")
 	public PagedResponse<?> getWireTransferList(final SearchRequest request) {
-		
+
 		final Pageable pageable = (Pageable) PageRequest.of(request.getPage(), request.getSize(),
-				request.getDirection().equalsIgnoreCase("desc")
-						? Sort.by(new String[] { "PAYMENT_DATE" }).descending()
-						: Sort.by(new String[] { "PAYMENT_DATE"}).ascending());
+				request.getDirection().equalsIgnoreCase("desc") ? Sort.by(new String[] { "PAYMENT_DATE" }).descending()
+						: Sort.by(new String[] { "PAYMENT_DATE" }).ascending());
 		final String countryNames = Utility.getUserCountry();
 		Page<NimaiMCustomer> paymentDetails;
 		List<NimaiMCustomer> cuList;
-		int pageSize=request.getSize();
+		int pageSize = request.getSize();
+		if(request.getSubscriberType()!=null || request.getBankType()!=null)
+		{
+			if (request.getCountry() == null || request.getCountry().isEmpty()) {
+				request.setCountryNames(countryNames);
 
-		if (request.getCountry() == null || request.getCountry().isEmpty()) {
+				if (request.getCountryNames().equalsIgnoreCase("all")) {
+					if(request.getSubscriberType().equalsIgnoreCase("CUSTOMER") && request.getBankType()==null)
+						paymentDetails = (Page<NimaiMCustomer>) this.repo.findAllMakerApprovedPaymentDetailsSubsType(request.getSubscriberType(),pageable);
+					else
+						paymentDetails = (Page<NimaiMCustomer>) this.repo.findAllMakerApprovedPaymentDetailsSubsTypeBankType(request.getSubscriberType(),request.getBankType(),pageable);
+				} else {
+					final List<String> value = Stream.of(request.getCountryNames().split(",", -1))
+							.collect(Collectors.toList());
+					if(request.getSubscriberType().equalsIgnoreCase("CUSTOMER") && request.getBankType()==null)
+						paymentDetails = (Page<NimaiMCustomer>) this.repo.findMakerApprovedPaymentDetailsSubsType(request.getSubscriberType(),value,pageable);
+					else
+						paymentDetails = (Page<NimaiMCustomer>) this.repo.findMakerApprovedPaymentDetailsSubsTypeBankType(request.getSubscriberType(),request.getBankType(),value, pageable);
+				}
+
+				} else {
+					if (request.getCountry().equalsIgnoreCase("all")) {
+						request.setCountryNames(countryNames);
+		
+						if (request.getCountryNames().equalsIgnoreCase("all")) {
+		
+							paymentDetails = (Page<NimaiMCustomer>) this.repo.findAllMakerApprovedPaymentDetailsSubsTypeBankType(request.getSubscriberType(),request.getBankType(),pageable);
+						} else {
+							final List<String> value = Stream.of(request.getCountryNames().split(",", -1))
+									.collect(Collectors.toList());
+		
+							paymentDetails = (Page<NimaiMCustomer>) this.repo.findMakerApprovedPaymentDetailsSubsTypeBankType(request.getSubscriberType(),request.getBankType(),value, pageable);
+		
+						}
+		
+					} else {
+						// cuList=repo.getListByCountryname(request.getCountry(),pageSize);
+						paymentDetails = (Page<NimaiMCustomer>) this.repo.getListByCountryname(request.getCountry(), pageable);
+						// paymentDetails = new PageImpl<>(cuList,pageable,cuList.size());
+					}
+					request.setCountryNames(request.getCountry());
+				}
+		}
+		else
+		{
+			if (request.getCountry() == null || request.getCountry().isEmpty()) {
 			request.setCountryNames(countryNames);
-	
+
 			if (request.getCountryNames().equalsIgnoreCase("all")) {
 
-				paymentDetails = (Page<NimaiMCustomer>) this.repo.findAllMakerApprovedPaymentDetails(
-						pageable);
+				paymentDetails = (Page<NimaiMCustomer>) this.repo.findAllMakerApprovedPaymentDetails(pageable);
 			} else {
 				final List<String> value = Stream.of(request.getCountryNames().split(",", -1))
 						.collect(Collectors.toList());
@@ -990,30 +1352,29 @@ public class BankServiceImpl implements BankService {
 				paymentDetails = (Page<NimaiMCustomer>) this.repo.findMakerApprovedPaymentDetails(value, pageable);
 			}
 
-		} else {
-			if (request.getCountry().equalsIgnoreCase("all")) {
-				request.setCountryNames(countryNames);
-
-				if (request.getCountryNames().equalsIgnoreCase("all")) {
-			
-					paymentDetails = (Page<NimaiMCustomer>) this.repo.findAllMakerApprovedPaymentDetails(
-							pageable);
-				} else {
-					final List<String> value = Stream.of(request.getCountryNames().split(",", -1))
-							.collect(Collectors.toList());
-				
-					paymentDetails = (Page<NimaiMCustomer>) this.repo.findMakerApprovedPaymentDetails(value, pageable);
-				
-				}
-
 			} else {
-			 //cuList=repo.getListByCountryname(request.getCountry(),pageSize);
-				paymentDetails = (Page<NimaiMCustomer>) this.repo.getListByCountryname(request.getCountry(), pageable);
-				//paymentDetails = new PageImpl<>(cuList,pageable,cuList.size());
+				if (request.getCountry().equalsIgnoreCase("all")) {
+					request.setCountryNames(countryNames);
+	
+					if (request.getCountryNames().equalsIgnoreCase("all")) {
+	
+						paymentDetails = (Page<NimaiMCustomer>) this.repo.findAllMakerApprovedPaymentDetails(pageable);
+					} else {
+						final List<String> value = Stream.of(request.getCountryNames().split(",", -1))
+								.collect(Collectors.toList());
+	
+						paymentDetails = (Page<NimaiMCustomer>) this.repo.findMakerApprovedPaymentDetails(value, pageable);
+	
+					}
+	
+				} else {
+					// cuList=repo.getListByCountryname(request.getCountry(),pageSize);
+					paymentDetails = (Page<NimaiMCustomer>) this.repo.getListByCountryname(request.getCountry(), pageable);
+					// paymentDetails = new PageImpl<>(cuList,pageable,cuList.size());
+				}
+				request.setCountryNames(request.getCountry());
 			}
-			request.setCountryNames(request.getCountry());
 		}
-
 //		if (countryNames == null || !countryNames.equalsIgnoreCase("all") || request.getCountry() != null) {
 //			if (countryNames != null && !countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
 //				request.setCountryNames(countryNames);
@@ -1028,27 +1389,24 @@ public class BankServiceImpl implements BankService {
 		// final BankDetailsResponse response;
 		// final NimaiSubscriptionDetails sub;
 		// NimaiSubscriptionVas vasDetails;
-		
-		
-		
-		
+
 		final List<BankDetailsResponse> responses = (List<BankDetailsResponse>) paymentDetails.map(cust -> {
 			BankDetailsResponse response = new BankDetailsResponse();
-			
+
 			NimaiSubscriptionDetails sub = (NimaiSubscriptionDetails) cust.getNimaiSubscriptionDetailsList().stream()
 					.filter(e -> e.getStatus().equalsIgnoreCase("Active")).findFirst().orElse(null);
 			if (sub != null) {
-			response.setUserid(cust.getUserid());
-			response.setFirstName(cust.getFirstName());
-			response.setLastName(cust.getLastName());
-			response.setEmailAddress(cust.getEmailAddress());
-			response.setMobileNumber(cust.getMobileNumber());
+				response.setUserid(cust.getUserid());
+				response.setFirstName(cust.getFirstName());
+				response.setLastName(cust.getLastName());
+				response.setEmailAddress(cust.getEmailAddress());
+				response.setMobileNumber(cust.getMobileNumber());
 //			response.setPlanOfPayments((cust.getNimaiSubscriptionDetailsList().size() != 0)
 //					? this.collectPlanName(cust.getNimaiSubscriptionDetailsList())
 //					: "No Active Plan");
-			response.setRegisteredCountry(cust.getRegisteredCountry());
-			response.setStatus(cust.getPaymentStatus());
-			response.setPaymentApprovedBy(cust.getPaymentApprovedBy());
+				response.setRegisteredCountry(cust.getRegisteredCountry());
+				response.setStatus(cust.getPaymentStatus());
+				response.setPaymentApprovedBy(cust.getPaymentApprovedBy());
 //			NimaiSubscriptionDetails sub = (NimaiSubscriptionDetails) cust.getNimaiSubscriptionDetailsList().stream()
 //					.filter(e -> e.getStatus().equalsIgnoreCase("Active")).findFirst().orElse(null);
 //			if (sub != null) {
@@ -1200,4 +1558,257 @@ public class BankServiceImpl implements BankService {
 	static {
 		logger = LoggerFactory.getLogger((Class) BankServiceImpl.class);
 	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public ResponseEntity<?> transactionStatusUpdate(TransactionRequestBody request) {
+		// TODO Auto-generated method stub
+		NimaiLCMaster lcDetais = lcMasterrepo.getOne(request.getTransactionId());
+		if (lcDetais.getTransactionApprovedBy() != null
+				&& lcDetais.getTransactionApprovedBy().equalsIgnoreCase(Utility.getUserId())) {
+			return (ResponseEntity<?>) new ResponseEntity(
+					new ApiResponse(Boolean.valueOf(false), "You dont have the authority for this operation!!!"),
+					HttpStatus.OK);
+		}
+
+		lcDetais.setTrApprovaldate(new Date());
+		if (request.getStatus().equalsIgnoreCase("Approved")) {
+			System.out.println("INside approved condition");
+			lcDetais.setTrApprovaldate(new Date());
+			lcDetais.setTransactionApprovedBy(Utility.getUserId());
+			lcDetais.setTransactionStatus("Active");
+
+			getAlleligibleBAnksEmail(lcDetais.getUserId(), request.getTransactionId(), 0, "LC_UPLOAD_ALERT_ToBanks",
+					"LC_UPLOAD(DATA)");
+
+		} else {
+			lcDetais.setTransactionRejected(Utility.getUserId());
+			lcDetais.setTrRejectedDate(new Date());
+			lcDetais.setTransactionStatus(request.getStatus());
+			try {
+				NimaiSubscriptionDetails details = sPlanRepo.getplanByUserID(lcDetais.getUserId(), "ACTIVE");
+				int count = (details.getLcUtilizedCount() - 1);
+				details.setLcUtilizedCount(count);
+				sPlanRepo.save(details);
+			} catch (Exception e) {
+				e.printStackTrace();
+				return (ResponseEntity<?>) new ResponseEntity(
+						new ApiResponse(Boolean.valueOf(true), "Error while updating Transaction status... "),
+						HttpStatus.OK);
+
+			}
+
+		}
+
+		if (request.getMakerComment() != null) {
+			lcDetais.setMakerComment(request.getMakerComment().concat("_" + Utility.getUserId()));
+			lcDetais.setStatusReason(request.getMakerComment());
+		}
+		if (request.getCheckerComment() != null) {
+			lcDetais.setCheckerComment(request.getCheckerComment().concat("_" + Utility.getUserId()));
+			lcDetais.setStatusReason(request.getCheckerComment());
+		}
+//		lcDetais.setTransactionStatus(request.getStatus());
+
+		lcMasterrepo.save(lcDetais);
+
+		return (ResponseEntity<?>) new ResponseEntity(
+				new ApiResponse(Boolean.valueOf(true), "Transaction status updated successfully... "), HttpStatus.OK);
+
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public ResponseEntity<?> makerTransactionStatusUpdate(TransactionRequestBody request) {
+		// TODO Auto-generated method stub
+		NimaiLCMaster lcDetais = lcMasterrepo.getOne(request.getTransactionId());
+
+		lcDetais.setTransactionStatus(request.getStatus());
+		lcDetais.setTrApprovaldate(new Date());
+		if (request.getStatus().equalsIgnoreCase("Maker Approved")) {
+			lcDetais.setTrApprovaldate(new Date());
+			lcDetais.setTransactionApprovedBy(Utility.getUserId());
+		} else {
+			lcDetais.setTransactionRejected(Utility.getUserId());
+			lcDetais.setTrRejectedDate(new Date());
+			try {
+				NimaiSubscriptionDetails details = sPlanRepo.getplanByUserID(lcDetais.getUserId(), "ACTIVE");
+				int count = (details.getLcUtilizedCount() - 1);
+				details.setLcUtilizedCount(count);
+				sPlanRepo.save(details);
+			} catch (Exception e) {
+				e.printStackTrace();
+				return (ResponseEntity<?>) new ResponseEntity(
+						new ApiResponse(Boolean.valueOf(true), "Error while updating Transaction status... "),
+						HttpStatus.OK);
+
+			}
+
+		}
+
+		if (request.getMakerComment() != null) {
+			lcDetais.setMakerComment(request.getMakerComment().concat("_" + Utility.getUserId()));
+			lcDetais.setStatusReason(request.getMakerComment());
+		}
+		if (request.getCheckerComment() != null) {
+			lcDetais.setCheckerComment(request.getCheckerComment().concat("_" + Utility.getUserId()));
+			lcDetais.setStatusReason(request.getCheckerComment());
+		}
+		lcDetais.setTransactionStatus(request.getStatus());
+
+		lcMasterrepo.save(lcDetais);
+
+		return (ResponseEntity<?>) new ResponseEntity(
+				new ApiResponse(Boolean.valueOf(true), "Transaction status updated successfully... "), HttpStatus.OK);
+
+	}
+
+	public void getAlleligibleBAnksEmail(String userId, String transactionId, int quoteId, String bankEmailEvent,
+			String custEmailEvent) {
+
+		System.out.println("======== Getting eligible bank ========");
+		EntityManager entityManager = em.createEntityManager();
+		try {
+
+			StoredProcedureQuery getBAnksEmail = entityManager.createStoredProcedureQuery("get_eligible_banks",
+					NimaiMCustomer.class);
+			getBAnksEmail.registerStoredProcedureParameter("inp_customer_userID", String.class, ParameterMode.IN);
+			getBAnksEmail.registerStoredProcedureParameter("inp_transaction_ID", String.class, ParameterMode.IN);
+
+			getBAnksEmail.setParameter("inp_customer_userID", userId);
+			getBAnksEmail.setParameter("inp_transaction_ID", transactionId);
+			getBAnksEmail.execute();
+			// ModelMapperUtil modelMapper = new ModelMapperUtil();
+			List<NimaiMCustomer> nimaiCust = getBAnksEmail.getResultList();
+
+			// EligibleEmailBeanResponse responseBean = new EligibleEmailBeanResponse();
+			// String custEmailId="";
+			List<EligibleEmailList> emailId = nimaiCust.stream().map(obj -> {
+				EligibleEmailList data = new EligibleEmailList();
+				NimaiEmailSchedulerAlertToBanks schedulerEntity = new NimaiEmailSchedulerAlertToBanks();
+				Calendar cal = Calendar.getInstance();
+				System.out.println("=========Bank list to send emil" + nimaiCust.toString());
+				Date insertedDate = cal.getTime();
+				schedulerEntity.setInsertedDate(insertedDate);
+				schedulerEntity.setCustomerid(userId);
+				System.out.println("Userid:" + userId);
+				schedulerEntity.setTransactionid(transactionId);
+				schedulerEntity.setEmailEvent(bankEmailEvent);
+				/* while updating set event as */
+				// schedulerEntity.setEmailEvent("LC_UPDATE_ALERT_ToBanks");
+				schedulerEntity.setBanksEmailID(obj.getEmailAddress());
+				schedulerEntity.setBankUserid(obj.getUserid());
+				schedulerEntity.setBankUserName(obj.getFirstName());
+				schedulerEntity.setEmailFlag("Pending");
+				userDao.save(schedulerEntity);
+				data.setEmailList(obj.getEmailAddress());
+				return data;
+			}).collect(Collectors.toList());
+
+			if (nimaiCust.isEmpty()) {
+				System.out.println("No Banks Eligible");
+
+			}
+
+			Calendar cal = Calendar.getInstance();
+			Date insertedDate = cal.getTime();
+			NimaiEmailSchedulerAlertToBanks schedulerEntityCust = new NimaiEmailSchedulerAlertToBanks();
+			NimaiLCMaster passcodeDetails = lcMasterrepo.findSpecificTransactionById(transactionId);
+
+			NimaiMCustomer custDetails = lcMasterrepo.getCustomerDetais(passcodeDetails.getBranchUserEmail());
+			// if branch userEmail consist parent user email or passcode userEmail
+			if (custDetails == null) {
+				schedulerEntityCust.setPasscodeuserEmail(passcodeDetails.getBranchUserEmail());
+
+			}
+			String custUserName = lcMasterrepo.getCustomerName(userId);
+			String custEmailId = lcMasterrepo.getCustomerEmailId(userId);
+			schedulerEntityCust.setInsertedDate(insertedDate);
+			schedulerEntityCust.setQuotationId(quoteId);
+			schedulerEntityCust.setCustomerid(userId);
+			schedulerEntityCust.setCustomerUserName(custUserName == null ? "" : custUserName);
+			schedulerEntityCust.setCustomerEmail(custEmailId == null ? "" : custEmailId);
+			schedulerEntityCust.setTransactionid(transactionId);
+			schedulerEntityCust.setEmailEvent(custEmailEvent);
+			if (nimaiCust.isEmpty()) {
+				System.out.println("No Banks Eligible");
+				schedulerEntityCust.setTransactionEmailStatusToBanks("Pending");
+			}
+
+			schedulerEntityCust.setEmailFlag("Pending");
+			userDao.save(schedulerEntityCust);
+
+		} catch (Exception e) {
+			System.out.println("" + e.getMessage());
+		} finally {
+			entityManager.close();
+
+		}
+
+	}
+
+	@Override
+	public ResponseEntity<?> kycFiledSave(KycFiledBean data) {
+		// TODO Auto-generated method stub
+		NimaiMKycfileds fields = new NimaiMKycfileds();
+		final Calendar cal2 = Calendar.getInstance();
+		final Date today2 = cal2.getTime();
+		String response;
+		System.out.println("Field ID: "+data.getId());
+		if (data.getId() != 0) {
+
+			fields = fieldRepo.getOne(data.getId());
+			fields.setModifiedDat(today2);
+			fields.setModifiedBy(Utility.getUserId());
+			response="fieldData  updated successfully... ";
+			
+
+		} else {
+			fields.setInsertedDate(today2);
+			fields.setInsertedBy(Utility.getUserId());
+			response="fieldData  save successfully... ";
+			
+			
+		}
+		fields.setCustTurnover(data.getCustTurnover());
+		fields.setImportVolume(data.getImportVolume());
+		fields.setExportVolume(data.getExportVolume());
+		fields.setYearlyLCVolume(data.getYearlyLCVolume());
+		fields.setUsedLCIssuance(data.getUsedLCIssuance());
+		fields.setUserId(data.getUserId());
+
+		fieldRepo.save(fields);
+
+		return (ResponseEntity<?>) new ResponseEntity(
+				new ApiResponse(Boolean.valueOf(true), response,fields.getId()), HttpStatus.OK);
+
+	}
+
+	@Override
+	public ResponseEntity<?> kycViewFieldData(KycFiledBean data) {
+		// TODO Auto-generated method stub
+		GenericResponse response=new GenericResponse();
+		KycFiledBean dataResponse=new KycFiledBean();
+		
+		NimaiMKycfileds fields=fieldRepo.getFiledData(data.getUserId());
+		if(fields==null) {
+			response.setMessage("Field Data not available");
+		}
+		data.setCustTurnover(fields.getCustTurnover());
+		data.setImportVolume(fields.getImportVolume());
+		data.setExportVolume(fields.getExportVolume());
+		data.setYearlyLCVolume(fields.getYearlyLCVolume());
+		data.setUsedLCIssuance(fields.getUsedLCIssuance());
+		data.setUserId(fields.getUserId());
+		data.setInsertedBy(fields.getInsertedBy());
+		data.setModifiedby(fields.getModifiedBy());
+		data.setId(fields.getId());
+		
+		
+		response.setData(fields);
+		 
+		return new ResponseEntity<>(response, HttpStatus.OK);
+
+	}
+
 }

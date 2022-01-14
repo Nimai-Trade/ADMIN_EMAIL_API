@@ -1,6 +1,7 @@
 package com.nimai.admin.util;
 
 import java.text.ParseException;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -155,6 +156,7 @@ public class ModelMapper {
 	public static TransactionSearchResponse mapTransactionToResponse(NimaiMmTransaction trxn) {
 		TransactionSearchResponse response = new TransactionSearchResponse();
 		try {
+			System.out.println("============Inside transaction ,mappint"+trxn.getTransactionId()+"===================inside transaction Mapping"+trxn.getUserId());
 			response.setTransactionId(trxn.getTransactionId());
 			response.setUserId(trxn.getUserId().getUserid());
 			response.setMobileNo(trxn.getUserId().getMobileNumber());
@@ -164,6 +166,13 @@ public class ModelMapper {
 			response.setApplicant(trxn.getApplicantName());
 			response.setApplicantCountry(trxn.getApplicantCountry());
 			response.setInsertedDate(trxn.getInsertedDate());
+//			if(trxn.getTransactionApprovedBy()==null) {
+//				response.setApproverName(null);
+//			}else {
+				
+				response.setApproverName(trxn.getTransactionApprovedBy());
+			//}
+			
 			if (trxn.getValidity() != null) {
 				Date date = new SimpleDateFormat("yyyy-MM-dd").parse(trxn.getValidity());
 				response.setTxnValidaty(date);
@@ -172,7 +181,10 @@ public class ModelMapper {
 			response.setAmount(trxn.getLcValue() + "");
 			response.setCcy(trxn.getLcCurrency());
 			String requirement = null;
-			if (trxn.getRequirementType().equalsIgnoreCase("ConfirmAndDiscount")) {
+			if (trxn.getRequirementType()==null) {
+				requirement = " ";
+			}
+			else if (trxn.getRequirementType().equalsIgnoreCase("ConfirmAndDiscount")) {
 				requirement = "Confirmation and Discounting";
 			} else if (trxn.getRequirementType().equalsIgnoreCase("Banker")) {
 				requirement = "Banker's Acceptance";
@@ -182,6 +194,8 @@ public class ModelMapper {
 				requirement = "Discounting";
 			} else if (trxn.getRequirementType().equalsIgnoreCase("Confirmation")) {
 				requirement = "Confirmation";
+			} else if (trxn.getRequirementType().equalsIgnoreCase("BankGuarantee")) {
+				requirement = "Bank Guarantee";
 			}
 			response.setRequiredment(requirement);
 			response.setTrxnStatus(trxn.getTransactionStatus());
@@ -192,8 +206,65 @@ public class ModelMapper {
 		return response;
 	}
 
+	
+	
+	public static TransactionSearchResponse mapMakerAppTransactionToResponse(NimaiMmTransaction trxn) {
+		TransactionSearchResponse response = new TransactionSearchResponse();
+		try {
+			response.setTransactionId(trxn.getTransactionId());
+			response.setUserId(trxn.getUserId().getUserid());
+			response.setMobileNo(trxn.getUserId().getMobileNumber());
+			response.setEmailId(trxn.getUserId().getEmailAddress());
+			response.setBeneficiry(trxn.getBeneName());
+			response.setBeneficiryCountry(trxn.getBeneCountry());
+			response.setApplicant(trxn.getApplicantName());
+			response.setApplicantCountry(trxn.getApplicantCountry());
+			response.setInsertedDate(trxn.getInsertedDate());
+			if(trxn.getTransactionApprovedBy()==null) {
+				response.setApproverName(null);
+			}else {
+				
+				response.setApproverName(trxn.getTransactionApprovedBy());
+			}
+			
+			if (trxn.getValidity() != null) {
+				Date date = new SimpleDateFormat("yyyy-MM-dd").parse(trxn.getValidity());
+				response.setTxnValidaty(date);
+			}
+			response.setLcBank(trxn.getLcIssuanceBank());
+			response.setAmount(trxn.getLcValue() + "");
+			response.setCcy(trxn.getLcCurrency());
+			String requirement = null;
+			if (trxn.getRequirementType()==null) {
+				requirement = " ";
+			}
+			else if (trxn.getRequirementType().equalsIgnoreCase("ConfirmAndDiscount")) {
+				requirement = "Confirmation and Discounting";
+			} else if (trxn.getRequirementType().equalsIgnoreCase("Banker")) {
+				requirement = "Banker's Acceptance";
+			} else if (trxn.getRequirementType().equalsIgnoreCase("Refinance")) {
+				requirement = "Refinancing";
+			} else if (trxn.getRequirementType().equalsIgnoreCase("Discounting")) {
+				requirement = "Discounting";
+			} else if (trxn.getRequirementType().equalsIgnoreCase("Confirmation")) {
+				requirement = "Confirmation";
+			} else if (trxn.getRequirementType().equalsIgnoreCase("BankGuarantee")) {
+				requirement = "Bank Guarantee";
+			}
+			response.setRequiredment(requirement);
+			response.setTrxnStatus(trxn.getTransactionStatus());
+			response.setQuotes(trxn.getNimaiMQuotationList().size() + "");
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		return response;
+	}
+	
 	public static TransactionDetails mapTransactionDetails(NimaiMmTransaction transaction, NimaiMCustomer cust) {
 		TransactionDetails details = new TransactionDetails();
+		details.setBgType(transaction.getBgType());
+		details.setClaimExpiryDate(transaction.getClaimExpiryDate());
+		details.setlCExpiryDate(transaction.getLcExpiryDate());
 		details.setTransactionId(transaction.getTransactionId());
 		details.setIssuingBank(transaction.getLcIssuanceBank());
 		details.setBranch(transaction.getLcIssuanceBranch());
@@ -228,7 +299,8 @@ public class ModelMapper {
 		
 		
 		
-		
+		details.setMakerComment(transaction.getMakerComment());
+		details.setCheckerComment(transaction.getCheckerComment());
 		details.setUserID(cust.getUserid());
 		details.setFirstName(cust.getFirstName());
 		details.setLastName(cust.getLastName());
@@ -236,7 +308,7 @@ public class ModelMapper {
 		details.setMobileNo(cust.getMobileNumber());
 		details.setCustCountry(cust.getCountryName());
 		details.setRegistrationType(cust.getRegistrationType());
-		details.setCompanyName(cust.getCountryName());
+		details.setCompanyName(cust.getCompanyName());
 		details.setAddressCountry(cust.getCountryName());
 		details.setStateProvince(cust.getProvincename());
 		details.setCity(cust.getCity());
@@ -248,6 +320,25 @@ public class ModelMapper {
 		details.setRmFirstName(cust.getRmId());
 		details.setRmLastName("");
 		details.setRmDesignation("");
+		
+		if(transaction.getTransactionStatus()==null) {
+			details.setComment(null);
+		}
+		else if(transaction.getTransactionStatus().equalsIgnoreCase("Active")) {
+			details.setComment(transaction.getCheckerComment());
+		}
+		else if(transaction.getTransactionStatus().equalsIgnoreCase("Maker Approved")){
+			details.setComment(transaction.getMakerComment());
+		}else if(transaction.getTransactionStatus().equalsIgnoreCase("Rejected") 
+				&& (transaction.getCheckerComment()==null ||
+				transaction.getCheckerComment().isEmpty() 
+						)) {
+			details.setComment(transaction.getMakerComment());
+		}else if(transaction.getTransactionStatus().equalsIgnoreCase("Rejected") 
+				&& (!transaction.getCheckerComment().isEmpty() || transaction.getCheckerComment()!=null)) {
+			details.setComment(transaction.getCheckerComment());
+		}
+		
 		if (transaction.getRequirementType().equalsIgnoreCase("Confirmation")) {
 			details.setUsansce(transaction.getConfirmationPeriod());
 		} else if (transaction.getRequirementType().equalsIgnoreCase("Discounting")) {
@@ -258,6 +349,9 @@ public class ModelMapper {
 			details.setUsansce(transaction.getConfirmationPeriod());
 		} else if (transaction.getRequirementType().equalsIgnoreCase("Banker")) {
 			details.setUsansce(transaction.getDiscountingPeriod());
+		} 
+		else if (transaction.getRequirementType().equalsIgnoreCase("BankGuarantee")) {
+			details.setUsansce(transaction.getConfirmationPeriod());
 		} else {
 			details.setUsansce("");
 		}

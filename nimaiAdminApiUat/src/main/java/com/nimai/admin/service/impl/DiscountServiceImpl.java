@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.persistence.Tuple;
 import javax.transaction.Transactional;
@@ -26,6 +28,7 @@ import com.nimai.admin.model.NimaiEmailScheduler;
 import com.nimai.admin.model.NimaiMDiscount;
 import com.nimai.admin.model.NimaiMEmployee;
 import com.nimai.admin.model.NimaiMRole;
+import com.nimai.admin.model.NimaiMVas;
 import com.nimai.admin.model.NimaiMpDiscount;
 import com.nimai.admin.payload.ApiResponse;
 import com.nimai.admin.payload.DisQuantityAndCouponCode;
@@ -71,6 +74,9 @@ public class DiscountServiceImpl implements DiscountService {
 
 	@Autowired
 	RoleRepository roleRepo;
+	
+	@Autowired
+	CustomerRepository repo;
 
 	/*
 	 * Save New Coupon/Edit Coupon
@@ -228,17 +234,63 @@ public class DiscountServiceImpl implements DiscountService {
 	 */
 	@Override
 	public PagedResponse<?> getCouponDetails(SearchRequest request) {
+	request.setSortBy("DISCOUNT_ID");
 		Pageable pageable = PageRequest.of(request.getPage(), request.getSize(),
 				request.getDirection().equalsIgnoreCase("desc") ? Sort.by(request.getSortBy()).descending()
 						: Sort.by(request.getSortBy()).ascending());
 
-		if (request.getRole() != null && request.getRole().equalsIgnoreCase("Customer RM")) {
-			request.setCustomerType("CUSTOMER");
-		} else if (request.getRole() != null && request.getRole().equalsIgnoreCase("Bank RM")) {
-			request.setCustomerType("BANK");
+		
+		String countryNames = Utility.getUserCountry();
+		System.out.println("CountryNames: "+countryNames);
+		if (countryNames != null && countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
+		countryNames = "";
+	final List<String> countryList = (List<String>) this.repo.getCountryList();
+			for (final String country : countryList) {
+				countryNames = countryNames + country + ",";
+			}
+			System.out.println("Country List: first condition " + countryNames);
+			request.setCountryNames(countryNames);
+		}else if(countryNames!=null && request.getCountry()!=null) {
+			request.setCountry(request.getCountry());
+			System.out.println("Inside second condition");
+		}  else if (countryNames != null && !countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
+			System.out.println("inside third condition");
+			request.setCountryNames(countryNames);
 		}
-		Page<NimaiMDiscount> disclist = discountRepo.findAll(discountSpec.getFilter(request), pageable);
-
+		final List<String> value = Stream.of(request.getCountryNames().split(",", -1)).collect(Collectors.toList());
+		System.out.println("Countries: " + value);
+		
+		System.out.println(request.getCountryNames());
+		Page<NimaiMDiscount> disclist=null;
+		
+		if(request.getRole()==null & request.getStatus()!=null) {
+			if(request.getStatus()!=null) {
+				disclist = discountRepo.getAllDiscountByStats(value,request.getStatus(), pageable);
+			}
+		}
+		
+		else if(request.getRole()!=null &&(
+				request.getRole().equalsIgnoreCase("Customer RM"))||(request.getRole().equalsIgnoreCase("Bank RM"))) {
+			if (request.getRole() != null && request.getRole().equalsIgnoreCase("Customer RM")) {
+				request.setCustomerType("CUSTOMER");
+			} else if (request.getRole() != null && request.getRole().equalsIgnoreCase("Bank RM")) {
+				request.setCustomerType("BANK");
+			}
+			 disclist = discountRepo.getAsPerCuTypeDiscount(value,request.getCustomerType(), pageable);
+		}
+		else {
+			
+		 disclist = discountRepo.getAllVasPlan(value, pageable);
+		}
+	
+		
+		
+		
+		
+	//Page<NimaiMDiscount> disclist = discountRepo.findAll(discountSpec.getFilter(request), pageable);
+//for(NimaiMDiscount dis:disclist) {
+//System.out.println("=====list in the list"+dis.toString());
+//}
 		List<DiscountCouponMResponse> responses = disclist.map(sub -> {
 			DiscountCouponMResponse response = new DiscountCouponMResponse();
 			BeanUtils.copyProperties(sub, response);
@@ -272,7 +324,7 @@ public class DiscountServiceImpl implements DiscountService {
 		Pageable pageable = PageRequest.of(request.getPage(), request.getSize(),
 				request.getDirection().equalsIgnoreCase("desc") ? Sort.by(request.getSortBy()).descending()
 						: Sort.by(request.getSortBy()).ascending());
-		Page<NimaiMDiscount> discList = discountRepo.getActiveCoup(pageable);
+		Page<NimaiMDiscount> discList = discountRepo.getActiveCoup(request.getStatus(),pageable);
 		List<DiscountCouponMResponse> responses = discList.map(sub -> {
 			DiscountCouponMResponse response = new DiscountCouponMResponse();
 			BeanUtils.copyProperties(sub, response);

@@ -3,6 +3,8 @@ package com.nimai.admin.service.impl;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.persistence.Tuple;
 
@@ -26,7 +28,9 @@ import com.nimai.admin.payload.PagedResponse;
 import com.nimai.admin.payload.SearchRequest;
 import com.nimai.admin.payload.VasResponse;
 import com.nimai.admin.payload.VasUpdateRequestBody;
+import com.nimai.admin.repository.CustomerRepository;
 import com.nimai.admin.repository.EmployeeRepository;
+import com.nimai.admin.repository.MasterSubsPlanRepository;
 import com.nimai.admin.repository.NimaiEmailSchedulerRepository;
 import com.nimai.admin.repository.RoleRepository;
 import com.nimai.admin.repository.VasRepository;
@@ -45,12 +49,18 @@ public class VasServiceImpl implements VasService {
 
 	@Autowired
 	EmployeeRepository employeeRepo;
+	
+	@Autowired
+	CustomerRepository repo;
 
 	@Autowired
 	NimaiEmailSchedulerRepository schRepo;
 
 	@Autowired
 	RoleRepository roleRepo;
+	
+	@Autowired
+	MasterSubsPlanRepository sub;
 
 	/**
 	 * Maker Create a Vas Plan
@@ -112,12 +122,32 @@ public class VasServiceImpl implements VasService {
 	 */
 	@Override
 	public PagedResponse<?> getAllVasDetails(SearchRequest request) {
+		request.setSortBy("CREATED_DATE");
 		Pageable pageable = PageRequest.of(request.getPage(), request.getSize(),
 				request.getDirection().equalsIgnoreCase("desc") ? Sort.by(request.getSortBy()).descending()
 						: Sort.by(request.getSortBy()).ascending());
+		String countryNames = Utility.getUserCountry();
+		System.out.println("CountryNames: "+countryNames);
+		if (countryNames != null && countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
+			countryNames = "";
+			final List<String> countryList = (List<String>) this.repo.getCountryList();
+			for (final String country : countryList) {
+				countryNames = countryNames + country + ",";
+			}
+			System.out.println("Country List: " + countryNames);
+			request.setCountryNames(countryNames);
+		}else if(countryNames!=null && request.getCountry()!=null) {
+			request.setCountryNames(request.getCountry());
+		} else if (countryNames != null && !countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
+			request.setCountryNames(countryNames);
+		}
+		final List<String> value = Stream.of(request.getCountryNames().split(",", -1)).collect(Collectors.toList());
+		System.out.println("Countries: " + value);
+		//Page<NimaiMVas> vasList = vasRepository.findAll(vasSpecification.getFilter(request), pageable);
 
-		Page<NimaiMVas> vasList = vasRepository.findAll(vasSpecification.getFilter(request), pageable);
+		Page<NimaiMVas> vasList = vasRepository.getAllVasPlan(value, pageable);
 
+		
 		List<VasResponse> responses = vasList.map(vas -> {
 			VasResponse response = new VasResponse();
 			response.setVasid(vas.getVasid());

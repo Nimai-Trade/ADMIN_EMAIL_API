@@ -122,13 +122,13 @@ public List<Tuple> findByDates(@Param("fromDate") String fromDate,
 	public List<Tuple> getCumulativeBankTrxn(@Param("subscriberType") String subscriberType,
 			@Param("dateFrom") Date dateFrom, @Param("dateTo") Date dateTo, @Param("rmId") String rmId);
 
-	@Query(value = "SELECT MONTHNAME(t.inserted_date) as month,day(SUBDATE(t.inserted_date, weekday(t.inserted_date))) as weekDay,count(t.transaction_id) as trxn_count,COALESCE(sum(t.lc_value),0) as cumulative_amount \r\n"
+	@Query(value = "SELECT MONTHNAME(t.inserted_date) as month,day(SUBDATE(t.inserted_date, weekday(t.inserted_date))) as weekDay,count(t.transaction_id) as trxn_count,COALESCE(sum(t.usd_currency_value),0) as cumulative_amount \r\n"
 			+ "FROM nimai_mm_transaction t inner join nimai_m_customer m on t.user_id=m.USERID where\r\n"
 			+ "t.inserted_date between :dateFrom and :dateTo group by Week(t.inserted_date),Month(t.inserted_date)\r\n"
 			+ "order by DATE_FORMAT(t.inserted_date,\"%m-%d\") asc;", nativeQuery = true)
 	public List<Tuple> getGenCumulativeTrxn(@Param("dateFrom") Date dateFrom, @Param("dateTo") Date dateTo);
 
-	@Query(value = "SELECT MONTHNAME(t.inserted_date) as month,day(SUBDATE(t.inserted_date, weekday(t.inserted_date))) as weekDay,count(t.transaction_id) as trxn_count,COALESCE(sum(t.lc_value),0) as cumulative_amount \r\n"
+	@Query(value = "SELECT MONTHNAME(t.inserted_date) as month,day(SUBDATE(t.inserted_date, weekday(t.inserted_date))) as weekDay,count(t.transaction_id) as trxn_count,COALESCE(sum(t.usd_currency_value),0) as cumulative_amount \r\n"
 			+ "FROM nimai_mm_transaction t inner join nimai_m_customer m on t.user_id=m.USERID where FIND_IN_SET(m.COUNTRY_NAME, :userCountry) and\r\n"
 			+ "t.inserted_date between :dateFrom and :dateTo group by Week(t.inserted_date),Month(t.inserted_date)\r\n"
 			+ "order by DATE_FORMAT(t.inserted_date,\"%m-%d\") asc;", nativeQuery = true)

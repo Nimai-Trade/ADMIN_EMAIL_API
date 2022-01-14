@@ -3,6 +3,7 @@ package com.nimai.admin.service.impl;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Date;
+import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.temporal.ChronoUnit;
@@ -23,10 +24,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.nimai.admin.controller.DashboardController;
 import com.nimai.admin.model.NimaiMCustomer;
+import com.nimai.admin.model.NimaiMEmployee;
 import com.nimai.admin.model.NimaiMmTransaction;
 import com.nimai.admin.model.NimaiSubscriptionDetails;
 import com.nimai.admin.payload.CustomerStatResponse;
@@ -35,9 +38,11 @@ import com.nimai.admin.payload.DashNewUserStat;
 import com.nimai.admin.payload.DashTransStat;
 import com.nimai.admin.payload.DiscardResponse;
 import com.nimai.admin.payload.PagedResponse;
+import com.nimai.admin.payload.PendingRequestBean;
 import com.nimai.admin.payload.SearchRequest;
 import com.nimai.admin.payload.SubscriptionRenewalResponse;
 import com.nimai.admin.repository.CustomerRepository;
+import com.nimai.admin.repository.EmployeeRepository;
 import com.nimai.admin.repository.SubscriptionDetailsRepository;
 import com.nimai.admin.repository.TransactionsRepository;
 import com.nimai.admin.service.DashboardService;
@@ -56,6 +61,12 @@ public class DashboardServiceImpl implements DashboardService {
 
 	@Autowired
 	CustomerSearchSpecification custSpecs;
+
+	@Autowired
+	CustomerRepository repo;
+
+	@Autowired
+	EmployeeRepository empRepo;
 
 	@Autowired
 	SubscriptionDetailsRepository subsRepo;
@@ -153,6 +164,7 @@ public class DashboardServiceImpl implements DashboardService {
 
 	@Override
 	public int getPayPendingCount(SearchRequest request) {
+		System.out.println(Utility.getUserCountry());
 		if (request.getSubscriberType().equalsIgnoreCase("all")) {
 			return custRepo.getDashboardCount(11, "", "", "", 0, "", "", "", Utility.getUserCountry());
 		} else if (!request.getSubscriberType().equalsIgnoreCase("All") && request.getBankType() == null) {
@@ -199,6 +211,36 @@ public class DashboardServiceImpl implements DashboardService {
 				"User countries in getCustomerRevenue" + Utility.getUserCountry() + "_userId:_" + Utility.getUserId());
 		return subsRepo.getRevenues(1, java.sql.Date.valueOf(request.getDateFrom()),
 				java.sql.Date.valueOf(request.getDateTo()), Utility.getUserCountry());
+	}
+
+	@Override
+	public Object totalQuoteReceived(SearchRequest request) {
+		// TODO Auto-generated method stub
+		Double amount = (double) 0;
+		if (request.getDateFrom() == null && request.getDateTo() == null) {
+			request.setDateFrom(LocalDate.now().minusDays(30).toString());
+			request.setDateTo(LocalDate.now().toString());
+			logger.info("Fromdate minus 30 days in getCustomerRevenue " + LocalDate.now().minusDays(30).toString());
+			logger.info("Todate getCustomerRevenue" + LocalDate.now().toString());
+		}
+		logger.info("Fromdate minus in getCustomerRevenue from request " + request.getDateFrom());
+		logger.info("Todate getCustomerRevenue from request" + request.getDateTo());
+		logger.info(
+				"User countries in getCustomerRevenue" + Utility.getUserCountry() + "_userId:_" + Utility.getUserId());
+		if (Utility.getUserCountry().equalsIgnoreCase("ALL")) {
+			amount = subsRepo.gettotalQuoteReceived(java.sql.Date.valueOf(request.getDateFrom()),
+					java.sql.Date.valueOf(request.getDateTo()));
+		} else {
+			amount = subsRepo.gettotalQuoteReceivedCountryNames(java.sql.Date.valueOf(request.getDateFrom()),
+					java.sql.Date.valueOf(request.getDateTo()), Utility.getUserCountry());
+		}
+
+		if (amount == null) {
+			amount = 0.0;
+		}
+
+		Double amountInUsd = Double.parseDouble(new DecimalFormat("##.##").format(amount));
+		return amountInUsd;
 	}
 
 	@Override
@@ -711,7 +753,8 @@ public class DashboardServiceImpl implements DashboardService {
 	@Override
 	public int getReferrers(SearchRequest request) {
 
-		return custRepo.getDashboardCount(27, request.getSubscriberType(), "", "", 0, "", "", "", Utility.getUserCountry());
+		return custRepo.getDashboardCount(27, request.getSubscriberType(), "", "", 0, "", "", "",
+				Utility.getUserCountry());
 	}
 
 	@Override
@@ -749,5 +792,361 @@ public class DashboardServiceImpl implements DashboardService {
 		}).collect(Collectors.toList());
 
 		return resp;
+	}
+
+	@Override
+	public Object totalQuoteAccepted(SearchRequest request) {
+		Double amount = 0.0;
+		if (request.getDateFrom() == null && request.getDateTo() == null) {
+			request.setDateFrom(LocalDate.now().minusDays(30).toString());
+			request.setDateTo(LocalDate.now().toString());
+			logger.info("Fromdate minus 30 days in getCustomerRevenue " + LocalDate.now().minusDays(30).toString());
+			logger.info("Todate getCustomerRevenue" + LocalDate.now().toString());
+		}
+		logger.info("Fromdate minus in getCustomerRevenue from request " + request.getDateFrom());
+		logger.info("Todate getCustomerRevenue from request" + request.getDateTo());
+		logger.info(
+				"User countries in getCustomerRevenue" + Utility.getUserCountry() + "_userId:_" + Utility.getUserId());
+
+		if (Utility.getUserCountry().equalsIgnoreCase("ALL")) {
+			amount = subsRepo.gettotalQuoteAccepted(java.sql.Date.valueOf(request.getDateFrom()),
+					java.sql.Date.valueOf(request.getDateTo()));
+		} else {
+			amount = subsRepo.gettotalQuoteAcceptedCountryNames(java.sql.Date.valueOf(request.getDateFrom()),
+					java.sql.Date.valueOf(request.getDateTo()), Utility.getUserCountry());
+		}
+		if (amount == null) {
+			amount = 0.0;
+		}
+		Double amountInUsd = Double.parseDouble(new DecimalFormat("##.##").format(amount));
+		return amountInUsd;
+
+	}
+
+	@Override
+	public Object totalQuoteClosed(SearchRequest request) {
+		Double amount = 0.0;
+		if (request.getDateFrom() == null && request.getDateTo() == null) {
+			request.setDateFrom(LocalDate.now().minusDays(30).toString());
+			request.setDateTo(LocalDate.now().toString());
+			logger.info("Fromdate minus 30 days in getCustomerRevenue " + LocalDate.now().minusDays(30).toString());
+			logger.info("Todate getCustomerRevenue" + LocalDate.now().toString());
+		}
+		logger.info("Fromdate minus in getCustomerRevenue from request " + request.getDateFrom());
+		logger.info("Todate getCustomerRevenue from request" + request.getDateTo());
+		logger.info(
+				"User countries in getCustomerRevenue" + Utility.getUserCountry() + "_userId:_" + Utility.getUserId());
+
+		if (Utility.getUserCountry().equalsIgnoreCase("ALL")) {
+			amount = subsRepo.gettotalQuoteClosed(java.sql.Date.valueOf(request.getDateFrom()),
+					java.sql.Date.valueOf(request.getDateTo()));
+		} else {
+			amount = subsRepo.gettotalQuoteClosedCountryNames(java.sql.Date.valueOf(request.getDateFrom()),
+					java.sql.Date.valueOf(request.getDateTo()), Utility.getUserCountry());
+		}
+
+		if (amount == null) {
+			amount = 0.0;
+		}
+
+		Double amountInUsd = Double.parseDouble(new DecimalFormat("##.##").format(amount));
+		return amountInUsd;
+
+	}
+
+	@Override
+	public PagedResponse<?> getPendingWireTfList(SearchRequest request) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public PendingRequestBean getPendingRequests(SearchRequest request) {
+		// TODO Auto-generated method stub
+		PendingRequestBean response = new PendingRequestBean();
+		String countryNames = Utility.getUserCountry();
+		String rmId = Utility.getUserId();
+		System.out.println("countryNames: " + countryNames);
+		if (countryNames != null && countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
+			countryNames = "";
+			final List<String> countryList = (List<String>) this.repo.getCountryList();
+			for (final String country : countryList) {
+				countryNames = countryNames + country + ",";
+			}
+			System.out.println("Country List: " + countryNames);
+			request.setCountryNames(countryNames);
+		} else if (countryNames != null && !countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
+			request.setCountryNames(countryNames);
+		} else if (countryNames != null && request.getCountry() != null) {
+			request.setCountryNames(request.getCountry());
+		} else if (countryNames == null && request.getCountry() == null) {
+		}
+		final List<String> value = Stream.of(request.getCountryNames().split(",", -1)).collect(Collectors.toList());
+		System.out.println("Values BankService: " + value);
+
+		
+		if ((request.getBankType() == null || request.getBankType().isEmpty()||
+				request.getRole().equalsIgnoreCase("Management")) && request.getSubscriberType().equalsIgnoreCase("All")) {
+			response = getAllData(countryNames, request, response, value, rmId);
+		} else if ((request.getBankType() == null || request.getBankType().isEmpty()) && request.getSubscriberType().equalsIgnoreCase("Customer")) {
+			response = getCustomerData(countryNames, request, response, value, rmId);
+		} else if ((request.getBankType() == null || request.getBankType().isEmpty()) && request.getSubscriberType().equalsIgnoreCase("Referrer")) {
+			response = getReferrerdata(countryNames, request,value, response);
+		} else if (request.getBankType().equalsIgnoreCase("Customer")
+				&& request.getSubscriberType().equalsIgnoreCase("Bank")) {
+			response = getBankAsCustomerdata(countryNames, request, response, value, rmId);
+		} else if (request.getBankType().equalsIgnoreCase("Underwriter")
+				&& request.getSubscriberType().equalsIgnoreCase("Bank")) {
+			response = getBankAsUnderwriterdata(countryNames, request,value, response);
+		} 
+
+		return response;
+	}
+
+	private PendingRequestBean getReferrerdata(String countryNames, SearchRequest request,
+			List<String> value, PendingRequestBean response) {
+		long paymentApprovalList;
+		long grantPayment;
+		long grantRm;
+		long kycApproval;
+		long grntkycApproval;
+		
+			 kycApproval = custRepo.getRefPendingAllKYC();
+			 grntkycApproval = custRepo.getRefCustGrantKYC();
+			paymentApprovalList = 0;//custRepo.getDashboardCount(34, "", "", "", 0, "", "", "", Utility.getUserCountry());
+			grantRm = custRepo.getDashboardCount(4, request.getSubscriberType(), request.getBankType(), "", 0, "", "", "", Utility.getUserCountry());
+			grantPayment = 0;//custRepo.getDashboardCount(35, "", "", "", 0, "", "", "", Utility.getUserCountry());	
+		long assignRm = custRepo.getDashboardCount(3, request.getSubscriberType(), request.getBankType(), "", 0, "", "", "", Utility.getUserCountry());
+		long grantUser =custRepo.getDashboardCount(5, "", "", "", 0, "", "", "", Utility.getUserCountry());
+		
+		long subExp30Days = custRepo.getDashboardCount(9, "Referrer", "", "", 0, "", "", "A", Utility.getUserCountry());
+		
+		long pendingKyc =  custRepo.getRefpendingKycNullNew();
+				
+				//custRepo.getDashboardCount(8, "Referrer","", "", 1, "", "", "A",
+				//Utility.getUserCountry());
+		
+		
+		long paymentPending = 0;//custRepo.getDashboardCount(11, "Referrer", "", "", 0, "", "", "A",
+				//Utility.getUserCountry());
+
+		response.setPaymentApproval(paymentApprovalList);
+		response.setGrantPayment(grantPayment);
+		response.setAssignRm(assignRm);
+		response.setGrantRM(grantRm);
+		response.setGrantUser(grantUser);
+		response.setKycApproval(kycApproval);
+		response.setGrantKyc(grntkycApproval);
+		response.setSubPlanExpiring30Days(subExp30Days);
+		response.setKycPendingUser(pendingKyc);
+		response.setPaymentPendingUser(paymentPending);
+		return response;
+	}
+
+	private PendingRequestBean getBankAsUnderwriterdata(String countryNames, SearchRequest request,List<String> value,
+			PendingRequestBean response) {
+		// TODO Auto-generated method stub
+		long paymentApprovalList;
+		long grantPayment;
+		long grantRm;
+		long kycApproval;
+		long grntkycApproval;
+		long pendingKyc;
+		
+			 kycApproval = custRepo.getBankAsUnderPendingAllKYC();
+			 grntkycApproval = custRepo.getBankAsUnderGrantKYC();
+			paymentApprovalList = custRepo.getDashboardCount(30, "", "", "", 0, "", "", "", Utility.getUserCountry());
+			grantRm = custRepo.getDashboardCount(4,request.getSubscriberType(), request.getBankType(), "", 0, "", "", "", Utility.getUserCountry());
+			grantPayment = custRepo.getDashboardCount(33, "", "", "", 0, "", "", "", Utility.getUserCountry());	
+		long assignRm = custRepo.getDashboardCount(3, request.getSubscriberType(), request.getBankType(), "", 0, "", "", "", Utility.getUserCountry());
+		long grantUser =custRepo.getDashboardCount(5, "", "", "", 0, "", "", "", Utility.getUserCountry());
+		
+		custRepo.getDashboardCount(12, request.getSubscriberType(), request.getBankType(), "", 0, "", "", "",
+				Utility.getUserCountry());
+		
+		
+		long subExp30Days = custRepo.getDashboardCount(10, request.getSubscriberType(),request.getBankType(), "", 0, "", "", "", Utility.getUserCountry());
+		
+	
+				
+		if(Utility.getUserCountry().equalsIgnoreCase("All")) {
+			pendingKyc = custRepo.getBankAsUndependingKycNullNew();
+		}else {
+			pendingKyc = custRepo.getCountryBankAsUndependingKycNullNew(value);
+		}
+		
+				//custRepo.getDashboardCount(8, "Bank", "Underwriter", "", 1, "", "", "A",
+				//Utility.getUserCountry());
+		
+		
+		long paymentPending = custRepo.getDashboardCount(12,request.getSubscriberType(),request.getBankType(), "", 0, "", "", "",
+				Utility.getUserCountry());
+
+		response.setPaymentApproval(paymentApprovalList);
+		response.setGrantPayment(grantPayment);
+		response.setAssignRm(assignRm);
+		response.setGrantRM(grantRm);
+		response.setGrantUser(grantUser);
+		response.setKycApproval(kycApproval);
+		response.setGrantKyc(grntkycApproval);
+		response.setSubPlanExpiring30Days(subExp30Days);
+		response.setKycPendingUser(pendingKyc);
+		response.setPaymentPendingUser(paymentPending);
+		return response;
+	}
+
+	private PendingRequestBean getBankAsCustomerdata(String countryNames, SearchRequest request,
+			PendingRequestBean response, List<String> value, String rmId) {
+		// TODO Auto-generated method stub
+		
+		long paymentApprovalList;
+		long grantPayment;
+		long grantRm;
+		long kycApproval;
+		long grntkycApproval;
+		long pendingKyc;
+		
+			 kycApproval = custRepo.getBankAsCustPendingAllKYC();
+			 grntkycApproval = custRepo.getBankAsCustGrantKYC();
+			paymentApprovalList = custRepo.getDashboardCount(29, "", "", "", 0, "", "", "", Utility.getUserCountry());
+			grantRm = custRepo.getDashboardCount(4, request.getSubscriberType(), request.getBankType(), "", 0, "", "", "", Utility.getUserCountry());
+			grantPayment = custRepo.getDashboardCount(32, "", "", "", 0, "", "", "", Utility.getUserCountry());	
+		long assignRm = custRepo.getDashboardCount(3, request.getSubscriberType(), request.getBankType(), "", 0, "", "", "", Utility.getUserCountry());
+		long grantUser =custRepo.getDashboardCount(5, "", "", "", 0, "", "", "", Utility.getUserCountry());
+		
+		long subExp30Days = custRepo.getDashboardCount(10, request.getSubscriberType(), request.getBankType(), "", 0, "", "", "", Utility.getUserCountry());
+		
+		
+		if(Utility.getUserCountry().equalsIgnoreCase("All")) {
+			pendingKyc =custRepo.getBankAsCustpendingKycNullNew(); 
+		}else {
+			pendingKyc =custRepo.getCountryBankAsCustpendingKycNullNew(value);
+		}
+				
+				//custRepo.getDashboardCount(8, "Bank", "Customer", "", 1, "", "", "A",
+				//Utility.getUserCountry());
+		
+		
+		long paymentPending = custRepo.getDashboardCount(12, request.getSubscriberType(), request.getBankType(), "", 0, "", "", "",
+				Utility.getUserCountry());
+
+		response.setPaymentApproval(paymentApprovalList);
+		response.setGrantPayment(grantPayment);
+		response.setAssignRm(assignRm);
+		response.setGrantRM(grantRm);
+		response.setGrantUser(grantUser);
+		response.setKycApproval(kycApproval);
+		response.setGrantKyc(grntkycApproval);
+		response.setSubPlanExpiring30Days(subExp30Days);
+		response.setKycPendingUser(pendingKyc);
+		response.setPaymentPendingUser(paymentPending);
+		return response;
+	}
+
+	private PendingRequestBean getCustomerData(String countryNames, SearchRequest request,
+			PendingRequestBean response, List<String> value, String rmId) {
+		
+		long paymentApprovalList;
+		long grantPayment;
+		long grantRm;
+		long kycApproval;
+		long grntkycApproval;
+		long pendingKyc;
+		
+			 kycApproval = custRepo.getCustPendingAllKYC();
+			 grntkycApproval = custRepo.getCustGrantKYC();
+			paymentApprovalList = custRepo.getDashboardCount(28, "", "", "", 0, "", "", "", Utility.getUserCountry());
+			grantRm = custRepo.getDashboardCount(4, request.getSubscriberType(), request.getBankType(), "", 0, "", "", "", Utility.getUserCountry());
+			grantPayment = custRepo.getDashboardCount(31, "", "", "", 0, "", "", "", Utility.getUserCountry());	
+		long assignRm = custRepo.getDashboardCount(3, request.getSubscriberType(), request.getBankType(), "", 0, "", "", "", Utility.getUserCountry());
+		long grantUser =custRepo.getDashboardCount(5, "", "", "", 0, "", "", "", Utility.getUserCountry());
+		
+		long subExp30Days = custRepo.getDashboardCount(9, request.getSubscriberType(), "", "", 0, "", "", "A", Utility.getUserCountry());
+		
+		
+		
+		if(Utility.getUserCountry().equalsIgnoreCase("All")) {
+			 pendingKyc = custRepo.getCustpendingKycNullNew();
+		}else {
+			System.out.println("Countrynames inside the conditions"+countryNames);
+			pendingKyc = custRepo.getCountryCustpendingKycNullNew(value);
+		}
+				
+				
+				
+				
+				//custRepo.getDashboardCount(8, "Customer","", "", 1, "", "", "A",
+			//	Utility.getUserCountry());
+		
+		
+		long paymentPending = custRepo.getDashboardCount(11, "Customer", "", "", 0, "", "", "A",
+				Utility.getUserCountry());
+
+		response.setPaymentApproval(paymentApprovalList);
+		response.setGrantPayment(grantPayment);
+		response.setAssignRm(assignRm);
+		response.setGrantRM(grantRm);
+		response.setGrantUser(grantUser);
+		response.setKycApproval(kycApproval);
+		response.setGrantKyc(grntkycApproval);
+		response.setSubPlanExpiring30Days(subExp30Days);
+		response.setKycPendingUser(pendingKyc);
+		response.setPaymentPendingUser(paymentPending);
+		return response;
+		// TODO Auto-generated method stub
+
+	}
+
+	private PendingRequestBean getAllData(String countryNames, SearchRequest request, PendingRequestBean response,
+			List<String> value, String rmId) {
+	System.out.println("===========Inside  all condition=========");
+		long paymentApprovalList;
+		long grantPayment;
+		long grantRm;
+		long kycApproval;
+		long grntkycApproval;
+		long pendingKyc;
+		
+			 kycApproval = custRepo.getPendingAllKYC();
+			 grntkycApproval = custRepo.getGrantKYC();
+			paymentApprovalList = custRepo.getDashboardCount(1, "", "", "", 0, "", "", "", Utility.getUserCountry());
+			grantRm = custRepo.getDashboardCount(37, "", "", "", 0, "", "", "", Utility.getUserCountry());
+			grantPayment = custRepo.getDashboardCount(2, "", "", "", 0, "", "", "", Utility.getUserCountry());	
+			// kycApproval = custRepo.getPendingAllKYC();
+			 grntkycApproval = custRepo.getGrantKYC();
+		long assignRm = custRepo.getDashboardCount(36, "", "", "", 0, "", "", "", Utility.getUserCountry());
+		long grantUser =custRepo.getDashboardCount(5, "", "", "", 0, "", "", "", Utility.getUserCountry());
+		
+		long subExp30Days = custRepo.getDashboardCount(9, "", "", "", 0, "", "", "", Utility.getUserCountry());
+		if(Utility.getUserCountry().equalsIgnoreCase("All")) {
+			 pendingKyc = custRepo.getpendingKycNullNew();
+		}else {
+			 pendingKyc = custRepo.getCountrypendingKycNullNew(value);
+		}
+		
+				
+				
+				
+				//custRepo.getDashboardCount(8, "", "", "", 0, "", "", "", Utility.getUserCountry());
+		
+		
+		
+		
+		long paymentPending = custRepo.getDashboardCount(11, "", "", "", 0, "", "", "", Utility.getUserCountry());
+
+		response.setPaymentApproval(paymentApprovalList);
+		response.setGrantPayment(grantPayment);
+		response.setAssignRm(assignRm);
+		response.setGrantRM(grantRm);
+		response.setGrantUser(grantUser);
+		response.setKycApproval(kycApproval);
+		response.setGrantKyc(grntkycApproval);
+		response.setSubPlanExpiring30Days(subExp30Days);
+		response.setKycPendingUser(pendingKyc);
+		response.setPaymentPendingUser(paymentPending);
+
+		return response;
+		// TODO Auto-generated method stub
+
 	}
 }
