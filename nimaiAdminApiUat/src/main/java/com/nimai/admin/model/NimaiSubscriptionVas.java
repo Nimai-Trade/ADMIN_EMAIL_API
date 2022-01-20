@@ -77,8 +77,21 @@ public class NimaiSubscriptionVas {
 	@Column(name = "SPLAN_VAS_FLAG")
 	private Integer sPlanVasFlag;
 	
+	@Column(name="SPL_SERIAL_NUMBER")
+	private Integer sPLanSerialNumber;
 	
 	
+	
+	
+	
+	public Integer getsPLanSerialNumber() {
+		return sPLanSerialNumber;
+	}
+
+	public void setsPLanSerialNumber(Integer sPLanSerialNumber) {
+		this.sPLanSerialNumber = sPLanSerialNumber;
+	}
+
 	public Integer getsPlanVasFlag() {
 		return sPlanVasFlag;
 	}
@@ -291,6 +304,20 @@ public class NimaiSubscriptionVas {
 
 	public void setModifiedDate(Date modifiedDate) {
 		this.modifiedDate = modifiedDate;
+	}
+
+	@Override
+	public String toString() {
+		return "NimaiSubscriptionVas [id=" + id + ", userId=" + userId + ", subscriptionId=" + subscriptionId
+				+ ", vasId=" + vasId + ", countryName=" + countryName + ", planName=" + planName + ", description1="
+				+ description1 + ", description2=" + description2 + ", description3=" + description3 + ", description4="
+				+ description4 + ", description5=" + description5 + ", currency=" + currency + ", pricing=" + pricing
+				+ ", status=" + status + ", insertedBy=" + insertedBy + ", insertedDate=" + insertedDate
+				+ ", modifiedBy=" + modifiedBy + ", modifiedDate=" + modifiedDate + ", paymentApprovedBy="
+				+ paymentApprovedBy + ", paymentApprovalDate=" + paymentApprovalDate + ", mode=" + mode
+				+ ", paymentSts=" + paymentSts + ", checkerComment=" + checkerComment + ", makerComment=" + makerComment
+				+ ", paymentTxnId=" + paymentTxnId + ", sPlanVasFlag=" + sPlanVasFlag + ", sPLanSerialNumber="
+				+ sPLanSerialNumber + "]";
 	}
 
 }

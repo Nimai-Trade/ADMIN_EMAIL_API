@@ -229,6 +229,7 @@ public class CustomerServiceImpl implements CustomerService {
 		/**
 		 * New Logic
 		 */
+		String countryNames;
 		List<NimaiMpUserRole> userRole = userRoleRepository.findAll();
 		Map<String, List<NimaiMpUserRole>> result = userRole.stream()
 				.filter(e -> e.getStatus().equalsIgnoreCase("Active") && e.getRoleId().getRoleShortName().contains("RM")
@@ -238,7 +239,22 @@ public class CustomerServiceImpl implements CustomerService {
 		for (Map.Entry<String, List<NimaiMpUserRole>> entry : result.entrySet()) {
 			Map<String, List<AssignRmResponse>> value = new HashMap<String, List<AssignRmResponse>>();
 			for (NimaiMpUserRole item : entry.getValue()) {
-				String[] stringArray = item.getEmpCode().getCountry().split(",");
+				countryNames = "";
+				if(item.getEmpCode().getCountry().equalsIgnoreCase("all"))
+				{
+				final List<String> countryList = (List<String>) this.repo.getCountryList();
+				for (final String country : countryList) 
+				{
+					countryNames = countryNames + country + ",";
+				}
+				}
+				else
+				{
+					countryNames=item.getEmpCode().getCountry();
+				}
+				System.out.println("Country Names: "+countryNames);
+				String[] stringArray = countryNames.split(",");
+				System.out.println("Country Names Array: "+stringArray);
 				for (String val : stringArray) {
 					value.computeIfAbsent(val, k -> new ArrayList<AssignRmResponse>())
 							.add(new AssignRmResponse(item.getEmpCode().getEmpCode(),
@@ -377,8 +393,19 @@ public class CustomerServiceImpl implements CustomerService {
 				System.out.println("========= Searching Rejected Customer KYC =========");
 				customerList = customerRepository.getRejectedCustomerKYC(value,pageable);
 			} else if (request.getTxtStatus().equalsIgnoreCase("Not Uploaded")) {
+				
+				if(request.getSubscriberType()==null &&  request.getBankType()==null) {
+					 customerList = customerRepository.getNotUploadCustomerKYC(value,pageable);
+				}else if(request.getSubscriberType().equals("CUSTOMER") && ( request.getBankType()==null) ) {
+					
+					customerList = customerRepository.getNotUploadForCU(value,pageable);
+				}else if(request.getSubscriberType().equals("BANK") && request.getBankType().equals("CUSTOMER")) {
+					System.out.println("inside khkj");
+				     customerList = customerRepository.getNotUploadForBC(value,pageable);
+				}
+				
 				System.out.println("========= Searching Not Uploaded Customer KYC =========");
-				customerList = customerRepository.getNotUploadCustomerKYC(value,pageable);
+				//customerList = customerRepository.getNotUploadCustomerKYC(value,pageable);
 //				List<NimaiMCustomer> notUploadedRsponses = customerList.stream()
 //						.filter(cust -> cust.getNimaiFKycList().size() == 0).collect(Collectors.toList());
 
@@ -396,8 +423,14 @@ public class CustomerServiceImpl implements CustomerService {
 				else if (request.getTxtStatus().equalsIgnoreCase("PaymentPendingUser")) {
 					customerList = customerRepository.getPaymentPendingUserCU(value, pageable);
 					System.out.println(
-							"************=============PaymentPaymentUser============***********"
+							"************=============PaymentPaymentUser getPaymentPendingUserCU============***********"
 									+ request.getUserId());
+					for(NimaiMCustomer cust:customerList) {
+						System.out.println(
+								"************=============PaymentPaymentUser getPaymentPendingUserCU============***********"
+										+ cust.getUserid());
+					}
+					
 
 				}
 				else
@@ -418,8 +451,13 @@ public class CustomerServiceImpl implements CustomerService {
 				}
 				else if (request.getTxtStatus().equalsIgnoreCase("PaymentPendingUser")) {
 					customerList = customerRepository.getPaymentPendingUserBC(value, pageable);
+					for(NimaiMCustomer cust:customerList) {
+						System.out.println(
+								"************=============PaymentPaymentUser getPaymentPendingUserCU============***********"
+										+ cust.getUserid());
+					}
 					System.out.println(
-							"************=============PaymentPaymentUser============***********"
+							"************=============PaymentPaymentUser getPaymentPendingUserBC============***********"
 									+ request.getUserId());
 
 				}
@@ -446,7 +484,8 @@ public class CustomerServiceImpl implements CustomerService {
 		// else
 		responses = customerList.map(cust -> {
 			CustomerResponse response = new CustomerResponse();
-			System.out.println("request");
+			System.out.println("userId pending paymebts"+cust.getUserid());
+			System.out.println("==========================Payment pending customer user request"+cust.toString());
 			response.setUserid(cust.getUserid());
 			response.setFirstName(cust.getFirstName());
 			response.setLastName(cust.getLastName());

@@ -5,11 +5,11 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.nimai.admin</groupId>
-	<artifactId>nimaiAdminApiUat</artifactId>
+	<artifactId>nimaiAdminApi</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>war</packaging>
 
-	<name>nimaiAdminApiUat</name>
+	<name>nimaiAdminApi</name>
 	<description>Nimai Admin</description>
 	<parent>
 		<groupId>org.springframework.boot</groupId>

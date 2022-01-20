@@ -553,9 +553,9 @@ public interface CustomerRepository
 			+ " WHERE nc.ACCOUNT_SOURCE=(:userid) AND nc.KYC_STATUS='Rejected';", nativeQuery = true)
 	public int getRejectedReference(@Param("userid") String userid);
 
-	@Query(value = " SELECT sum(nd.SUBSCRIPTION_AMOUNT)*0.07 AS Earning FROM nimai_m_customer nc\n"
-			+ "INNER JOIN nimai_subscription_details \n"
-			+ "		  nd WHERE nc.ACCOUNT_SOURCE=(:userid);", nativeQuery = true)
+	@Query(value = " SELECT sum((nd.SUBSCRIPTION_AMOUNT+nd.VAS_AMOUNT)-(nd.DISCOUNT)) AS Earning FROM nimai_m_customer nc\n"
+			+ "INNER JOIN nimai_subscription_details nd ON nd.userid=nc.USERID\n"
+			+ "		   WHERE nc.ACCOUNT_SOURCE=(:userid);", nativeQuery = true)
 	public Double getEarning(@Param("userid") String userid);
 
 	/*
@@ -887,22 +887,24 @@ public interface CustomerRepository
 	 @Query(value = "	select * from nimai_m_customer c\n" + 
 		 		"where c.REGISTERED_COUNTRY IN :value and c.subscriber_type='BANK' and c.bank_type='CUSTOMER' \n" + 
 		 		"and c.USERID not in (select s.userid from nimai_subscription_details s) ",
-						countQuery = "select count(cnt) from\n" + 
-								"(select count(*) as cnt from nimai_m_customer c\n" + 
-								"where c.REGISTERED_COUNTRY IN :value and c.subscriber_type='BANK' and c.bank_type='CUSTOMER' \n" + 
-								"and c.USERID not in (select s.userid from nimai_subscription_details s)) \n" + 
-								"as cnt",
+//						countQuery = "select count(cnt) from\n" + 
+//								"(select count(*) as cnt from nimai_m_customer c\n" + 
+//								"where c.REGISTERED_COUNTRY IN :value and c.subscriber_type='BANK' and c.bank_type='CUSTOMER' \n" + 
+//								"and c.USERID not in (select s.userid from nimai_subscription_details s)) \n" + 
+//								"as cnt",
+								countQuery = "(select count(*) as cnt from nimai_m_customer c\n" + 
+										"where c.REGISTERED_COUNTRY IN :value and c.subscriber_type='BANK' and c.bank_type='CUSTOMER' \n" + 
+										"and c.USERID not in (select s.userid from nimai_subscription_details s)) \n",								
 						nativeQuery = true)
 				public Page<NimaiMCustomer> getPaymentPendingUserBC(List<String> value, Pageable p);
 		 
 	 @Query(value = "	select * from nimai_m_customer c\n" + 
 		 		"where c.REGISTERED_COUNTRY IN :value and c.subscriber_type='CUSTOMER' \n" + 
 		 		"and c.USERID not in (select s.userid from nimai_subscription_details s) ",
-						countQuery = "select count(cnt) from\n" + 
-								"(select count(*) as cnt from nimai_m_customer c\n" + 
-								"where c.REGISTERED_COUNTRY IN :value and c.subscriber_type='CUSTOMER' \n" + 
-								"and c.USERID not in (select s.userid from nimai_subscription_details s)) \n" + 
-								"as cnt",
+
+			countQuery = "(select count(*) as cnt from nimai_m_customer c\n" + 
+						"where c.REGISTERED_COUNTRY IN :value and c.subscriber_type='CUSTOMER' \n" + 
+					"and c.USERID not in (select s.userid from nimai_subscription_details s)) \n",
 						nativeQuery = true)
 				public Page<NimaiMCustomer> getPaymentPendingUserCU(List<String> value, Pageable p);
 		 
@@ -940,12 +942,11 @@ public interface CustomerRepository
 		 		"and c.USERID in (select s.userid from nimai_subscription_details s \n" + 
 		 		"where s.status='Active' and s.SPLAN_END_DATE between now() \n" + 
 		 		"and DATE_ADD(NOW(), INTERVAL 30 DAY)) and c.REGISTERED_COUNTRY IN :value",
-						countQuery = "select count(cnt) from\n" + 
-								"(select count(*) as cnt from nimai_m_customer c\n" + 
+						countQuery = "select count(*) as cnt from nimai_m_customer c\n" + 
 								"where c.subscriber_type='CUSTOMER' \n" + 
 								"and c.REGISTERED_COUNTRY IN :value and c.USERID in (select s.userid from nimai_subscription_details s \n" + 
 								"where s.status='Active' and s.SPLAN_END_DATE between now() \n" + 
-								"and DATE_ADD(NOW(), INTERVAL 30 DAY)) as cnt",
+								"and DATE_ADD(NOW(), INTERVAL 30 DAY))",
 						nativeQuery = true)
 				public Page<NimaiMCustomer> getSubscriptionExpiryCU(List<String> value, Pageable p);
 		 
@@ -1445,7 +1446,7 @@ public interface CustomerRepository
 				"			and nc.REGISTERED_COUNTRY IN :value AND (nc.SUBSCRIBER_TYPE='CUSTOMER' AND nc.BANK_TYPE='')",
 				countQuery = "SELECT COUNT(cnt) from\n" + 
 						"(SELECT COUNT(*) as cnt FROM nimai_m_customer nc WHERE nc.USERID NOT IN (SELECT nfk.userId from nimai_f_kyc nfk) \n" + 
-						"AND (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='CUSTOMER') and nc.REGISTERED_COUNTRY IN :value\n" + 
+						"AND nc.SUBSCRIBER_TYPE!='REFERRER' AND (nc.SUBSCRIBER_TYPE='CUSTOMER' OR nc.BANK_TYPE='') and nc.REGISTERED_COUNTRY IN :value\n" + 
 						"GROUP BY nc.USERID) as cnt",
 				nativeQuery = true)
 		public Page<NimaiMCustomer> getNotUploadForCU(List<String> value, Pageable p);
@@ -1459,4 +1460,14 @@ public interface CustomerRepository
 						"GROUP BY nc.USERID) as cnt",
 				nativeQuery = true)
 		public Page<NimaiMCustomer> getNotUploadForRE(List<String> value, Pageable p);
+		
+		@Query(value = "SELECT * FROM nimai_m_customer nc WHERE nc.KYC_STATUS='Pending' and nc.USERID IN \n" + 
+				"			(SELECT nfk.userId from nimai_f_kyc nfk) \n" + 
+				"			and nc.REGISTERED_COUNTRY IN :value AND (nc.SUBSCRIBER_TYPE='REFERRER' AND nc.BANK_TYPE='')",
+				countQuery = "SELECT COUNT(cnt) from\n" + 
+						"(SELECT COUNT(*) as cnt FROM nimai_m_customer nc WHERE nc.USERID NOT IN (SELECT nfk.userId from nimai_f_kyc nfk) \n" + 
+						"AND (nc.SUBSCRIBER_TYPE='REFERRER' AND nc.BANK_TYPE='') and nc.REGISTERED_COUNTRY IN :value\n" + 
+						"GROUP BY nc.USERID) as cnt",
+				nativeQuery = true)
+		public Page<NimaiMCustomer> getPendingForRE(List<String> value, Pageable p);
 }

@@ -20,10 +20,21 @@ public class SubscriptionMPlanResponse {
 	private String remark;
 	private String countryCurrency; 
 	private String modifiedBy;
+	private String country[];
 	
 	
 	
 	
+	
+	
+	public String[] getCountry() {
+		return country;
+	}
+
+	public void setCountry(String[] country) {
+		this.country = country;
+	}
+
 	public String getModifiedBy() {
 		return modifiedBy;
 	}

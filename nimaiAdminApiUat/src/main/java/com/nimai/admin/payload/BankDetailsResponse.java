@@ -16,6 +16,7 @@ public class BankDetailsResponse {
 	private String additionalEmail2;
 	private String additionalEmail3;
 	private String mobileNumber;
+	private String vasNUmber;
 	
 	private String countryName;
 	private String landline;
@@ -85,6 +86,14 @@ public class BankDetailsResponse {
 	
 
 	
+
+	public String getVasNUmber() {
+		return vasNUmber;
+	}
+
+	public void setVasNUmber(String vasNUmber) {
+		this.vasNUmber = vasNUmber;
+	}
 
 	public String getPaymentMode() {
 		return paymentMode;

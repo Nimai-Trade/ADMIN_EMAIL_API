@@ -28,11 +28,14 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import com.nimai.admin.util.Utility;
 
+import io.jsonwebtoken.lang.Arrays;
+
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import com.nimai.admin.payload.PagedResponse;
 import com.nimai.admin.payload.SearchRequest;
 import com.nimai.admin.payload.TransactionRequestBody;
+import com.nimai.admin.payload.VasDetails;
 
 import java.util.Iterator;
 import com.nimai.admin.model.NimaiMDiscount;
@@ -295,6 +298,7 @@ public class BankServiceImpl implements BankService {
 			value.setRelationshipManager(pay.getRelationshipManager() + ", Relationship Manager");
 			value.setCustomerSupport(pay.getCustomerSupport() + " Customer Support");
 			value.setRemark(pay.getRemark());
+
 			value.setIsVasAppliedWithSPlan(pay.getIsVasApplied());
 			if (pay.getStatus().equalsIgnoreCase("ACTIVE")) {
 				value.setStatus("Active");
@@ -309,67 +313,92 @@ public class BankServiceImpl implements BankService {
 			value.setInsertedDate(pay.getInsertedDate());
 			value.setPaymentMode(pay.getPaymentMode());
 			final List<NimaiSubscriptionVas> subsVas = (List<NimaiSubscriptionVas>) this.vasRep
-					.findByUserIdAndSubscriptionId(userId, pay.getSubscriptionId());
-			if (subsVas == null) {
-				value.setVasPlan("");
-				value.setVasStatus("");
-				value.setVasBenefits("");
-				value.setVasAmount("");
-				value.setTotalAmount("");
-			}
-			for (final NimaiSubscriptionVas vasDetails : subsVas) {
-				if (pay.getStatus().equalsIgnoreCase("ACTIVE")) {
-					if (vasDetails.getStatus().equalsIgnoreCase("Active") && pay.getVasAmount() != 0
-							&& !vasDetails.getStatus().equalsIgnoreCase("Rejected")) {
-						value.setVasPlan(vasDetails.getPlanName());
-						value.setVasStatus(vasDetails.getStatus());
-						value.setVasBenefits(vasDetails.getDescription1() + ", " + vasDetails.getDescription2() + ", "
-								+ vasDetails.getDescription3());
-						value.setVasAmount("USD " + vasDetails.getPricing());
-						value.setTotalAmount("USD " + (pay.getSubscriptionAmount() + vasDetails.getPricing()));
-						value.setVasMakerComment(vasDetails.getMakerComment());
-						value.setVasCheckerComment(vasDetails.getCheckerComment());
-						value.setVasPaymentStatus(vasDetails.getPaymentSts());
-						value.setVasPlanPaymentMode(vasDetails.getMode());
-						value.setVasId(vasDetails.getId());
-						if (vasDetails.getsPlanVasFlag() == null) {
-							value.setIsSplanWithVasFlag(2);
-						} else if (vasDetails.getsPlanVasFlag() == 0) {
-							value.setIsSplanWithVasFlag((int) vasDetails.getsPlanVasFlag());
-						} else {
-							if (vasDetails.getsPlanVasFlag() != 1) {
-								continue;
-							}
-							value.setIsSplanWithVasFlag((int) vasDetails.getsPlanVasFlag());
-						}
-					}
-				} else {
-					if (vasDetails.getStatus().equalsIgnoreCase("Inactive") && pay.getVasAmount() != 0) {
-						value.setVasPlan(vasDetails.getPlanName());
-						value.setVasStatus(vasDetails.getStatus());
-						value.setVasBenefits(vasDetails.getDescription1() + ", " + vasDetails.getDescription2() + ", "
-								+ vasDetails.getDescription3());
-						value.setVasAmount("USD " + vasDetails.getPricing());
-						value.setTotalAmount("USD " + (pay.getSubscriptionAmount() + vasDetails.getPricing()));
-						value.setVasMakerComment(vasDetails.getMakerComment());
-						value.setVasCheckerComment(vasDetails.getCheckerComment());
-						value.setVasPaymentStatus(vasDetails.getPaymentSts());
-						value.setVasPlanPaymentMode(vasDetails.getMode());
-						value.setVasId(vasDetails.getId());
-						if (vasDetails.getsPlanVasFlag() == null) {
-							value.setIsSplanWithVasFlag(2);
-						} else if (vasDetails.getsPlanVasFlag() == 0) {
-							value.setIsSplanWithVasFlag((int) vasDetails.getsPlanVasFlag());
-						} else {
-							if (vasDetails.getsPlanVasFlag() != 1) {
-								continue;
-							}
-							value.setIsSplanWithVasFlag((int) vasDetails.getsPlanVasFlag());
-						}
-					}
-				}
+					.findByUserIdAndSubscriptionIdAndSerialNo(userId, pay.getSubscriptionId(),
+							pay.getSplSerialNumber());
 
+			VasDetails vasDetailsVa = new VasDetails();
+			List<VasDetails> details = new ArrayList<>();
+			if (subsVas == null) {
+				vasDetailsVa.setVasPlan("");
+				vasDetailsVa.setVasStatus("");
+				vasDetailsVa.setVasBenefits("");
+				vasDetailsVa.setVasAmount("");
+				vasDetailsVa.setTotalAmount("");
+				details.add(vasDetailsVa);
 			}
+			List admins = subsVas.stream().filter((subsVa) -> subsVa.getPaymentSts().equalsIgnoreCase("Pending")
+					&& subsVa.getStatus().equalsIgnoreCase("ACTIVE")).collect(Collectors.toList());
+			if (admins.size() >= 1) {
+				value.setIsMultipleVasApplied("1");
+			} else {
+				value.setIsMultipleVasApplied("0");
+			}
+
+			for (final NimaiSubscriptionVas vasDetailsNew : subsVas) {
+				VasDetails vasDetailsValue = new VasDetails();
+				System.out.println("subscriptionid" + pay.getSplSerialNumber());
+				System.out.println("" + vasDetailsNew.toString());
+				if (pay.getStatus().equalsIgnoreCase("ACTIVE") || pay.getStatus().equalsIgnoreCase("INACTIVE")) {
+					if ((vasDetailsNew.getStatus().equalsIgnoreCase("Active")
+							|| vasDetailsNew.getStatus().equalsIgnoreCase("Inactive")) && pay.getVasAmount() != 0
+							&& !vasDetailsNew.getStatus().equalsIgnoreCase("Rejected")) {
+
+						vasDetailsValue.setVasPlan(vasDetailsNew.getPlanName());
+						vasDetailsValue.setVasStatus(vasDetailsNew.getStatus());
+						vasDetailsValue.setVasBenefits(vasDetailsNew.getDescription1() + ", "
+								+ vasDetailsNew.getDescription2() + ", " + vasDetailsNew.getDescription3());
+						vasDetailsValue.setVasAmount("USD " + vasDetailsNew.getPricing());
+						vasDetailsValue
+								.setTotalAmount("USD " + (pay.getSubscriptionAmount() + vasDetailsNew.getPricing()));
+						vasDetailsValue.setVasMakerComment(vasDetailsNew.getMakerComment());
+						vasDetailsValue.setVasCheckerComment(vasDetailsNew.getCheckerComment());
+						vasDetailsValue.setVasPaymentStatus(vasDetailsNew.getPaymentSts());
+						vasDetailsValue.setVasPlanPaymentMode(vasDetailsNew.getMode());
+						vasDetailsValue.setVasId(vasDetailsNew.getId());
+						if (vasDetailsNew.getsPlanVasFlag() == null) {
+							vasDetailsValue.setIsSplanWithVasFlag(2);
+						} else if (vasDetailsNew.getsPlanVasFlag() == 0) {
+							value.setIsSplanWithVasFlag((int) vasDetailsNew.getsPlanVasFlag());
+						} else {
+							if (vasDetailsNew.getsPlanVasFlag() != 1) {
+								continue;
+							}
+							vasDetailsValue.setIsSplanWithVasFlag((int) vasDetailsNew.getsPlanVasFlag());
+						}
+					}
+					details.add(vasDetailsValue);
+				} else {
+					if (vasDetailsNew.getStatus().equalsIgnoreCase("Inactive") && pay.getVasAmount() != 0) {
+						vasDetailsValue.setVasPlan(vasDetailsNew.getPlanName());
+						vasDetailsValue.setVasStatus(vasDetailsNew.getStatus());
+						vasDetailsValue.setVasBenefits(vasDetailsNew.getDescription1() + ", "
+								+ vasDetailsNew.getDescription2() + ", " + vasDetailsNew.getDescription3());
+						vasDetailsValue.setVasAmount("USD " + vasDetailsNew.getPricing());
+						vasDetailsValue
+								.setTotalAmount("USD " + (pay.getSubscriptionAmount() + vasDetailsNew.getPricing()));
+						vasDetailsValue.setVasMakerComment(vasDetailsNew.getMakerComment());
+						vasDetailsValue.setVasCheckerComment(vasDetailsNew.getCheckerComment());
+						vasDetailsValue.setVasPaymentStatus(vasDetailsNew.getPaymentSts());
+						vasDetailsValue.setVasPlanPaymentMode(vasDetailsNew.getMode());
+						vasDetailsValue.setVasId(vasDetailsNew.getId());
+						if (vasDetailsNew.getsPlanVasFlag() == null) {
+							vasDetailsValue.setIsSplanWithVasFlag(2);
+						} else if (vasDetailsNew.getsPlanVasFlag() == 0) {
+							vasDetailsValue.setIsSplanWithVasFlag((int) vasDetailsNew.getsPlanVasFlag());
+						} else {
+							if (vasDetailsNew.getsPlanVasFlag() != 1) {
+								continue;
+							}
+							vasDetailsValue.setIsSplanWithVasFlag((int) vasDetailsNew.getsPlanVasFlag());
+						}
+					}
+					details.add(vasDetailsValue);
+				}
+				value.setVasList(details);
+				System.out.println("added list" + value.getVasList().toString());
+			}
+			// System.out.println("outside for loop details"+details.toString());
+			// value.setVasList(details);
 			if (pay.getUserid() != null) {
 				if (pay.getInvoiceId() == null) {
 					value.setTransactionId("");
@@ -520,7 +549,7 @@ public class BankServiceImpl implements BankService {
 								+ request.getUserId());
 
 			}
-			
+
 			else if (request.getTxtStatus().equalsIgnoreCase("PaymentPending")) {
 				bankDetails = repo.getPaymentPendingBank(value, pageable);
 				System.out.println(
@@ -528,22 +557,20 @@ public class BankServiceImpl implements BankService {
 								+ request.getUserId());
 
 			}
-			
+
 			else if (request.getTxtStatus().equalsIgnoreCase("subexpiry")) {
 				bankDetails = repo.getSubscriptionExpiryBank(value, pageable);
-				System.out.println(
-						"************=============Subscription Expiry in 30 days============***********");
+				System.out.println("************=============Subscription Expiry in 30 days============***********");
 
 			}
-			
+
 			else if (request.getTxtStatus().equalsIgnoreCase("PaymentPendingUser")) {
 				bankDetails = repo.getPaymentPendingUserBank(value, pageable);
 				System.out.println(
-						"************=============PaymentPaymentUser============***********"
-								+ request.getUserId());
+						"************=============PaymentPaymentUser============***********" + request.getUserId());
 
 			}
-			
+
 			else if (request.getTxtStatus().equalsIgnoreCase("Approved")) {
 				bankDetails = repo.getApprovedBankKYC(value, pageable);
 				System.out.println(
@@ -1057,7 +1084,7 @@ public class BankServiceImpl implements BankService {
 						: Sort.by(new String[] { request.getSortBy() }).ascending());
 		String countryNames = Utility.getUserCountry();
 		System.out.println("countryNames: " + countryNames);
-		
+
 		if (countryNames != null && countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
 			countryNames = "";
 			final List<String> countryList = (List<String>) this.repo.getCountryList();
@@ -1072,34 +1099,35 @@ public class BankServiceImpl implements BankService {
 		}
 		final List<String> value = Stream.of(request.getCountryNames().split(",", -1)).collect(Collectors.toList());
 		System.out.println("Values BankService: " + value);
-		System.out.println("subsType: "+request.getSubscriberType());
-		System.out.println("bankType: "+request.getBankType());
+		System.out.println("subsType: " + request.getSubscriberType());
+		System.out.println("bankType: " + request.getBankType());
 		Page<NimaiFKyc> kycDetails;
-		try
-		{
-		if((request.getSubscriberType().equalsIgnoreCase("CUSTOMER") || request.getSubscriberType().equalsIgnoreCase("REFERRER")) && request.getBankType()==null)
-			kycDetails = (Page<NimaiFKyc>) this.kycRepo.findCustomerReferrerMakerApprovedKycByCountries((List) value,request.getSubscriberType(),pageable);
-		else if((request.getSubscriberType().equalsIgnoreCase("BANK") 
-				&& request.getBankType().equalsIgnoreCase("UNDERWRITER")) 
-				|| (request.getSubscriberType().equalsIgnoreCase("BANK") && request.getBankType().equalsIgnoreCase("CUSTOMER")))
-			kycDetails = (Page<NimaiFKyc>) this.kycRepo.findMakerApprovedKycByCountriesSubsTypeBankType((List) value,request.getSubscriberType(),request.getBankType(),pageable);
-		else if((request.getSubscriberType()==null && request.getBankType()==null) || (request.getSubscriberType().isEmpty() && request.getBankType().isEmpty()) || (request.getSubscriberType().equalsIgnoreCase("null") && request.getBankType().equalsIgnoreCase("null")))
-		{
-			System.out.println("Getting value by clicking on TAB");
-			kycDetails = (Page<NimaiFKyc>) this.kycRepo.findMakerApprovedKycByCountries((List) value,pageable);
-		}
-		else
-		{
-			System.out.println("Getting value by clicking on TAB");
-			kycDetails = (Page<NimaiFKyc>) this.kycRepo.findMakerApprovedKycByCountries((List) value,pageable);
-		}
-		}
-		catch(Exception e)
-		{
+		try {
+			if ((request.getSubscriberType().equalsIgnoreCase("CUSTOMER")
+					|| request.getSubscriberType().equalsIgnoreCase("REFERRER")) && request.getBankType() == null)
+				kycDetails = (Page<NimaiFKyc>) this.kycRepo.findCustomerReferrerMakerApprovedKycByCountries(
+						(List) value, request.getSubscriberType(), pageable);
+			else if ((request.getSubscriberType().equalsIgnoreCase("BANK")
+					&& request.getBankType().equalsIgnoreCase("UNDERWRITER"))
+					|| (request.getSubscriberType().equalsIgnoreCase("BANK")
+							&& request.getBankType().equalsIgnoreCase("CUSTOMER")))
+				kycDetails = (Page<NimaiFKyc>) this.kycRepo.findMakerApprovedKycByCountriesSubsTypeBankType(
+						(List) value, request.getSubscriberType(), request.getBankType(), pageable);
+			else if ((request.getSubscriberType() == null && request.getBankType() == null)
+					|| (request.getSubscriberType().isEmpty() && request.getBankType().isEmpty())
+					|| (request.getSubscriberType().equalsIgnoreCase("null")
+							&& request.getBankType().equalsIgnoreCase("null"))) {
+				System.out.println("Getting value by clicking on TAB");
+				kycDetails = (Page<NimaiFKyc>) this.kycRepo.findMakerApprovedKycByCountries((List) value, pageable);
+			} else {
+				System.out.println("Getting value by clicking on TAB");
+				kycDetails = (Page<NimaiFKyc>) this.kycRepo.findMakerApprovedKycByCountries((List) value, pageable);
+			}
+		} catch (Exception e) {
 			System.out.println("=========== In CATCH ============");
-			kycDetails = (Page<NimaiFKyc>) this.kycRepo.findMakerApprovedKycByCountries((List) value,pageable);
+			kycDetails = (Page<NimaiFKyc>) this.kycRepo.findMakerApprovedKycByCountries((List) value, pageable);
 		}
-		
+
 		// final KycBDetailResponse response;
 		final List<KycBDetailResponse> responses = (List<KycBDetailResponse>) kycDetails.map(kyc -> {
 			KycBDetailResponse response = new KycBDetailResponse();
@@ -1121,71 +1149,17 @@ public class BankServiceImpl implements BankService {
 
 	@SuppressWarnings("unchecked")
 	public ResponseEntity<?> wireTranferStatusUpdate(final VasUpdateRequestBody request) {
+		final NimaiMCustomer customer2 = this.repo.findByUserid(request.getUserId());
+		if (customer2.getPaymentApprovedBy() != null
+				&& customer2.getPaymentApprovedBy().equalsIgnoreCase(request.getUserId())) {
+			return (ResponseEntity<?>) new ResponseEntity(
+					new ApiResponse(Boolean.valueOf(false), "You dont have the authority for this operation!!!"),
+					HttpStatus.OK);
+		}
 
 		try {
-			if (request.getVasid() != 0) {
-				logger.debug("VASID:" + request.getVasid());
-				NimaiSubscriptionVas vasDetails = (NimaiSubscriptionVas) this.vasRep.getOne(request.getVasid());
-				logger.debug("vasDetails:" + vasDetails.toString());
-				if (vasDetails.getPaymentApprovedBy() != null
-						&& vasDetails.getPaymentApprovedBy().equalsIgnoreCase(request.getUserId())) {
-					return (ResponseEntity<?>) new ResponseEntity(new ApiResponse(Boolean.valueOf(false),
-							"You dont have the authority for this operation!!!"), HttpStatus.OK);
-				}
-				if (request.getVasMakerComment() != null) {
-					vasDetails.setMakerComment(
-							request.getVasMakerComment().concat(" " + "-" + "  " + Utility.getUserId()));
-				}
-				if (request.getVasCheckerComment() != null) {
-					vasDetails.setCheckerComment(
-							request.getVasCheckerComment().concat(" " + "-" + "  " + Utility.getUserId()));
-				}
-				vasDetails.setPaymentApprovalDate(new Date());
-				vasDetails.setPaymentSts(request.getStatus());
-				vasDetails.setPaymentApprovedBy(Utility.getUserId());
-				this.vasRep.save(vasDetails);
-				if ((request.getStatus().equalsIgnoreCase("Maker Rejected")
-						|| request.getStatus().equalsIgnoreCase("Rejected"))) {
-					String planstatus = "ACTIVE";
-					NimaiSubscriptionDetails sDetails = planRepo.getplanByUserIDAndSID(vasDetails.getUserId(),
-							planstatus, vasDetails.getSubscriptionId());
-					Double vasDeductAmt = sDetails.getGrandAmount() - sDetails.getVasAmount();
-					DecimalFormat f = new DecimalFormat("##.00");
-					System.out.println(f.format(vasDeductAmt));
-					sDetails.setGrandAmount(Double.valueOf(f.format(vasDeductAmt)));
-					planRepo.save(sDetails);
-				}
+			if ((request.getVasNUmber() == null) || (request.getVasNUmber().isEmpty())) {
 
-				NimaiEmailScheduler vaSchData = new NimaiEmailScheduler();
-				NimaiMCustomer customer = this.repo.findByUserid(vasDetails.getUserId());
-				if (request.getStatus().equalsIgnoreCase("Rejected")) {
-					vaSchData.setUserid(vasDetails.getUserId());
-					vaSchData.setUserName(customer.getFirstName());
-					vaSchData.setDescription1(vasDetails.getPlanName());
-					vaSchData.setSubscriptionId(vasDetails.getSubscriptionId());
-					vaSchData.setEmailId(customer.getEmailAddress());
-					vaSchData.setEmailStatus("Pending");
-					vaSchData.setEvent("VAS_PLAN_WIRE_REJECTED");
-
-				}
-				if (request.getStatus().equalsIgnoreCase("Approved")) {
-					vaSchData.setUserid(vasDetails.getUserId());
-					vaSchData.setUserName(customer.getFirstName());
-					vaSchData.setEmailId(customer.getEmailAddress());
-					vaSchData.setSubscriptionId(vaSchData.getSubscriptionId());
-					vaSchData.setSubscriptionName(vasDetails.getPlanName());
-					vaSchData.setEmailStatus("Pending");
-					vaSchData.setEvent("VAS_PLAN_WIRE_APPROVED");
-					vaSchData.setSubscriptionAmount(String.valueOf(vasDetails.getPricing()));
-				}
-				this.schRepo.save(vaSchData);
-			} else {
-				final NimaiMCustomer customer2 = this.repo.findByUserid(request.getUserId());
-				if (customer2.getPaymentApprovedBy() != null
-						&& customer2.getPaymentApprovedBy().equalsIgnoreCase(request.getUserId())) {
-					return (ResponseEntity<?>) new ResponseEntity(new ApiResponse(Boolean.valueOf(false),
-							"You dont have the authority for this operation!!!"), HttpStatus.OK);
-				}
 				customer2.setPaymentApprovedBy(Utility.getUserId());
 				customer2.setPaymentStatus(request.getStatus());
 				customer2.setPaymentDate(new Date());
@@ -1202,18 +1176,22 @@ public class BankServiceImpl implements BankService {
 				details.setPaymentStatus(request.getStatus());
 
 				if (details.getVasAmount() != 0) {
-					final NimaiSubscriptionVas vasDetails2 = this.vasRep
-							.getVasDetailsBySplanId(details.getSubscriptionId(), details.getUserid().getUserid());
-					vasDetails2.setPaymentSts(request.getStatus());
-					if (request.getMakerComment() != null) {
-						vasDetails2.setMakerComment(
-								request.getMakerComment().concat(" " + "-" + "  " + Utility.getUserId()));
+
+					List< NimaiSubscriptionVas> vasUpdate = this.vasRep
+							.getVasListDetailsBySplanId(details.getSubscriptionId(), details.getUserid().getUserid());
+					for(NimaiSubscriptionVas  vasDetails2:vasUpdate) {
+						vasDetails2.setPaymentSts(request.getStatus());
+						if (request.getMakerComment() != null) {
+							vasDetails2.setMakerComment(
+									request.getMakerComment().concat(" " + "-" + "  " + Utility.getUserId()));
+						}
+						if (request.getCheckerComment() != null) {
+							vasDetails2.setCheckerComment(
+									request.getCheckerComment().concat(" " + "-" + "  " + Utility.getUserId()));
+						}
+						this.vasRep.save(vasDetails2);
 					}
-					if (request.getCheckerComment() != null) {
-						vasDetails2.setCheckerComment(
-								request.getCheckerComment().concat(" " + "-" + "  " + Utility.getUserId()));
-					}
-					this.vasRep.save(vasDetails2);
+					
 				}
 
 				if (request.getStatus().equalsIgnoreCase("Rejected")) {
@@ -1272,7 +1250,81 @@ public class BankServiceImpl implements BankService {
 					logger.debug("details to be save of subscription plan" + details.toString());
 				}
 				this.planRepo.save(details);
+
+			} else if (request.getVasNUmber() != null) {
+				String vasId = request.getVasNUmber();
+				String[] vasIdArray = vasId.split("-");
+				for (String str : vasIdArray) {
+					System.out.println(str);
+					logger.debug("VASID:" + Integer.parseInt(str));
+					NimaiSubscriptionVas vasDetails = (NimaiSubscriptionVas) this.vasRep.getOne(Integer.parseInt(str));
+
+					final NimaiSubscriptionDetails details = (NimaiSubscriptionDetails) this.planRepo
+							.getOne(vasDetails.getsPLanSerialNumber());
+					if (!details.getPaymentStatus().equalsIgnoreCase("Approved")) {
+						updateSPlanAndVasStatus(request, customer2, details);
+					}
+
+					logger.debug("vasDetails:" + vasDetails.toString());
+					if (vasDetails.getPaymentApprovedBy() != null
+							&& vasDetails.getPaymentApprovedBy().equalsIgnoreCase(request.getUserId())) {
+						return (ResponseEntity<?>) new ResponseEntity(new ApiResponse(Boolean.valueOf(false),
+								"You dont have the authority for this operation!!!"), HttpStatus.OK);
+					}
+					if (request.getVasMakerComment() != null) {
+						vasDetails.setMakerComment(
+								request.getVasMakerComment().concat(" " + "-" + "  " + Utility.getUserId()));
+					}
+					if (request.getVasCheckerComment() != null) {
+						vasDetails.setCheckerComment(
+								request.getVasCheckerComment().concat(" " + "-" + "  " + Utility.getUserId()));
+					}
+					vasDetails.setPaymentApprovalDate(new Date());
+					vasDetails.setPaymentSts(request.getStatus());
+					vasDetails.setPaymentApprovedBy(Utility.getUserId());
+					this.vasRep.save(vasDetails);
+					if ((request.getStatus().equalsIgnoreCase("Maker Rejected")
+							|| request.getStatus().equalsIgnoreCase("Rejected"))) {
+						String planstatus = "ACTIVE";
+						NimaiSubscriptionDetails sDetails = planRepo.getplanByUserIDAndSID(vasDetails.getUserId(),
+								planstatus, vasDetails.getSubscriptionId());
+						Double vasDeductAmt = sDetails.getGrandAmount() - sDetails.getVasAmount();
+						DecimalFormat f = new DecimalFormat("##.00");
+						System.out.println(f.format(vasDeductAmt));
+						sDetails.setGrandAmount(Double.valueOf(f.format(vasDeductAmt)));
+						planRepo.save(sDetails);
+					}
+
+					NimaiEmailScheduler vaSchData = new NimaiEmailScheduler();
+					NimaiMCustomer customer = this.repo.findByUserid(vasDetails.getUserId());
+					if (request.getStatus().equalsIgnoreCase("Rejected")) {
+						vaSchData.setUserid(vasDetails.getUserId());
+						vaSchData.setUserName(customer.getFirstName());
+						vaSchData.setDescription1(vasDetails.getPlanName());
+						vaSchData.setSubscriptionId(vasDetails.getSubscriptionId());
+						vaSchData.setEmailId(customer.getEmailAddress());
+						vaSchData.setEmailStatus("Pending");
+						vaSchData.setEvent("VAS_PLAN_WIRE_REJECTED");
+
+					}
+					if (request.getStatus().equalsIgnoreCase("Approved")) {
+						vaSchData.setUserid(vasDetails.getUserId());
+						vaSchData.setUserName(customer.getFirstName());
+						vaSchData.setEmailId(customer.getEmailAddress());
+						vaSchData.setSubscriptionId(vaSchData.getSubscriptionId());
+						vaSchData.setSubscriptionName(vasDetails.getPlanName());
+						vaSchData.setEmailStatus("Pending");
+						vaSchData.setEvent("VAS_PLAN_WIRE_APPROVED");
+						vaSchData.setSubscriptionAmount(String.valueOf(vasDetails.getPricing()));
+					}
+					this.schRepo.save(vaSchData);
+
+				}
 			}
+
+//			} else if (request.getVasNUmber() != null && request.getsPLanSerialNumber() != null) {
+//				updateSPlanAndVasStatus(request, customer2);
+//			}
 			return (ResponseEntity<?>) new ResponseEntity(
 					new ApiResponse(Boolean.valueOf(true), "Payment status updated successfully... "), HttpStatus.OK);
 
@@ -1285,6 +1337,143 @@ public class BankServiceImpl implements BankService {
 		}
 	}
 
+	private void updateSPlanAndVasStatus(VasUpdateRequestBody request, NimaiMCustomer customer2,
+			NimaiSubscriptionDetails details) {
+		// TODO Auto-generated method stub
+
+		customer2.setPaymentApprovedBy(Utility.getUserId());
+		customer2.setPaymentStatus(request.getStatus());
+		customer2.setPaymentDate(new Date());
+		this.repo.save(customer2);
+		final NimaiEmailScheduler schedulerData = new NimaiEmailScheduler();
+//		final NimaiSubscriptionDetails details = (NimaiSubscriptionDetails) this.planRepo
+//				.getOne(request.getSubcriptionId());
+		if (request.getMakerComment() != null) {
+			details.setMakerComment(request.getMakerComment().concat("_" + Utility.getUserId()));
+		}
+		if (request.getCheckerComment() != null) {
+			details.setCheckerComment(request.getCheckerComment().concat("_" + Utility.getUserId()));
+		}
+		details.setPaymentStatus(request.getStatus());
+		// updateVasDetails(request.getVasNUmber(), request);
+		if (request.getStatus().equalsIgnoreCase("Rejected")) {
+			schedulerData.setUserid(customer2.getUserid());
+			schedulerData.setUserName(customer2.getFirstName());
+			schedulerData.setEmailId(customer2.getEmailAddress());
+			schedulerData.setEvent("Cust_Splan_email_Wire_Rejected");
+			schedulerData.setSubscriptionId(details.getSubscriptionId());
+			schedulerData.setSubscriptionAmount(String.valueOf(details.getSubscriptionAmount()));
+			schedulerData.setSubscriptionName(details.getSubscriptionName());
+			schedulerData.setSubscriptionValidity(details.getSubscriptionValidity());
+			schedulerData.setRelationshipManager(details.getRelationshipManager());
+			schedulerData.setCustomerSupport(details.getCustomerSupport());
+			schedulerData.setSubscriptionStartDate(details.getSplanStartDate());
+			schedulerData.setSubscriptionEndDate(details.getSplanEndDate());
+			schedulerData.setEmailStatus("Pending");
+			schedulerData.setInsertedDate(new Date());
+			this.schRepo.save(schedulerData);
+		}
+		if (request.getStatus().equalsIgnoreCase("Approved")
+				&& details.getUserid().getPaymentStatus().equalsIgnoreCase("Approved")) {
+			logger.debug("Inside subscriptionplan approved status");
+			logger.debug("subscriptionplan:" + request.getStatus());
+			schedulerData.setUserid(customer2.getUserid());
+			schedulerData.setUserName(customer2.getFirstName());
+			schedulerData.setEmailId(customer2.getEmailAddress());
+			schedulerData.setEvent("Cust_Splan_email_Wire");
+			schedulerData.setSubscriptionId(details.getSubscriptionId());
+			schedulerData.setSubscriptionAmount(String.valueOf(details.getSubscriptionAmount()));
+			schedulerData.setSubscriptionName(details.getSubscriptionName());
+			schedulerData.setSubscriptionValidity(details.getSubscriptionValidity());
+			schedulerData.setRelationshipManager(details.getRelationshipManager());
+			schedulerData.setCustomerSupport(details.getCustomerSupport());
+			schedulerData.setSubscriptionStartDate(details.getSplanStartDate());
+			schedulerData.setSubscriptionEndDate(details.getSplanEndDate());
+			final Calendar cal = Calendar.getInstance();
+			final Date today = cal.getTime();
+			final int noOfdays = 30;
+			final int validityInNumber = Integer.valueOf(details.getSubscriptionValidity());
+			final int actualEndDaysOfPLan = validityInNumber * noOfdays - 1;
+			logger.debug(String.valueOf(actualEndDaysOfPLan));
+			final Calendar calforEndDate = Calendar.getInstance();
+			calforEndDate.setTime(today);
+//			logger.info(today);
+			calforEndDate.add(5, actualEndDaysOfPLan);
+			final Date endDate = calforEndDate.getTime();
+//			logger.debug(endDate);
+			details.setSplanStartDate(today);
+			calforEndDate.add(5, actualEndDaysOfPLan);
+			details.setSplanEndDate(endDate);
+			this.planRepo.save(details);
+			schedulerData.setEmailStatus("Pending");
+			schedulerData.setInsertedDate(new Date());
+			this.schRepo.save(schedulerData);
+			logger.debug("details to be save of subscription plan" + details.toString());
+		}
+		this.planRepo.save(details);
+
+	}
+
+	private void updateVasDetails(String vasNUmber, VasUpdateRequestBody request) {
+		// TODO Auto-generated method stub
+		String vasId = request.getVasNUmber();
+		String[] vasIdArray = vasId.split("-");
+		for (String str : vasIdArray) {
+			System.out.println(str);
+			logger.debug("VASID:" + Integer.parseInt(str));
+			NimaiSubscriptionVas vasDetails = (NimaiSubscriptionVas) this.vasRep.getOne(Integer.parseInt(str));
+			logger.debug("vasDetails:" + vasDetails.toString());
+
+			if (request.getVasMakerComment() != null) {
+				vasDetails.setMakerComment(request.getVasMakerComment().concat(" " + "-" + "  " + Utility.getUserId()));
+			}
+			if (request.getVasCheckerComment() != null) {
+				vasDetails.setCheckerComment(
+						request.getVasCheckerComment().concat(" " + "-" + "  " + Utility.getUserId()));
+			}
+			vasDetails.setPaymentApprovalDate(new Date());
+			vasDetails.setPaymentSts(request.getStatus());
+			vasDetails.setPaymentApprovedBy(Utility.getUserId());
+			this.vasRep.save(vasDetails);
+			if ((request.getStatus().equalsIgnoreCase("Maker Rejected")
+					|| request.getStatus().equalsIgnoreCase("Rejected"))) {
+				String planstatus = "ACTIVE";
+				NimaiSubscriptionDetails sDetails = planRepo.getplanByUserIDAndSID(vasDetails.getUserId(), planstatus,
+						vasDetails.getSubscriptionId());
+				Double vasDeductAmt = sDetails.getGrandAmount() - sDetails.getVasAmount();
+				DecimalFormat f = new DecimalFormat("##.00");
+				System.out.println(f.format(vasDeductAmt));
+				sDetails.setGrandAmount(Double.valueOf(f.format(vasDeductAmt)));
+				planRepo.save(sDetails);
+			}
+
+			NimaiEmailScheduler vaSchData = new NimaiEmailScheduler();
+			NimaiMCustomer customer = this.repo.findByUserid(vasDetails.getUserId());
+			if (request.getStatus().equalsIgnoreCase("Rejected")) {
+				vaSchData.setUserid(vasDetails.getUserId());
+				vaSchData.setUserName(customer.getFirstName());
+				vaSchData.setDescription1(vasDetails.getPlanName());
+				vaSchData.setSubscriptionId(vasDetails.getSubscriptionId());
+				vaSchData.setEmailId(customer.getEmailAddress());
+				vaSchData.setEmailStatus("Pending");
+				vaSchData.setEvent("VAS_PLAN_WIRE_REJECTED");
+
+			}
+			if (request.getStatus().equalsIgnoreCase("Approved")) {
+				vaSchData.setUserid(vasDetails.getUserId());
+				vaSchData.setUserName(customer.getFirstName());
+				vaSchData.setEmailId(customer.getEmailAddress());
+				vaSchData.setSubscriptionId(vaSchData.getSubscriptionId());
+				vaSchData.setSubscriptionName(vasDetails.getPlanName());
+				vaSchData.setEmailStatus("Pending");
+				vaSchData.setEvent("VAS_PLAN_WIRE_APPROVED");
+				vaSchData.setSubscriptionAmount(String.valueOf(vasDetails.getPricing()));
+			}
+			this.schRepo.save(vaSchData);
+		}
+
+	}
+
 	@SuppressWarnings("unchecked")
 	public PagedResponse<?> getWireTransferList(final SearchRequest request) {
 
@@ -1295,81 +1484,91 @@ public class BankServiceImpl implements BankService {
 		Page<NimaiMCustomer> paymentDetails;
 		List<NimaiMCustomer> cuList;
 		int pageSize = request.getSize();
-		if(request.getSubscriberType()!=null || request.getBankType()!=null)
-		{
+		if (request.getSubscriberType() != null || request.getBankType() != null) {
 			if (request.getCountry() == null || request.getCountry().isEmpty()) {
 				request.setCountryNames(countryNames);
 
 				if (request.getCountryNames().equalsIgnoreCase("all")) {
-					if(request.getSubscriberType().equalsIgnoreCase("CUSTOMER") && request.getBankType()==null)
-						paymentDetails = (Page<NimaiMCustomer>) this.repo.findAllMakerApprovedPaymentDetailsSubsType(request.getSubscriberType(),pageable);
+					if (request.getSubscriberType().equalsIgnoreCase("CUSTOMER") && request.getBankType() == null)
+						paymentDetails = (Page<NimaiMCustomer>) this.repo
+								.findAllMakerApprovedPaymentDetailsSubsType(request.getSubscriberType(), pageable);
 					else
-						paymentDetails = (Page<NimaiMCustomer>) this.repo.findAllMakerApprovedPaymentDetailsSubsTypeBankType(request.getSubscriberType(),request.getBankType(),pageable);
+						paymentDetails = (Page<NimaiMCustomer>) this.repo
+								.findAllMakerApprovedPaymentDetailsSubsTypeBankType(request.getSubscriberType(),
+										request.getBankType(), pageable);
 				} else {
 					final List<String> value = Stream.of(request.getCountryNames().split(",", -1))
 							.collect(Collectors.toList());
-					if(request.getSubscriberType().equalsIgnoreCase("CUSTOMER") && request.getBankType()==null)
-						paymentDetails = (Page<NimaiMCustomer>) this.repo.findMakerApprovedPaymentDetailsSubsType(request.getSubscriberType(),value,pageable);
+					if (request.getSubscriberType().equalsIgnoreCase("CUSTOMER") && request.getBankType() == null)
+						paymentDetails = (Page<NimaiMCustomer>) this.repo
+								.findMakerApprovedPaymentDetailsSubsType(request.getSubscriberType(), value, pageable);
 					else
-						paymentDetails = (Page<NimaiMCustomer>) this.repo.findMakerApprovedPaymentDetailsSubsTypeBankType(request.getSubscriberType(),request.getBankType(),value, pageable);
+						paymentDetails = (Page<NimaiMCustomer>) this.repo
+								.findMakerApprovedPaymentDetailsSubsTypeBankType(request.getSubscriberType(),
+										request.getBankType(), value, pageable);
 				}
-
-				} else {
-					if (request.getCountry().equalsIgnoreCase("all")) {
-						request.setCountryNames(countryNames);
-		
-						if (request.getCountryNames().equalsIgnoreCase("all")) {
-		
-							paymentDetails = (Page<NimaiMCustomer>) this.repo.findAllMakerApprovedPaymentDetailsSubsTypeBankType(request.getSubscriberType(),request.getBankType(),pageable);
-						} else {
-							final List<String> value = Stream.of(request.getCountryNames().split(",", -1))
-									.collect(Collectors.toList());
-		
-							paymentDetails = (Page<NimaiMCustomer>) this.repo.findMakerApprovedPaymentDetailsSubsTypeBankType(request.getSubscriberType(),request.getBankType(),value, pageable);
-		
-						}
-		
-					} else {
-						// cuList=repo.getListByCountryname(request.getCountry(),pageSize);
-						paymentDetails = (Page<NimaiMCustomer>) this.repo.getListByCountryname(request.getCountry(), pageable);
-						// paymentDetails = new PageImpl<>(cuList,pageable,cuList.size());
-					}
-					request.setCountryNames(request.getCountry());
-				}
-		}
-		else
-		{
-			if (request.getCountry() == null || request.getCountry().isEmpty()) {
-			request.setCountryNames(countryNames);
-
-			if (request.getCountryNames().equalsIgnoreCase("all")) {
-
-				paymentDetails = (Page<NimaiMCustomer>) this.repo.findAllMakerApprovedPaymentDetails(pageable);
-			} else {
-				final List<String> value = Stream.of(request.getCountryNames().split(",", -1))
-						.collect(Collectors.toList());
-
-				paymentDetails = (Page<NimaiMCustomer>) this.repo.findMakerApprovedPaymentDetails(value, pageable);
-			}
 
 			} else {
 				if (request.getCountry().equalsIgnoreCase("all")) {
 					request.setCountryNames(countryNames);
-	
+
 					if (request.getCountryNames().equalsIgnoreCase("all")) {
-	
+
+						paymentDetails = (Page<NimaiMCustomer>) this.repo
+								.findAllMakerApprovedPaymentDetailsSubsTypeBankType(request.getSubscriberType(),
+										request.getBankType(), pageable);
+					} else {
+						final List<String> value = Stream.of(request.getCountryNames().split(",", -1))
+								.collect(Collectors.toList());
+
+						paymentDetails = (Page<NimaiMCustomer>) this.repo
+								.findMakerApprovedPaymentDetailsSubsTypeBankType(request.getSubscriberType(),
+										request.getBankType(), value, pageable);
+
+					}
+
+				} else {
+					// cuList=repo.getListByCountryname(request.getCountry(),pageSize);
+					paymentDetails = (Page<NimaiMCustomer>) this.repo.getListByCountryname(request.getCountry(),
+							pageable);
+					// paymentDetails = new PageImpl<>(cuList,pageable,cuList.size());
+				}
+				request.setCountryNames(request.getCountry());
+			}
+		} else {
+			if (request.getCountry() == null || request.getCountry().isEmpty()) {
+				request.setCountryNames(countryNames);
+
+				if (request.getCountryNames().equalsIgnoreCase("all")) {
+
+					paymentDetails = (Page<NimaiMCustomer>) this.repo.findAllMakerApprovedPaymentDetails(pageable);
+				} else {
+					final List<String> value = Stream.of(request.getCountryNames().split(",", -1))
+							.collect(Collectors.toList());
+
+					paymentDetails = (Page<NimaiMCustomer>) this.repo.findMakerApprovedPaymentDetails(value, pageable);
+				}
+
+			} else {
+				if (request.getCountry().equalsIgnoreCase("all")) {
+					request.setCountryNames(countryNames);
+
+					if (request.getCountryNames().equalsIgnoreCase("all")) {
+
 						paymentDetails = (Page<NimaiMCustomer>) this.repo.findAllMakerApprovedPaymentDetails(pageable);
 					} else {
 						final List<String> value = Stream.of(request.getCountryNames().split(",", -1))
 								.collect(Collectors.toList());
-	
-						paymentDetails = (Page<NimaiMCustomer>) this.repo.findMakerApprovedPaymentDetails(value, pageable);
-	
+
+						paymentDetails = (Page<NimaiMCustomer>) this.repo.findMakerApprovedPaymentDetails(value,
+								pageable);
+
 					}
-	
+
 				} else {
 					// cuList=repo.getListByCountryname(request.getCountry(),pageSize);
-					paymentDetails = (Page<NimaiMCustomer>) this.repo.getListByCountryname(request.getCountry(), pageable);
+					paymentDetails = (Page<NimaiMCustomer>) this.repo.getListByCountryname(request.getCountry(),
+							pageable);
 					// paymentDetails = new PageImpl<>(cuList,pageable,cuList.size());
 				}
 				request.setCountryNames(request.getCountry());
@@ -1519,36 +1718,77 @@ public class BankServiceImpl implements BankService {
 //			}
 //		}
 		System.out.println("======================countryNames=======" + countryNames);
-//		final Page<NimaiSubscriptionVas> vasDetails = (Page<NimaiSubscriptionVas>) this.vasRep
-//				.findAll(this.vasSearchSpecification.getWireTransferFilter(request), pageable);
+
 		for (final NimaiSubscriptionVas vas : vasDetails) {
 			if (vas.getPricing() == null) {
 				vas.setPricing(Float.valueOf(0.0f));
 			}
 		}
-		// final BankDetailsResponse response;
-		// final NimaiMCustomer customerDetails;
-		// final List<NimaiSubscriptionVas> vasList;
-		// final NimaiSubscriptionVas sub;
+		
 		final List<BankDetailsResponse> varesponses = (List<BankDetailsResponse>) vasDetails.map(vascust -> {
 			BankDetailsResponse response = new BankDetailsResponse();
-			response.setUserid(vascust.getUserId());
-			NimaiMCustomer customerDetails = this.repo.findByUserid(vascust.getUserId());
-			response.setFirstName(customerDetails.getFirstName());
-			response.setLastName(customerDetails.getLastName());
-			response.setEmailAddress(customerDetails.getEmailAddress());
-			response.setMobileNumber(customerDetails.getMobileNumber());
 			List<NimaiSubscriptionVas> vasList = (List<NimaiSubscriptionVas>) this.vasRep
 					.findVasByUserId(vascust.getUserId());
-			response.setPlanOfPayments((vasList.size() != 0) ? this.collectVasPlanName(vasList) : "No Active Plan");
-			response.setRegisteredCountry(vascust.getCountryName());
-			response.setPlanId((int) vascust.getId());
-			response.setStatus(vascust.getPaymentSts());
-			response.setPaymentApprovedBy(vascust.getPaymentApprovedBy());
-			NimaiSubscriptionVas sub = vasList.stream().filter(e -> e.getStatus().equalsIgnoreCase("Active"))
-					.findFirst().orElse(null);
-			response.setVasMakerComment(sub.getMakerComment());
-			response.setVasCheckerComment(sub.getCheckerComment());
+List<BankDetailsResponse> responseList=new ArrayList<>();
+NimaiSubscriptionVas vasSingle=vasRep.getVasDetailsBySplanId(vascust.getSubscriptionId(), vascust.getUserId());
+
+//for (NimaiSubscriptionVas vas : vasList) {
+
+			String vasIdResponse = "";
+			List<String> vasIdString=new ArrayList<String>();
+			for (NimaiSubscriptionVas vasNew : vasList) {
+vasIdString.add(String.valueOf(vasNew.getId()).concat("-"));
+				//vasIdResponse = (String.valueOf(vas.getId(-).concat("-"));
+
+			}
+			
+			String[] array = new String[vasIdString.size()];
+			//String[] strArr = new String[] {"1","2","3"};
+			vasIdString.toArray(array);
+			StringBuilder sb=new StringBuilder();
+			for(String str:vasIdString.toArray(array)) {
+				sb.append(str);
+				sb.substring(0, sb.length()-1);
+			}
+			StringBuilder vasNumberString=sb;
+			
+				response.setUserid(vascust.getUserId());
+				System.out.println("user id for nullpointer exception"+vascust.getUserId());
+				try {
+					NimaiMCustomer customerDetails = this.repo.findByUserid(vascust.getUserId());
+					if(customerDetails==null) {
+						response.setFirstName("");
+						response.setLastName("");
+						response.setEmailAddress("");
+						response.setMobileNumber("");
+					}else {
+						response.setFirstName(customerDetails.getFirstName());
+						response.setLastName(customerDetails.getLastName());
+						response.setEmailAddress(customerDetails.getEmailAddress());
+						response.setMobileNumber(customerDetails.getMobileNumber());
+					}
+					
+				}catch(Exception e) {
+					e.printStackTrace();
+				}
+			
+				
+			
+				response.setVasMakerComment(vasSingle.getMakerComment());
+				response.setVasCheckerComment(vasSingle.getCheckerComment());
+				response.setPlanOfPayments((vasList.size() != 0) ? this.collectVasPlanName(vasList) : "No Active Plan");
+				response.setRegisteredCountry(vasSingle.getCountryName());
+				response.setPlanId((int) vasSingle.getId());
+				response.setStatus(vasSingle.getPaymentSts());
+				response.setPaymentApprovedBy(vasSingle.getPaymentApprovedBy());
+				response.setVasNUmber(vasNumberString.toString());
+				responseList.add(response);
+			
+			
+			//}
+
+			
+			
 			return response;
 		}).getContent();
 		return (PagedResponse<?>) new PagedResponse((List) varesponses, vasDetails.getNumber(), vasDetails.getSize(),
@@ -1754,21 +1994,19 @@ public class BankServiceImpl implements BankService {
 		final Calendar cal2 = Calendar.getInstance();
 		final Date today2 = cal2.getTime();
 		String response;
-		System.out.println("Field ID: "+data.getId());
+		System.out.println("Field ID: " + data.getId());
 		if (data.getId() != 0) {
 
 			fields = fieldRepo.getOne(data.getId());
 			fields.setModifiedDat(today2);
 			fields.setModifiedBy(Utility.getUserId());
-			response="fieldData  updated successfully... ";
-			
+			response = "fieldData  updated successfully... ";
 
 		} else {
 			fields.setInsertedDate(today2);
 			fields.setInsertedBy(Utility.getUserId());
-			response="fieldData  save successfully... ";
-			
-			
+			response = "fieldData  save successfully... ";
+
 		}
 		fields.setCustTurnover(data.getCustTurnover());
 		fields.setImportVolume(data.getImportVolume());
@@ -1779,19 +2017,19 @@ public class BankServiceImpl implements BankService {
 
 		fieldRepo.save(fields);
 
-		return (ResponseEntity<?>) new ResponseEntity(
-				new ApiResponse(Boolean.valueOf(true), response,fields.getId()), HttpStatus.OK);
+		return (ResponseEntity<?>) new ResponseEntity(new ApiResponse(Boolean.valueOf(true), response, fields.getId()),
+				HttpStatus.OK);
 
 	}
 
 	@Override
 	public ResponseEntity<?> kycViewFieldData(KycFiledBean data) {
 		// TODO Auto-generated method stub
-		GenericResponse response=new GenericResponse();
-		KycFiledBean dataResponse=new KycFiledBean();
-		
-		NimaiMKycfileds fields=fieldRepo.getFiledData(data.getUserId());
-		if(fields==null) {
+		GenericResponse response = new GenericResponse();
+		KycFiledBean dataResponse = new KycFiledBean();
+
+		NimaiMKycfileds fields = fieldRepo.getFiledData(data.getUserId());
+		if (fields == null) {
 			response.setMessage("Field Data not available");
 		}
 		data.setCustTurnover(fields.getCustTurnover());
@@ -1803,11 +2041,21 @@ public class BankServiceImpl implements BankService {
 		data.setInsertedBy(fields.getInsertedBy());
 		data.setModifiedby(fields.getModifiedBy());
 		data.setId(fields.getId());
-		
-		
+
 		response.setData(fields);
-		 
+
 		return new ResponseEntity<>(response, HttpStatus.OK);
+
+	}
+
+	public static void main(String[] args) {
+		String number = "23_24_26_";
+		String[] arr = number.split("_");
+		for (String str : arr) {
+			System.out.println(str);
+		}
+		System.out.println(arr.toString());
+		// List<String> parts = Arrays.asList(number.split(","));
 
 	}
 

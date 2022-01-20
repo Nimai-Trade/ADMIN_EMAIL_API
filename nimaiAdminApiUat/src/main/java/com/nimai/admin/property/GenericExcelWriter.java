@@ -28,7 +28,8 @@ public class GenericExcelWriter {
 			workbook = new XSSFWorkbook();
 			Sheet sheet = workbook.createSheet(processNames(fileName));
 			CellStyle cellStyle = workbook.createCellStyle();
-
+System.out.println("==============Inside writetoexcel================="+data.toString());
+System.out.println("==============Inside writetoexcel================="+getFieldNamesForClass(data.get(0).getClass()));
 			List<String> fieldNames = getFieldNamesForClass(data.get(0).getClass());
 			int rowCount = 0;
 			int columnCount = 0;
@@ -101,6 +102,7 @@ public class GenericExcelWriter {
 
 	// retrieve field names from a POJO class
 	private static List<String> getFieldNamesForClass(Class<?> clazz) throws Exception {
+		System.out.println("============Inside getFieldNames===============");
 		List<String> fieldNames = new ArrayList<String>();
 		Field[] fields = clazz.getDeclaredFields();
 		for (int i = 0; i < fields.length; i++) {

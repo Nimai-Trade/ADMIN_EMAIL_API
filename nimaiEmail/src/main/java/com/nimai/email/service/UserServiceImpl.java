@@ -223,6 +223,29 @@ public class UserServiceImpl implements UserService {
 						String fPlink = forgorPasswordLink + forgotTokenKey;
 						NimaiClient nimaiClientdetails = userDao.getClientDetailsbyUserId(clientUseId.getUserid());
 						if (userRegistratinBean.getEvent().equalsIgnoreCase(AppConstants.ACCOUNT_ACTIVATE_EVENT)) {
+							
+							
+							if(clientUseId.getAccountSource().equalsIgnoreCase(AppConstants.FIEO_USER_ID)||clientUseId.getAccountSource().equalsIgnoreCase(AppConstants.RXIL_USER_ID)) {
+							
+								NimaiClient parentReferDetails = userDao.getClientDetailsbyUserId(clientUseId.getAccountSource());
+								NimaiEmailScheduler schedulerData = new NimaiEmailScheduler();
+								schedulerData.setUserid(clientUseId.getUserid());
+								schedulerData.setUserName(clientUseId.getFirstName());
+								Calendar cal1 = Calendar.getInstance();
+								Date addReferdate = cal1.getTime();
+								schedulerData.setEmailStatus(AppConstants.STATUS);
+								schedulerData.setEvent(AppConstants.ADD_REFER_TO_PARENT);
+								schedulerData.setInsertedDate(addReferdate);
+								schedulerData.setEmailId(parentReferDetails.getEmailAddress());
+								try {
+									userDao.saveSubDetails(schedulerData);
+								} catch (Exception e) {
+									e.printStackTrace();
+									response.setMessage("Exception occure  saving data in schedulerTable");
+									return new ResponseEntity<Object>(response, HttpStatus.OK);
+								}
+							}
+							
 
 							emailInsert.resetPasswordEmail(aCLlink, userRegistratinBean, nimaiLogin, nimaiClientdetails,
 									parentEmailId);

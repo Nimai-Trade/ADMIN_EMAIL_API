@@ -2,6 +2,7 @@ package com.nimai.admin.repository;
 
 import java.util.Date;
 
+
 import java.util.List;
 
 import javax.persistence.Tuple;
@@ -22,10 +23,10 @@ public interface ReferrerRepository extends JpaRepository<NimaiMRefer, Integer>,
 	@Query(value="select userid from nimai_m_refer where email_address =:emailAddress", nativeQuery = true)
 	public String findReferredUserByEmailId(@Param("emailAddress") String emailAddress);
 
-	@Query(value="from NimaiMRefer nm where \n" + 
-			"            nm.insertedDate >= (:fromDate) AND\n" + 
-			"        nm.insertedDate   <= (:toDate)")
-	public List<NimaiMRefer> finBydates(@Param("fromDate")Date fromDate,@Param("toDate") Date toDate);
+	@Query(value="SELECT * from nimai_m_refer nm where \n" + 
+			"            nm.INSERTED_DATE >= (:fromDate) AND\n" + 
+			"        nm.INSERTED_DATE   <= (:toDate) GROUP BY nm.USERID",nativeQuery = true)
+	public List<NimaiMRefer> finBydates(@Param("fromDate")String fromDate,@Param("toDate") String toDate);
 
 //
 //	@Query(value="from NimaiMRefer nm where nm.insertedDate >= (:fromDate) AND nm.insertedDate <= (:toDate)")

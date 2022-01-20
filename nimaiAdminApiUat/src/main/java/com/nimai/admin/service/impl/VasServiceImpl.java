@@ -87,10 +87,11 @@ public class VasServiceImpl implements VasService {
 			} else {
 
 				List<NimaiMVas> nimaiVas = vasRepository.getVasDetails(tempVas.getCountryName(),tempVas.getCustomerType());
-				if (nimaiVas.size() >= 1) {
+				/*15-12-2021
+				 if (nimaiVas.size() >= 1) {
 					msg = "VAS Plan already active for " + tempVas.getCountryName();
 					return new ResponseEntity<>(new ApiResponse(true, msg), HttpStatus.OK);
-				}
+				}*/
 				nimaiTempVas = new NimaiMVas();
 				msg = "VAS plan created successfully";
 			}
@@ -228,13 +229,15 @@ public class VasServiceImpl implements VasService {
 
 		if (request.getStatus().equalsIgnoreCase("Active")) {
 
-			if (vasRepository.checkAvailability(request.getCountryName(),request.getCustomerType()) >= 1) {
+			/*15-12-2021
+			 if (vasRepository.checkAvailability(request.getCountryName(),request.getCustomerType()) >= 1) {
+			 
 
 				return new ResponseEntity<>(
 						new ApiResponse(true, "VAS Plan already active for " + request.getCountryName()),
 						HttpStatus.OK);
 			} else {
-				NimaiMVas vas = vasRepository.getOne(request.getVasid());
+			*/	NimaiMVas vas = vasRepository.getOne(request.getVasid());
 
 				vas.setStatus(request.getStatus());
 				String designation = "RM";
@@ -302,7 +305,8 @@ public class VasServiceImpl implements VasService {
 				return new ResponseEntity<>(
 						new ApiResponse(true, "Vas plan activated for country " + request.getCountryName()),
 						HttpStatus.CREATED);
-			}
+			//15-12-2021
+			//}
 		} else if (request.getStatus().equalsIgnoreCase("Rejected")) {
 			NimaiMVas vas = vasRepository.getOne(request.getVasid());
 			vas.setStatus("Rejected");

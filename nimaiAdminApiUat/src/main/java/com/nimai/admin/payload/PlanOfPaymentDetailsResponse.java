@@ -1,6 +1,7 @@
 package com.nimai.admin.payload;
 
 import java.util.Date;
+import java.util.List;
 
 public class PlanOfPaymentDetailsResponse {
 
@@ -22,6 +23,7 @@ public class PlanOfPaymentDetailsResponse {
 	private String vasStatus;
 	private String vasBenefits;
 	private String couponCode;
+	private String isMultipleVasApplied;
 	private String discount;
 	private String amountPaid;
 	private String paymentStatus;
@@ -39,11 +41,33 @@ public class PlanOfPaymentDetailsResponse {
 	private String vasCheckerComment;
 	private int isVasAppliedWithSPlan;
 	private int isSplanWithVasFlag;
+	private List<VasDetails> vasList;
 	
 	
 	
 	
 	
+	
+	
+	
+	
+	
+
+	public String getIsMultipleVasApplied() {
+		return isMultipleVasApplied;
+	}
+
+	public void setIsMultipleVasApplied(String isMultipleVasApplied) {
+		this.isMultipleVasApplied = isMultipleVasApplied;
+	}
+
+	public List<VasDetails> getVasList() {
+		return vasList;
+	}
+
+	public void setVasList(List<VasDetails> vasList) {
+		this.vasList = vasList;
+	}
 
 	public int getIsSplanWithVasFlag() {
 		return isSplanWithVasFlag;

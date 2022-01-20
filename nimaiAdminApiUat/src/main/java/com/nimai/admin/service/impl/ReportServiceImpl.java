@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Date;
 import java.text.DateFormat;
+import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -48,6 +49,7 @@ import com.nimai.admin.repository.EmployeeRepository;
 import com.nimai.admin.repository.ReferrerRepository;
 import com.nimai.admin.repository.SubscriptionDetailsRepository;
 import com.nimai.admin.repository.TransactionsRepository;
+import com.nimai.admin.repository.nimaiSystemConfigRepository;
 import com.nimai.admin.service.ReportService;
 import com.nimai.admin.specification.CustomerSearchSpecification;
 import com.nimai.admin.specification.DiscountSpecification;
@@ -61,7 +63,7 @@ public class ReportServiceImpl implements ReportService {
 
 	@Autowired
 	EmployeeRepository employeeRepository;
-	
+
 	@Autowired
 	EntityManagerFactory em;
 
@@ -81,6 +83,9 @@ public class ReportServiceImpl implements ReportService {
 	DiscountRepository discountRepo;
 
 	@Autowired
+	nimaiSystemConfigRepository nimaiSystemRepo;
+
+	@Autowired
 	DiscountSpecification discSpecification;
 
 	@Autowired
@@ -97,7 +102,6 @@ public class ReportServiceImpl implements ReportService {
 		List<ReportBankTransaction> transaction = new ArrayList<ReportBankTransaction>();
 		List<Tuple> bankProjection;
 
-		
 		if (request.getUserId() != null && !request.getUserId().equals("")) {
 			bankProjection = customerRepository.getAllTransactionDetailsUserId(request.getDateFrom(),
 					java.sql.Date.valueOf(LocalDate.parse(request.getDateTo()).plusDays(1)), request.getUserId());
@@ -108,14 +112,15 @@ public class ReportServiceImpl implements ReportService {
 			bankProjection = customerRepository.getAllTransactionDetails(java.sql.Date.valueOf(request.getDateFrom()),
 					java.sql.Date.valueOf(LocalDate.parse(request.getDateTo()).plusDays(1)));
 		}
-		
+
 		NimaiMCustomer custDetails = new NimaiMCustomer();
 		for (Tuple details : bankProjection) {
-			HashMap<String, Integer> getData=calculateQuote((Integer)details.get("quotation_id"),(String)details.get("transaction_id"),"");
+			HashMap<String, Integer> getData = calculateQuote((Integer) details.get("quotation_id"),
+					(String) details.get("transaction_id"), "");
 			ReportBankTransaction bank = new ReportBankTransaction();
 			custDetails = customerRepository.getOne((String) details.get("bank_userid"));
 			bank.setUser_ID((String) details.get("bank_userid"));
-			bank.setLandline_no((String)custDetails.getLandline() != null ? custDetails.getLandline() : "");
+			bank.setLandline_no((String) custDetails.getLandline() != null ? custDetails.getLandline() : "");
 			bank.setMobile((String) details.get("mobile_number") != null ? (String) details.get("mobile_number") : "");
 			bank.setEmail((String) details.get("email_address") != null ? (String) details.get("email_address") : "");
 			bank.setDate_3_Time((java.util.Date) details.get("inserted_date") != null
@@ -126,35 +131,42 @@ public class ReportServiceImpl implements ReportService {
 			bank.setCountry((String) details.get("country_name") != null ? (String) details.get("country_name") : "");
 			bank.setTransaction_Id(
 					(String) details.get("transaction_id") != null ? (String) details.get("transaction_id") : "");
-		
-			if(details.get("requirement_type").equals("ConfirmAndDiscount") ){
+
+			if (details.get("requirement_type").equals("ConfirmAndDiscount")) {
 				bank.setRequirement("Confirmation and Discounting");
-			}else if(details.get("requirement_type").equals("Banker") ){
+			} else if (details.get("requirement_type").equals("Banker")) {
 				bank.setRequirement("Banker’s Acceptance");
-			}else if(details.get("requirement_type").equals("Refinance") ){
+			} else if (details.get("requirement_type").equals("Refinance")) {
 				bank.setRequirement("Refinancing");
-			}else {
+			} else {
 				bank.setRequirement(
-						(String) details.get("requirement_type") != null ? (String) details.get("requirement_type") : "");
+						(String) details.get("requirement_type") != null ? (String) details.get("requirement_type")
+								: "");
 			}
-			
+
 			bank.setiB(
 					(String) details.get("lc_issuance_bank") != null ? (String) details.get("lc_issuance_bank") : "");
 			bank.setAmount((Double) details.get("lc_value") != null ? (Double) details.get("lc_value") : 0);
-			bank.setCcy((String) details.get("lc_currency") != null ? (String) details.get("lc_currency") : "");		
-			
-			
-			 if(details.get("requirement_type").equals("Banker")|| details.get("requirement_type").equals("Discounting")){
-				 bank.setUsance((String) details.get("discounting_period") != null ? (String) details.get("discounting_period"): "");			
-			}else if(details.get("requirement_type").equals("Refinance") ){
-				bank.setUsance((String) details.get("refinancing_period") != null ? (String) details.get("refinancing_period"): "");			
-			}else {
-				bank.setUsance((String) details.get("confirmation_period") != null ? (String) details.get("confirmation_period"): "");	
+			bank.setCcy((String) details.get("lc_currency") != null ? (String) details.get("lc_currency") : "");
+
+			if (details.get("requirement_type").equals("Banker")
+					|| details.get("requirement_type").equals("Discounting")) {
+				bank.setUsance(
+						(String) details.get("discounting_period") != null ? (String) details.get("discounting_period")
+								: "");
+			} else if (details.get("requirement_type").equals("Refinance")) {
+				bank.setUsance(
+						(String) details.get("refinancing_period") != null ? (String) details.get("refinancing_period")
+								: "");
+			} else {
+				bank.setUsance((String) details.get("confirmation_period") != null
+						? (String) details.get("confirmation_period")
+						: "");
 			}
-			 bank.setOrignal_tenor_of_LC((Integer) details.get("original_tenor_days") != null
-				? (Integer) details.get("original_tenor_days")
-				: 0);
-							
+			bank.setOrignal_tenor_of_LC(
+					(Integer) details.get("original_tenor_days") != null ? (Integer) details.get("original_tenor_days")
+							: 0);
+
 //			bank.setOriginal_tenor_days(
 //					(Integer) details.get("original_tenor_days") != null ? (Integer) details.get("original_tenor_days")
 //							: 0);		
@@ -165,13 +177,13 @@ public class ReportServiceImpl implements ReportService {
 //			}else if(details.get("refinancing_period")!="0"|| (Integer) details.get("refinancing_period") != null) {
 //				bank.setTenor((String) details.get("refinancing_period"));
 //			}
-			
+
 			bank.setApplicable_benchmark(
-			    	(Float) details.get("applicable_benchmark") != null ? (Float) details.get("applicable_benchmark")
-								: 0); 
+					(Float) details.get("applicable_benchmark") != null ? (Float) details.get("applicable_benchmark")
+							: 0);
 			bank.setConfirmation_charges_p_a(
 					(Float) details.get("confirmation_charges") != null ? (Float) details.get("confirmation_charges")
-							: 0); 
+							: 0);
 			bank.setDiscounting_charges_p_a(
 					(Float) details.get("discounting_charges") != null ? (Float) details.get("discounting_charges")
 							: 0);
@@ -181,35 +193,35 @@ public class ReportServiceImpl implements ReportService {
 			bank.setBanker_accept_charges_p_a(
 					(Float) details.get("banker_accept_charges") != null ? (Float) details.get("banker_accept_charges")
 							: 0);
-		
+
 			bank.setConfirmation_charges_from_date_of_issuance_till_negotiation_date(
-					String.valueOf(getData.get("confChgsNegot"))!= null? String.valueOf(getData.get("confChgsNegot")): "0");
-			
+					String.valueOf(getData.get("confChgsNegot")) != null ? String.valueOf(getData.get("confChgsNegot"))
+							: "0");
+
 			bank.setConfirmation_charges_from_date_of_issuance_till_maturity_date(
-					String.valueOf(getData.get("confChgsMatur"))!= null ? String.valueOf(getData.get("confChgsMatur")): "0");
-			bank.setNegotiation_charges_in_fixed(
-					(Float) details.get("negotiation_charges_fixed") != null
-							? (Float) details.get("negotiation_charges_fixed")
-							: 0);
-			bank.setNegotiation_charges_in_percentage(
-					(Float) details.get("negotiation_charges_perct") != null
-							? (Float) details.get("negotiation_charges_perct")
-							: 0);
+					String.valueOf(getData.get("confChgsMatur")) != null ? String.valueOf(getData.get("confChgsMatur"))
+							: "0");
+			bank.setNegotiation_charges_in_fixed((Float) details.get("negotiation_charges_fixed") != null
+					? (Float) details.get("negotiation_charges_fixed")
+					: 0);
+			bank.setNegotiation_charges_in_percentage((Float) details.get("negotiation_charges_perct") != null
+					? (Float) details.get("negotiation_charges_perct")
+					: 0);
 			bank.setOther_Charges(
 					(Float) details.get("other_charges") != null ? (Float) details.get("other_charges") : 0F);
 			bank.setMin_Trxn_Charges((Float) details.get("min_transaction_charges") != null
 					? (Float) details.get("min_transaction_charges")
 					: 0);
-			//bank.setTotal_Quote((Float)getData.get("TotalQuote"));
-			
+			// bank.setTotal_Quote((Float)getData.get("TotalQuote"));
+
 			bank.setTotal_Quote((Float) ((Integer) getData.get("TotalQuote")).floatValue() != null
 					? (Float) ((Integer) getData.get("TotalQuote")).floatValue()
 					: 0);
 //			bank.setBank_Quote_validity(((String) details.get("validity_date")).replace("-", "/").replaceAll(" 00:00:00", "") != null
 //					? (String) details.get("validity_date")
 //					: "");
-			
-			bank.setBank_Quote_validity(details.get("validity_date").toString().substring(0,10));
+
+			bank.setBank_Quote_validity(details.get("validity_date").toString().substring(0, 10));
 
 			transaction.add(bank);
 
@@ -284,29 +296,32 @@ public class ReportServiceImpl implements ReportService {
 					java.sql.Date.valueOf(LocalDate.parse(request.getDateTo()).plusDays(1)));
 		}
 		for (Tuple details : tuple) {
-			//String bankName=customerRepository.getBankName((String) details.get("userid")); //parent bankname
-			
+			// String bankName=customerRepository.getBankName((String)
+			// details.get("userid")); //parent bankname
+
 			ReportNewUserStatus newReport = new ReportNewUserStatus();
 			newReport.setUser_ID((String) details.get("userid"));
 			newReport.setUser_Type(
 					(String) details.get("customer_type") != null ? (String) details.get("customer_type") : "");
-			
+
 			newReport.setCustomer$Bank$Bank_as_Customer_Name(
 					(String) details.get("customer_Name") != null ? (String) details.get("customer_Name") : "");
 			newReport.setSubscription(
 					(String) details.get("subs_plan") != null ? (String) details.get("subs_plan") : "");
-		
-			if (details.get("vas")!=null){
-				if(details.get("vas").equals(0)) {
+
+			if (details.get("vas") != null) {
+				if (details.get("vas").equals(0)) {
 					newReport.setvAS("No");
-				}else if(details.get("vas").equals(1)) {
+				} else if (details.get("vas").equals(1)) {
 					newReport.setvAS("Yes");
 				}
-				
+
 			}
-			//newReport.setvAS((Integer) details.get("vas") != null ? (Integer) details.get("vas") : 0);
+			// newReport.setvAS((Integer) details.get("vas") != null ? (Integer)
+			// details.get("vas") : 0);
 			newReport.setFees_Paid_$USD$((Double) details.get("fee") != null ? (Double) details.get("fee") : 0);
-		//	newReport.setCcy((String) details.get("ccy") != null ? (String) details.get("ccy") : "");
+			// newReport.setCcy((String) details.get("ccy") != null ? (String)
+			// details.get("ccy") : "");
 			newReport.setPayment_Mode(
 					(String) details.get("mode_of_payment") != null ? (String) details.get("mode_of_payment") : "");
 			newReport.setPayment_Status(
@@ -326,18 +341,18 @@ public class ReportServiceImpl implements ReportService {
 	public ByteArrayInputStream getUSubsRenewal(SearchRequest request, String filename) {
 		List<ReportUserSubscriptionRenewal> renewal = new ArrayList<ReportUserSubscriptionRenewal>();
 		List<Tuple> reports;
-		System.out.println("----------------"+request.getDateFrom());
+		System.out.println("----------------" + request.getDateFrom());
 		if (request.getUserId() != null && !request.getUserId().equals("")) {
 //			reports = subsDetailsRepo.getUserSubsRenewalUserId(java.sql.Date.valueOf(request.getDateFrom()),
 //					java.sql.Date.valueOf(LocalDate.parse(request.getDateTo()).plusDays(1)), request.getUserId());
-			
+
 			reports = subsDetailsRepo.getUserSubsRenewalUserId(request.getDateFrom(),
 					java.sql.Date.valueOf(LocalDate.parse(request.getDateTo()).plusDays(0)), request.getUserId());
-			
+
 		} else {
 //			reports = subsDetailsRepo.getUserSubsRenewal(java.sql.Date.valueOf(request.getDateFrom()),
 //					java.sql.Date.valueOf(LocalDate.parse(request.getDateTo()).plusDays(1)));
-			
+
 			reports = subsDetailsRepo.getUserSubsRenewal(request.getDateFrom(),
 					java.sql.Date.valueOf(LocalDate.parse(request.getDateTo()).plusDays(1)));
 		}
@@ -380,7 +395,7 @@ public class ReportServiceImpl implements ReportService {
 	public ByteArrayInputStream getDiscountReport(SearchRequest request, String filename) {
 		List<NimaiMDiscount> mDiscount = discountRepo.findAll(discSpecification.getFilter(request));
 		List<ReportDiscountCoupon> disCoupon = new ArrayList<ReportDiscountCoupon>();
-		
+
 		for (NimaiMDiscount disc : mDiscount) {
 			ReportDiscountCoupon response = new ReportDiscountCoupon();
 			response.setDiscount_Type(disc.getDiscountType() != null ? disc.getDiscountType() : "");
@@ -398,9 +413,9 @@ public class ReportServiceImpl implements ReportService {
 			response.setCoupon_Code(disc.getCouponCode() != null ? disc.getCouponCode() : "");
 			response.setConsumed(disc.getConsumedCoupons() != null ? disc.getConsumedCoupons() : 0);
 
-disCoupon.add(response);
+			disCoupon.add(response);
 		}
-	
+
 		return GenericExcelWriter.writeToExcel(filename, disCoupon);
 
 	}
@@ -464,6 +479,8 @@ disCoupon.add(response);
 			response.setLast_Name(referrDetails.getLastName());
 			response.setReferrerEmailId(referrDetails.getEmailAddress());
 			response.setRm(referrDetails.getRmId());
+			response.setReferrer_Company(referrDetails.getCompanyName());
+		
 
 			Integer approvedReference = customerRepository.getApprovedReferrence(request.getUserId());
 			if (approvedReference.equals(null)) {
@@ -505,17 +522,31 @@ disCoupon.add(response);
 				e.printStackTrace();
 
 			}
+			String accountStatus=checkAccStatus(referrDetails);
+			
+			if (accountStatus == null) {
+				response.setAccount_status("INACTIVE");
+				response.setEarning(0);
+			} else if (accountStatus.equalsIgnoreCase("ACTIVE")) {
+				response.setAccount_status("ACTIVE");
+				try {
+					Double value = customerRepository.getEarning(request.getUserId());
+					Float referEarning = Float.valueOf(nimaiSystemRepo.earningPercentage());
+					Float actualREarning = (Float) (referEarning / 100);
 
-			try {
-				Double earning = customerRepository.getEarning(request.getUserId());
-				if (earning.equals(null)) {
-					response.setEarning(0);
-				} else {
-					response.setEarning(earning);
+					Float earning = Float.parseFloat(new DecimalFormat("##.##").format(value * actualREarning));
+					if (earning.equals(null)) {
+						response.setEarning(0);
+					} else {
+						response.setEarning(earning);
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+					
 				}
-			} catch (Exception e) {
-				e.printStackTrace();
-
+			} else {
+				response.setAccount_status("INACTIVE");
+				response.setEarning(0);
 			}
 
 			response.setCcy(referrDetails.getCurrencyCode());
@@ -525,16 +556,22 @@ disCoupon.add(response);
 			referrer.add(response);
 
 		} else {
-			List<NimaiMRefer> referList = referRepo.finBydates(fromDate, toDate);
-
+			DateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+			List<NimaiMRefer> referList = referRepo.finBydates(request.getDateFrom(), request.getDateTo());
+			System.out.println(request.getDateFrom());
+			System.out.println(request.getDateTo());
+			System.out.println("Inside referList else conditions" + referList.toString());
 			for (NimaiMRefer cust : referList) {
+				System.out.println("Inside else for loop referList else conditions" + cust.toString());
 				NimaiMCustomer referrDetails = customerRepository.getOne(cust.getUserid().getUserid());
 				ReportReferrer response = new ReportReferrer();
 				response.setCountry(cust.getCountryName());
 				response.setReferrer_userID(cust.getUserid().getUserid());
 				response.setFirst_Name(cust.getFirstName());
 				response.setLast_Name(cust.getLastName());
-				response.setReferrerEmailId(cust.getUserid().getUserid());
+				response.setReferrerEmailId(cust.getUserid().getEmailAddress());
+				System.out.println("===================company Name" + referrDetails.getCompanyName());
+				response.setReferrer_Company(referrDetails.getCompanyName());
 				Integer approvedReference = customerRepository.getApprovedReferrence(cust.getUserid().getUserid());
 				if (approvedReference.equals(null)) {
 					response.setApproved_References(0);
@@ -575,18 +612,34 @@ disCoupon.add(response);
 					e.printStackTrace();
 					continue;
 				}
+				String accountStatus=checkAccStatus(referrDetails);
+				
+				if (accountStatus == null) {
+					response.setAccount_status("INACTIVE");
+					response.setEarning(0);
+				} else if (accountStatus.equalsIgnoreCase("ACTIVE")) {
+					response.setAccount_status("ACTIVE");
+					try {
+						Double value = customerRepository.getEarning(cust.getUserid().getUserid());
+						Float referEarning = Float.valueOf(nimaiSystemRepo.earningPercentage());
+						Float actualREarning = (Float) (referEarning / 100);
 
-				try {
-					Double earning = customerRepository.getEarning(cust.getUserid().getUserid());
-					if (earning.equals(null)) {
-						response.setEarning(0);
-					} else {
-						response.setEarning(earning);
+						Float earning = Float.parseFloat(new DecimalFormat("##.##").format(value * actualREarning));
+						if (earning.equals(null)) {
+							response.setEarning(0);
+						} else {
+							response.setEarning(earning);
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+						continue;
 					}
-				} catch (Exception e) {
-					e.printStackTrace();
-					continue;
+				} else {
+					response.setAccount_status("INACTIVE");
+					response.setEarning(0);
 				}
+
+			
 
 				response.setCcy(cust.getUserid().getCurrencyCode());
 
@@ -599,68 +652,97 @@ disCoupon.add(response);
 		return GenericExcelWriter.writeToExcel(filename, referrer);
 	}
 
+	
+	
+	public String checkAccStatus(NimaiMCustomer custDetails) {
+		String accountStatus="";
+		if(custDetails.getUserid().substring(0, 2).equalsIgnoreCase("BA")||custDetails.getUserid().substring(0, 2).equalsIgnoreCase("BC")||
+				custDetails.getUserid().substring(0, 2).equalsIgnoreCase("CU")) {
+			
+			if(custDetails.getPaymentStatus()==null || custDetails.getKycStatus()==null) {
+				accountStatus="INACTIVE";
+			}else if(custDetails.getPaymentStatus().equalsIgnoreCase("Approved") &&
+					custDetails.getKycStatus().equalsIgnoreCase("Approved")) {
+				accountStatus="ACTIVE";
+			}else {
+				accountStatus="INACTIVE";
+			}
+		}else {
+			if(custDetails.getKycStatus()==null) {
+				accountStatus="INACTIVE";
+			}else if(custDetails.getKycStatus().equalsIgnoreCase("Approved")) {
+				accountStatus="ACTIVE";
+			}else {
+				accountStatus="INACTIVE";
+			}
+		}
+		return accountStatus;
+		
+	}
+	
 	// Country Wise Reports-data duplicate issuewill be checked by sahadeoSir
 	@Override
 	public ByteArrayInputStream getCountryWiseReport(SearchRequest request, String filename) {
 //		List<NimaiMmTransaction> transaction = transactionRepository
 //				.findAll(transactionSpecification.getFilter(request));
 
-List<NimaiMmTransaction> transaction = transactionRepository
-.findCountryWiseDataByDates(request.getDateFrom(),request.getDateTo());
-System.out.println(transaction.size());
+		List<NimaiMmTransaction> transaction = transactionRepository.findCountryWiseDataByDates(request.getDateFrom(),
+				request.getDateTo());
+		System.out.println(transaction.size());
 		List<ReportCountryWise> country = new ArrayList<ReportCountryWise>();
 
 		for (NimaiMmTransaction details : transaction) {
 			ReportCountryWise countReport = new ReportCountryWise();
-			
-			Integer txnCount=transactionRepository.getTxnCount(details.getLcIssuanceCountry(),details.getLcCurrency());
-			if(txnCount==null) {
+
+			Integer txnCount = transactionRepository.getTxnCount(details.getLcIssuanceCountry(),
+					details.getLcCurrency());
+			if (txnCount == null) {
 				countReport.setTrxn_Count(0);
-			}else {
+			} else {
 				countReport.setTrxn_Count(txnCount);
 			}
-			
-			Double getcumulativeTxnAMount=transactionRepository.getcumulativeTxnAMount(details.getLcIssuanceCountry(),details.getLcCurrency());
-			if(getcumulativeTxnAMount==null) {
+
+			Double getcumulativeTxnAMount = transactionRepository.getcumulativeTxnAMount(details.getLcIssuanceCountry(),
+					details.getLcCurrency());
+			if (getcumulativeTxnAMount == null) {
 				countReport.setCumulative_Trxn_Amount("0");
-			}else {
+			} else {
 				String cumulativeTxnAMount = new BigDecimal(getcumulativeTxnAMount).toEngineeringString();
 				countReport.setCumulative_Trxn_Amount(cumulativeTxnAMount);
 			}
-			
-			Integer gettxnAccepted=transactionRepository.gettxnAccepted(details.getLcIssuanceCountry(),details.getLcCurrency());
-			if(gettxnAccepted==null) {
+
+			Integer gettxnAccepted = transactionRepository.gettxnAccepted(details.getLcIssuanceCountry(),
+					details.getLcCurrency());
+			if (gettxnAccepted == null) {
 				countReport.setTrxn_Accepted(0);
-			}else {
+			} else {
 				countReport.setTrxn_Accepted(gettxnAccepted);
 			}
-			
-			Integer gettxnRejected=transactionRepository.gettxnRejected(details.getLcIssuanceCountry(),details.getLcCurrency());
-			if(gettxnRejected==null) {
+
+			Integer gettxnRejected = transactionRepository.gettxnRejected(details.getLcIssuanceCountry(),
+					details.getLcCurrency());
+			if (gettxnRejected == null) {
 				countReport.setTrxn_Rejected(0);
-			}else {
+			} else {
 				countReport.setTrxn_Rejected(gettxnRejected);
 			}
-			Integer gettxnExpired=transactionRepository.gettxnExpired(details.getLcIssuanceCountry(),details.getLcCurrency());
-			if(gettxnExpired==null) {
+			Integer gettxnExpired = transactionRepository.gettxnExpired(details.getLcIssuanceCountry(),
+					details.getLcCurrency());
+			if (gettxnExpired == null) {
 				countReport.setTrxn_Expired(0);
-			}else {
+			} else {
 				countReport.setTrxn_Expired(gettxnExpired);
 			}
-			Integer gettxnclosedTxn=transactionRepository.gettxnclosedTxn(details.getLcIssuanceCountry(),details.getLcCurrency());
-			if(gettxnclosedTxn==null) {
+			Integer gettxnclosedTxn = transactionRepository.gettxnclosedTxn(details.getLcIssuanceCountry(),
+					details.getLcCurrency());
+			if (gettxnclosedTxn == null) {
 				countReport.setTrxn_Closed(0);
-			}else {
+			} else {
 				countReport.setTrxn_Closed(gettxnclosedTxn);
 			}
 			countReport.setCountry1of_registration0(details.getLcIssuanceCountry());
 			countReport.setCcy(details.getLcCurrency());
-			
-		
-			
-			
-			
-			
+
 //			List<NimaiMmTransaction> count = transactionRepository
 //					.findByLcIssuanceCountryAndLcCurrency(details.getLcIssuanceCountry(), details.getLcCurrency());
 //			countReport.setTrxn_Count(count.size());
@@ -708,50 +790,48 @@ System.out.println(transaction.size());
 		DateFormat formatter = new SimpleDateFormat("yyyy-mm-dd");
 		java.util.Date fromDate = formatter.parse(request.getDateFrom());
 		java.util.Date toDate = formatter.parse(request.getDateTo());
-		
+
 		if (request.getUserId() != null && !request.getUserId().equals("")) {
-		
+
 			tuple = customerRepository.getPaymentSubUserIdReport(request.getDateFrom(),
 					java.sql.Date.valueOf(LocalDate.parse(request.getDateTo()).plusDays(1)), request.getUserId());
 		} else {
 			tuple = customerRepository.getPaymentSubReport(request.getDateFrom(),
 					java.sql.Date.valueOf(LocalDate.parse(request.getDateTo()).plusDays(1)));
-		}		
-		
-	//	if (request.getUserId() != null) {
+		}
+
+		// if (request.getUserId() != null) {
 //			tuple = customerRepository.getPaymentSubUserIdReport(java.sql.Date.valueOf(request.getDateFrom()),
 //					java.sql.Date.valueOf(LocalDate.parse(request.getDateTo()).plusDays(2)), request.getUserId());
-			for (Tuple report : tuple) {
-				ReportPaymentAndSubscription response = new ReportPaymentAndSubscription();
-				response.setUser_ID((String) report.get("userid") != null ? (String) report.get("userid") : "");
-				response.setUser_Type(
-						(String) report.get("subscriber_type") != null ? (String) report.get("subscriber_type") : "");
-				response.setOrganization(
-						(String) report.get("company_name") != null ? (String) report.get("company_name") : "");
-				response.setMobile(
-						(String) report.get("mobile_number") != null ? (String) report.get("mobile_number") : "");
-				response.setLandline((String) report.get("landline") != null ? (String) report.get("landline") : "");
-				response.setCountry(
-						(String) report.get("country_name") != null ? (String) report.get("country_name") : "");
-				response.setEmail(
-						(String) report.get("email_address") != null ? (String) report.get("email_address") : "");
-				response.setFirst_Name(
-						(String) report.get("first_name") != null ? (String) report.get("first_name") : "");
-				response.setLast_Name((String) report.get("last_name") != null ? (String) report.get("last_name") : "");
-				response.setPlan(
-						(String) report.get("subscription_name") != null ? (String) report.get("subscription_name")
-								: "");
-				if ((Integer) report.get("is_vas_applied") == 0) {
-					response.setvAS("No");
-				} else if ((Integer) report.get("is_vas_applied") == 1) {
-					response.setvAS("Yes");
-				}
-				response.setCoupon_Discount((Double)report.get("DISCOUNT")!=null ? (Double)report.get("DISCOUNT") : 0.0);		
-				response.setCoupon_Code(report.get("DISCOUNT_ID")!=null ? report.get("DISCOUNT_ID").toString() :"0");				
-				if(report.get("DISCOUNT_ID")!="0" && report.get("DISCOUNT_ID")!=null && !report.get("DISCOUNT_ID").equals(0)) {
-					response.setDiscount_Ccy("USD");
-				}
-						
+		for (Tuple report : tuple) {
+			ReportPaymentAndSubscription response = new ReportPaymentAndSubscription();
+			response.setUser_ID((String) report.get("userid") != null ? (String) report.get("userid") : "");
+			response.setUser_Type(
+					(String) report.get("subscriber_type") != null ? (String) report.get("subscriber_type") : "");
+			response.setOrganization(
+					(String) report.get("company_name") != null ? (String) report.get("company_name") : "");
+			response.setMobile(
+					(String) report.get("mobile_number") != null ? (String) report.get("mobile_number") : "");
+			response.setLandline((String) report.get("landline") != null ? (String) report.get("landline") : "");
+			response.setCountry((String) report.get("country_name") != null ? (String) report.get("country_name") : "");
+			response.setEmail((String) report.get("email_address") != null ? (String) report.get("email_address") : "");
+			response.setFirst_Name((String) report.get("first_name") != null ? (String) report.get("first_name") : "");
+			response.setLast_Name((String) report.get("last_name") != null ? (String) report.get("last_name") : "");
+			response.setPlan(
+					(String) report.get("subscription_name") != null ? (String) report.get("subscription_name") : "");
+			if ((Integer) report.get("is_vas_applied") == 0) {
+				response.setvAS("No");
+			} else if ((Integer) report.get("is_vas_applied") == 1) {
+				response.setvAS("Yes");
+			}
+			response.setCoupon_Discount(
+					(Double) report.get("DISCOUNT") != null ? (Double) report.get("DISCOUNT") : 0.0);
+			response.setCoupon_Code(report.get("DISCOUNT_ID") != null ? report.get("DISCOUNT_ID").toString() : "0");
+			if (report.get("DISCOUNT_ID") != "0" && report.get("DISCOUNT_ID") != null
+					&& !report.get("DISCOUNT_ID").equals(0)) {
+				response.setDiscount_Ccy("USD");
+			}
+
 //				if((String)report.get("DISCOUNT_ID").toString() !="null" && (String)report.get("DISCOUNT_ID").toString() !="" 
 //						&& !report.get("DISCOUNT_ID").equals(0) ) {				
 //					d_tuple = customerRepository.getPaymentSubDiscount((String) report.get("DISCOUNT_ID").toString());
@@ -759,25 +839,24 @@ System.out.println(transaction.size());
 //					response.setCoupon_Discount(!d_tuple.get(0).get(1).equals(null) ? (Double)d_tuple.get(0).get(1) : 0.0);
 //						response.setDiscount_Ccy("USD");			
 //}
-				response.setFee_Paid(Double.valueOf((Integer) report.get("subscription_amount")) != null
-						? Double.valueOf((Integer) report.get("subscription_amount"))
-						: 0);
-				response.setCcy(
-						(String) report.get("currency_code") != null ? (String) report.get("currency_code") : "");
-				response.setMode_of_Payment(
-						(String) report.get("mode_of_payment") != null ? (String) report.get("mode_of_payment") : "");
-				response.setDate_3_Time((java.util.Date) report.get("inserted_date") != null
-						? (java.util.Date) report.get("inserted_date")
-						: date);
-				response.setPayment_ID("");
-				response.setPlan_activation_Date(
-						(Date) report.get("splan_start_date") != null ? (Date) report.get("splan_start_date") : date);
-				response.setPlan_expiry_Date(
-						(Date) report.get("splan_end_date") != null ? (Date) report.get("splan_end_date") : date);
+			response.setFee_Paid(Double.valueOf((Integer) report.get("subscription_amount")) != null
+					? Double.valueOf((Integer) report.get("subscription_amount"))
+					: 0);
+			response.setCcy((String) report.get("currency_code") != null ? (String) report.get("currency_code") : "");
+			response.setMode_of_Payment(
+					(String) report.get("mode_of_payment") != null ? (String) report.get("mode_of_payment") : "");
+			response.setDate_3_Time(
+					(java.util.Date) report.get("inserted_date") != null ? (java.util.Date) report.get("inserted_date")
+							: date);
+			response.setPayment_ID("");
+			response.setPlan_activation_Date(
+					(Date) report.get("splan_start_date") != null ? (Date) report.get("splan_start_date") : date);
+			response.setPlan_expiry_Date(
+					(Date) report.get("splan_end_date") != null ? (Date) report.get("splan_end_date") : date);
 
-				payReport.add(response);
+			payReport.add(response);
 
-		//	}
+			// }
 
 //		} else {
 //			customerList = sPLanRepo.getCustomerDetail(fromDate, toDate);
@@ -962,39 +1041,38 @@ System.out.println(transaction.size());
 		List<Tuple> performanceList;
 		if (request.getUserId() != null && !request.getUserId().equals("")) {
 			performanceList = employeeRepository.getCustRmReportByEmpCode(request.getDateFrom(),
-					java.sql.Date.valueOf(LocalDate.parse(request.getDateTo()).plusDays(1)),
-					request.getUserId());
+					java.sql.Date.valueOf(LocalDate.parse(request.getDateTo()).plusDays(1)), request.getUserId());
 		} else {
-			performanceList = employeeRepository.getCustRmReport(request.getDateFrom(), 
+			performanceList = employeeRepository.getCustRmReport(request.getDateFrom(),
 					java.sql.Date.valueOf(LocalDate.parse(request.getDateTo()).plusDays(1)));
 		}
 		for (Tuple report : performanceList) {
 			BigInteger b1;
 			BigDecimal b2;
-			 b1 = BigInteger.valueOf(0);
-			 b2 = BigDecimal.valueOf(0);
+			b1 = BigInteger.valueOf(0);
+			b2 = BigDecimal.valueOf(0);
 			ReportCustomerRmPerformance response = new ReportCustomerRmPerformance();
 			response.setCountry((String) report.get("country") != null ? (String) report.get("country") : "");
 			response.setFirst_Name(
 					(String) report.get("emp_first_name") != null ? (String) report.get("emp_first_name") : "");
 			response.setLast_Name(
 					(String) report.get("emp_last_name") != null ? (String) report.get("emp_last_name") : "");
-			
-			if(report.get("customer_accounts") != null) {
-				BigInteger bi1= (BigInteger) report.get("customer_accounts");
+
+			if (report.get("customer_accounts") != null) {
+				BigInteger bi1 = (BigInteger) report.get("customer_accounts");
 				int ccCount = bi1.intValue();
 				response.setCustomer_accounts(ccCount);
-			}else {
+			} else {
 				response.setCustomer_accounts(0);
 			}
-			if(report.get("trxn_count") != null) {
-				BigInteger bi2= (BigInteger) report.get("trxn_count");
+			if (report.get("trxn_count") != null) {
+				BigInteger bi2 = (BigInteger) report.get("trxn_count");
 				int ccAmtCount = bi2.intValue();
 				response.setTrxn_Count(ccAmtCount);
-			}else {
+			} else {
 				response.setTrxn_Count(0);
 			}
-			
+
 //			response.setCustomer_accounts(
 //					(BigInteger) report.get("customer_accounts") != null ? (BigInteger) report.get("customer_accounts")
 //							: b1);
@@ -1003,30 +1081,29 @@ System.out.println(transaction.size());
 			response.setCumulative_LC_Amount(
 					(Double) report.get("cumulative_LC_Amount") != null ? (Double) report.get("cumulative_LC_Amount")
 							: 0);
-			
-			if(report.get("trxn_Accepted") != null) {
-				BigDecimal bd1= (BigDecimal) report.get("trxn_Accepted");
+
+			if (report.get("trxn_Accepted") != null) {
+				BigDecimal bd1 = (BigDecimal) report.get("trxn_Accepted");
 				double acceptedCount = bd1.doubleValue();
 				response.setTrxn_Accepted(acceptedCount);
-			}else {
+			} else {
 				response.setTrxn_Accepted(0.0);
 			}
-			if(report.get("trxn_Rejected") != null) {
-				BigDecimal bd2= (BigDecimal) report.get("trxn_Rejected");
+			if (report.get("trxn_Rejected") != null) {
+				BigDecimal bd2 = (BigDecimal) report.get("trxn_Rejected");
 				double rejectedCount = bd2.doubleValue();
 				response.setTrxn_Rejected(rejectedCount);
-			}else {
+			} else {
 				response.setTrxn_Rejected(0.0);
 			}
-			if(report.get("trxn_Expired") != null) {
-				BigDecimal bd3= (BigDecimal) report.get("trxn_Expired");
+			if (report.get("trxn_Expired") != null) {
+				BigDecimal bd3 = (BigDecimal) report.get("trxn_Expired");
 				double expiredCount = bd3.doubleValue();
 				response.setTrxn_Expired(expiredCount);
-			}else {
+			} else {
 				response.setTrxn_Expired(0.0);
 			}
-			
-			
+
 //			response.setTrxn_Accepted(
 //					(BigDecimal) report.get("trxn_Accepted") != null ? (BigDecimal) report.get("trxn_Accepted")
 //							: b2);
@@ -1048,39 +1125,39 @@ System.out.println(transaction.size());
 	public ByteArrayInputStream getBankRmPerfReport(SearchRequest request, String filename) {
 		List<ReportBankRmPerformance> bankRm = new ArrayList<ReportBankRmPerformance>();
 		List<Tuple> performanceList;
-		if(request.getUserId()!=null && !request.getUserId().equals("")) {
+		if (request.getUserId() != null && !request.getUserId().equals("")) {
 			performanceList = employeeRepository.getBankRmReportByEmpCode(request.getDateFrom(),
-					java.sql.Date.valueOf(LocalDate.parse(request.getDateTo()).plusDays(1)),request.getUserId());
-		}else {
+					java.sql.Date.valueOf(LocalDate.parse(request.getDateTo()).plusDays(1)), request.getUserId());
+		} else {
 			performanceList = employeeRepository.getBankRmReport(request.getDateFrom(),
 					java.sql.Date.valueOf(LocalDate.parse(request.getDateTo()).plusDays(1)));
 		}
-		 
+
 		for (Tuple report : performanceList) {
 			BigInteger b1;
 			BigDecimal b2;
-			 b1 = BigInteger.valueOf(0);
-			 b2 = BigDecimal.valueOf(0);
-			
+			b1 = BigInteger.valueOf(0);
+			b2 = BigDecimal.valueOf(0);
+
 			ReportBankRmPerformance response = new ReportBankRmPerformance();
 			response.setCountry((String) report.get("country") != null ? (String) report.get("country") : "");
 			response.setFirst_Name(
 					(String) report.get("emp_first_name") != null ? (String) report.get("emp_first_name") : "");
 			response.setLast_Name(
 					(String) report.get("emp_last_name") != null ? (String) report.get("emp_last_name") : "");
-			
-			if(report.get("customer_accounts") != null) {
-				BigInteger bi1= (BigInteger) report.get("customer_accounts");
+
+			if (report.get("customer_accounts") != null) {
+				BigInteger bi1 = (BigInteger) report.get("customer_accounts");
 				int ccCount = bi1.intValue();
 				response.setBank_As_Customer_accounts(ccCount);
-			}else {
+			} else {
 				response.setBank_As_Customer_accounts(0);
 			}
-			if(report.get("trxn_count") != null) {
-				BigInteger bi2= (BigInteger) report.get("trxn_count");
+			if (report.get("trxn_count") != null) {
+				BigInteger bi2 = (BigInteger) report.get("trxn_count");
 				int ccAmtCount = bi2.intValue();
 				response.setTrxn_Count(ccAmtCount);
-			}else {
+			} else {
 				response.setTrxn_Count(0);
 			}
 //			response.setBank_As_Customer_accounts(
@@ -1091,27 +1168,26 @@ System.out.println(transaction.size());
 			response.setCumulative_LC_Amount(
 					(Double) report.get("cumulative_LC_Amount") != null ? (Double) report.get("cumulative_LC_Amount")
 							: 0);
-		
-			
-			if(report.get("trxn_Accepted") != null) {
-				BigDecimal bd1= (BigDecimal) report.get("trxn_Accepted");
+
+			if (report.get("trxn_Accepted") != null) {
+				BigDecimal bd1 = (BigDecimal) report.get("trxn_Accepted");
 				double acceptedCount = bd1.doubleValue();
 				response.setTrxn_Accepted(acceptedCount);
-			}else {
+			} else {
 				response.setTrxn_Accepted(0.0);
 			}
-			if(report.get("trxn_Rejected") != null) {
-				BigDecimal bd2= (BigDecimal) report.get("trxn_Rejected");
+			if (report.get("trxn_Rejected") != null) {
+				BigDecimal bd2 = (BigDecimal) report.get("trxn_Rejected");
 				double rejectedCount = bd2.doubleValue();
 				response.setTrxn_Rejected(rejectedCount);
-			}else {
+			} else {
 				response.setTrxn_Rejected(0.0);
 			}
-			if(report.get("trxn_Expired") != null) {
-				BigDecimal bd3= (BigDecimal) report.get("trxn_Expired");
+			if (report.get("trxn_Expired") != null) {
+				BigDecimal bd3 = (BigDecimal) report.get("trxn_Expired");
 				double expiredCount = bd3.doubleValue();
 				response.setTrxn_Expired(expiredCount);
-			}else {
+			} else {
 				response.setTrxn_Expired(0.0);
 			}
 //			response.setTrxn_Accepted(
@@ -1123,12 +1199,12 @@ System.out.println(transaction.size());
 //			response.setTrxn_Expired(
 //					(BigDecimal) report.get("trxn_Expired") != null ? (BigDecimal) report.get("trxn_Expired")
 //							: b2);
-			
+
 			bankRm.add(response);
-			 System.out.println(response);
+			System.out.println(response);
 		}
-		 System.out.println(bankRm);
-		
+		System.out.println(bankRm);
+
 		return GenericExcelWriter.writeToExcel(filename, bankRm);
 	}
 
@@ -1136,64 +1212,68 @@ System.out.println(transaction.size());
 	public ByteArrayInputStream getBankRmPerfUwReport(SearchRequest request, String filename) {
 		List<ReportBankRmUwPerformance> uwPerfReport = new ArrayList<ReportBankRmUwPerformance>();
 		List<Tuple> reports;
-		if(request.getUserId()!=null && !request.getUserId().equals("")) {
+		if (request.getUserId() != null && !request.getUserId().equals("")) {
 			reports = employeeRepository.getBankRmUwReportbyEmpCode(request.getDateFrom(),
-					java.sql.Date.valueOf(LocalDate.parse(request.getDateTo()).plusDays(1)),request.getUserId());
-		}else {
+					java.sql.Date.valueOf(LocalDate.parse(request.getDateTo()).plusDays(1)), request.getUserId());
+		} else {
 			reports = employeeRepository.getBankRmUwReport(request.getDateFrom(),
 					java.sql.Date.valueOf(LocalDate.parse(request.getDateTo()).plusDays(1)));
 		}
-		 
+
 		for (Tuple report : reports) {
 			ReportBankRmUwPerformance response = new ReportBankRmUwPerformance();
 			BigInteger b1;
 			BigDecimal b2;
-			 b1 = BigInteger.valueOf(0);
-			 b2 = BigDecimal.valueOf(0);
-		       
+			b1 = BigInteger.valueOf(0);
+			b2 = BigDecimal.valueOf(0);
+
 			response.setCountry((String) report.get("country") != null ? (String) report.get("country") : "");
-			response.setFirst_Name((String) report.get("emp_first_name") != null ? (String) report.get("emp_first_name") : "");
-			response.setLast_Name((String) report.get("emp_last_name") != null ? (String) report.get("emp_last_name") : "");
+			response.setFirst_Name(
+					(String) report.get("emp_first_name") != null ? (String) report.get("emp_first_name") : "");
+			response.setLast_Name(
+					(String) report.get("emp_last_name") != null ? (String) report.get("emp_last_name") : "");
 //			response.setBank_Accounts((BigInteger) report.get("customer_accounts") != null ? (BigInteger) report.get("customer_accounts") : b1);
 //			response.setQuote_Count((BigInteger) report.get("trxn_count") != null ? (BigInteger) report.get("trxn_count") : b1);
-			if(report.get("customer_accounts") != null) {
-				BigInteger bi11= (BigInteger) report.get("customer_accounts");
+			if (report.get("customer_accounts") != null) {
+				BigInteger bi11 = (BigInteger) report.get("customer_accounts");
 				int ccCount = bi11.intValue();
 				response.setBank_Accounts(ccCount);
-			}else {
+			} else {
 				response.setBank_Accounts(0);
 			}
-			if(report.get("trxn_count") != null) {
-				BigInteger bi12= (BigInteger) report.get("trxn_count");
+			if (report.get("trxn_count") != null) {
+				BigInteger bi12 = (BigInteger) report.get("trxn_count");
 				int ccAmtCount = bi12.intValue();
 				response.setQuote_Count(ccAmtCount);
-			}else {
+			} else {
 				response.setQuote_Count(0);
 			}
-			
-			response.setCumulative_Quote_Amount((Double) report.get("cumulative_LC_Amount") != null ? (Double) report.get("cumulative_LC_Amount") : 0);
+
+			response.setCumulative_Quote_Amount(
+					(Double) report.get("cumulative_LC_Amount") != null ? (Double) report.get("cumulative_LC_Amount")
+							: 0);
 //			response.setAccepted_Quote((BigDecimal) report.get("trxn_Accepted") != null ? (BigDecimal) report.get("trxn_Accepted") : b2);
 //			response.setRejected_Quote((BigDecimal) report.get("trxn_Rejected") != null ? (BigDecimal) report.get("trxn_Rejected") : b2);
 //			response.setExpired_Quote((BigDecimal) report.get("trxn_Expired") != null ? (BigDecimal) report.get("trxn_Expired") : b2);
-			if(report.get("trxn_Accepted") != null) {
-				BigDecimal bd1= (BigDecimal) report.get("trxn_Accepted");
+			if (report.get("trxn_Accepted") != null) {
+				BigDecimal bd1 = (BigDecimal) report.get("trxn_Accepted");
 				double acceptedCount = bd1.doubleValue();
 				response.setAccepted_Quote(acceptedCount);
-			}else {
+			} else {
 				response.setAccepted_Quote(0.0);
 			}
-			if(report.get("trxn_Rejected") != null) {
-				BigDecimal bd2= (BigDecimal) report.get("trxn_Rejected");
+			if (report.get("trxn_Rejected") != null) {
+				BigDecimal bd2 = (BigDecimal) report.get("trxn_Rejected");
 				double rejectedCount = bd2.doubleValue();
 				response.setRejected_Quote(rejectedCount);
-			}else {
+			} else {
 				response.setRejected_Quote(0.0);
 			}
-			if(report.get("trxn_Expired") != null) {
-				BigDecimal bd3= (BigDecimal) report.get("trxn_Expired");
+			if (report.get("trxn_Expired") != null) {
+				BigDecimal bd3 = (BigDecimal) report.get("trxn_Expired");
 				double expiredCount = bd3.doubleValue();
 				response.setExpired_Quote(expiredCount);
-			}else {
+			} else {
 				response.setExpired_Quote(0.0);
 			}
 			uwPerfReport.add(response);
@@ -1232,10 +1312,12 @@ System.out.println(transaction.size());
 					(String) report.get("applicant_name") != null ? (String) report.get("applicant_name") : "");
 			response.setApplicant_country(
 					(String) report.get("applicant_country") != null ? (String) report.get("applicant_country") : "");
-			response.setApplicant_Contact_Person((String) report.get("applicant_contact_person") != null ? (String) report.get("applicant_contact_person")
+			response.setApplicant_Contact_Person((String) report.get("applicant_contact_person") != null
+					? (String) report.get("applicant_contact_person")
 					: "");
-	response.setApplicant_contact_Person_Email((String) report.get("applicant_contact_person_email") != null ? (String) report.get("applicant_contact_person_email")
-			: "");
+			response.setApplicant_contact_Person_Email((String) report.get("applicant_contact_person_email") != null
+					? (String) report.get("applicant_contact_person_email")
+					: "");
 			response.setBeneficiary((String) report.get("bene_name") != null ? (String) report.get("bene_name") : "");
 			response.setBeneficiary_Country(
 					(String) report.get("bene_country") != null ? (String) report.get("bene_country") : "");
@@ -1273,19 +1355,19 @@ System.out.println(transaction.size());
 					? (java.util.Date) report.get("negotiation_date")
 					: date);
 			response.setGoods((String) report.get("goods_type") != null ? (String) report.get("goods_type") : "");
-			 if(report.get("requirement_type").equals("Banker")|| report.get("requirement_type").equals("Discounting")){
-				 response.setUsance(
-							(String) report.get("discounting_period") != null ? (String) report.get("discounting_period")
-									: "" );			
-			}else if(report.get("requirement_type").equals("Refinance") ){
+			if (report.get("requirement_type").equals("Banker")
+					|| report.get("requirement_type").equals("Discounting")) {
+				response.setUsance(
+						(String) report.get("discounting_period") != null ? (String) report.get("discounting_period")
+								: "");
+			} else if (report.get("requirement_type").equals("Refinance")) {
 				response.setUsance(
 						(String) report.get("refinancing_period") != null ? (String) report.get("refinancing_period")
 								: "");
-			}
-			else {
+			} else {
 				response.setUsance(
 						(String) report.get("confirmation_period") != null ? (String) report.get("confirmation_period")
-								: "");	
+								: "");
 			}
 //			response.setUsance((Integer) report.get("usance_days") != null ? (Integer) report.get("usance_days") : 0);
 //			
@@ -1298,9 +1380,8 @@ System.out.println(transaction.size());
 			response.setLc_Maturity_Date((java.util.Date) report.get("lc_maturity_date") != null
 					? (java.util.Date) report.get("lc_maturity_date")
 					: date);
-			response.setLc_Number((String) report.get("lc_number") != null ? (String) report.get("lc_number")
-					: "");
-			
+			response.setLc_Number((String) report.get("lc_number") != null ? (String) report.get("lc_number") : "");
+
 			response.setBen_trxn_bank_Name(
 					(String) report.get("last_bene_bank") != null ? (String) report.get("last_bene_bank") : "");
 			response.setBen_trxn_swiftCode(
@@ -1338,32 +1419,32 @@ System.out.println(transaction.size());
 		DateFormat formatter = new SimpleDateFormat("yyyy-mm-dd");
 		java.util.Date fromDate = formatter.parse(request.getDateFrom());
 		java.util.Date toDate = formatter.parse(request.getDateTo());
-	
-        List<Tuple> cuTrDetails ;
+
+		List<Tuple> cuTrDetails;
 		try {
-			
-			if (request.getUserId() != null && !request.getUserId().equals("")) {			
-				 cuTrDetails = transactionRepository.findByUsrIdDates(request.getUserId(), request.getDateFrom(),
+
+			if (request.getUserId() != null && !request.getUserId().equals("")) {
+				cuTrDetails = transactionRepository.findByUsrIdDates(request.getUserId(), request.getDateFrom(),
 						java.sql.Date.valueOf(LocalDate.parse(request.getDateTo()).plusDays(1)));
 			} else {
-			     cuTrDetails = transactionRepository.findByDates(request.getDateFrom(),
+				cuTrDetails = transactionRepository.findByDates(request.getDateFrom(),
 						java.sql.Date.valueOf(LocalDate.parse(request.getDateTo()).plusDays(1)));
-				
+
 			}
 			NimaiMCustomer custDetails = new NimaiMCustomer();
-			List<ReportCustomerTransaction> custTransaction = new ArrayList<>();			
-			
+			List<ReportCustomerTransaction> custTransaction = new ArrayList<>();
+
 			for (Tuple report : cuTrDetails) {
-				
+
 				ReportCustomerTransaction response = new ReportCustomerTransaction();
-				response.setUser_ID((String) report.get("user_id") != null ? (String)  report.get("user_id") : "");
+				response.setUser_ID((String) report.get("user_id") != null ? (String) report.get("user_id") : "");
 				try {
 					custDetails = customerRepository.getOne((String) report.get("user_id"));
-					if(custDetails.getSubscriberType() != null) {
-						if(custDetails.getUserid().startsWith("BC")) 
+					if (custDetails.getSubscriberType() != null) {
+						if (custDetails.getUserid().startsWith("BC"))
 							response.setUser_Type("BANK AS A CUSTOMER");
-						else 
-							response.setUser_Type(custDetails.getSubscriberType());												
+						else
+							response.setUser_Type(custDetails.getSubscriberType());
 					}
 					response.setLandline_no(custDetails.getLandline() != null ? custDetails.getLandline() : "");
 					response.setMobile(custDetails.getMobileNumber() != null ? custDetails.getMobileNumber() : "");
@@ -1383,11 +1464,13 @@ System.out.println(transaction.size());
 				response.setApplicant_country(
 						(String) report.get("applicant_country") != null ? (String) report.get("applicant_country")
 								: "");
-				response.setApplicant_Contact_Person((String) report.get("applicant_contact_person") != null ? (String) report.get("applicant_contact_person")
-								: "");
-				response.setApplicant_contact_Person_Email((String) report.get("applicant_contact_person_email") != null ? (String) report.get("applicant_contact_person_email")
+				response.setApplicant_Contact_Person((String) report.get("applicant_contact_person") != null
+						? (String) report.get("applicant_contact_person")
 						: "");
-				
+				response.setApplicant_contact_Person_Email((String) report.get("applicant_contact_person_email") != null
+						? (String) report.get("applicant_contact_person_email")
+						: "");
+
 				response.setBeneficiary(
 						(String) report.get("bene_name") != null ? (String) report.get("bene_name") : "");
 				response.setBeneficiary_Country(
@@ -1429,23 +1512,25 @@ System.out.println(transaction.size());
 						? (java.util.Date) report.get("negotiation_date")
 						: date);
 				response.setGoods((String) report.get("goods_type") != null ? (String) report.get("goods_type") : "");
-				
-				 if(report.get("requirement_type").equals("Banker")|| report.get("requirement_type").equals("Discounting")){
-					 response.setUsance(
-								(String) report.get("discounting_period") != null ? (String) report.get("discounting_period")
-										: "");			
-				}else if(report.get("requirement_type").equals("Refinance") ){
-					response.setUsance(
-							(String) report.get("refinancing_period") != null ? (String) report.get("refinancing_period"): "");			
+
+				if (report.get("requirement_type").equals("Banker")
+						|| report.get("requirement_type").equals("Discounting")) {
+					response.setUsance((String) report.get("discounting_period") != null
+							? (String) report.get("discounting_period")
+							: "");
+				} else if (report.get("requirement_type").equals("Refinance")) {
+					response.setUsance((String) report.get("refinancing_period") != null
+							? (String) report.get("refinancing_period")
+							: "");
+				} else {
+					response.setUsance((String) report.get("confirmation_period") != null
+							? (String) report.get("confirmation_period")
+							: "");
 				}
-				else {
-					response.setUsance(
-							(String) report.get("confirmation_period") != null ? (String) report.get("confirmation_period"): "");	
-				}
-					response.setOrignal_tenor_of_LC((Integer) report.get("original_tenor_days") != null
-					? (Integer) report.get("original_tenor_days")
-					: 0);
-					
+				response.setOrignal_tenor_of_LC((Integer) report.get("original_tenor_days") != null
+						? (Integer) report.get("original_tenor_days")
+						: 0);
+
 //				response.setUsance(
 //						(Integer) report.get("usance_days") != null ? (Integer) report.get("usance_days") : 0);
 //				response.setRefinancing_Period(
@@ -1454,8 +1539,7 @@ System.out.println(transaction.size());
 				response.setLc_Maturity_Date((java.util.Date) report.get("lc_maturity_date") != null
 						? (java.util.Date) report.get("lc_maturity_date")
 						: date);
-				response.setLc_Number((String) report.get("lc_number") != null ? (String) report.get("lc_number")
-						: "");
+				response.setLc_Number((String) report.get("lc_number") != null ? (String) report.get("lc_number") : "");
 				response.setBen_trxn_bank_Name(
 						(String) report.get("last_bene_bank") != null ? (String) report.get("last_bene_bank") : "");
 				response.setBen_trxn_swiftCode((String) report.get("last_bene_swift_code") != null
@@ -1491,63 +1575,61 @@ System.out.println(transaction.size());
 		return null;
 
 	}
-	
-	public HashMap<String, Integer> calculateQuote(Integer quotationId,String transId, String tableType) {
+
+	public HashMap<String, Integer> calculateQuote(Integer quotationId, String transId, String tableType) {
 		// TODO Auto-generated method stub
 		// String transactionId="4028870370f1880f0170f1899aec0001";
 		EntityManager entityManager = em.createEntityManager();
 		try {
-		StoredProcedureQuery storedProcedure = entityManager.createStoredProcedureQuery("quote_calculation",
-				NimaiLCMaster.class);
-		// set parameters
-		System.out.println("Calculating Quote for: "+quotationId);
-		storedProcedure.registerStoredProcedureParameter("inp_quotation_id", Integer.class, ParameterMode.IN);
-		storedProcedure.registerStoredProcedureParameter("inp_transaction_id", String.class, ParameterMode.IN);
-		storedProcedure.registerStoredProcedureParameter("inp_table_type", String.class, ParameterMode.IN);
-		storedProcedure.registerStoredProcedureParameter("negoDays", Integer.class, ParameterMode.OUT);
-		storedProcedure.registerStoredProcedureParameter("expDays", Integer.class, ParameterMode.OUT);
-		storedProcedure.registerStoredProcedureParameter("matDays", Integer.class, ParameterMode.OUT);
-		storedProcedure.registerStoredProcedureParameter("confChgsNegot", Float.class, ParameterMode.OUT);
-		storedProcedure.registerStoredProcedureParameter("confChgsMatur", Float.class, ParameterMode.OUT);
-		storedProcedure.registerStoredProcedureParameter("sumOfQuote", Integer.class, ParameterMode.OUT);
-		storedProcedure.registerStoredProcedureParameter("totalQuote", Integer.class, ParameterMode.OUT);
-		storedProcedure.setParameter("inp_quotation_id", quotationId);
-		storedProcedure.setParameter("inp_transaction_id", transId);
-		storedProcedure.setParameter("inp_table_type", tableType);
+			StoredProcedureQuery storedProcedure = entityManager.createStoredProcedureQuery("quote_calculation",
+					NimaiLCMaster.class);
+			// set parameters
+			System.out.println("Calculating Quote for: " + quotationId);
+			storedProcedure.registerStoredProcedureParameter("inp_quotation_id", Integer.class, ParameterMode.IN);
+			storedProcedure.registerStoredProcedureParameter("inp_transaction_id", String.class, ParameterMode.IN);
+			storedProcedure.registerStoredProcedureParameter("inp_table_type", String.class, ParameterMode.IN);
+			storedProcedure.registerStoredProcedureParameter("negoDays", Integer.class, ParameterMode.OUT);
+			storedProcedure.registerStoredProcedureParameter("expDays", Integer.class, ParameterMode.OUT);
+			storedProcedure.registerStoredProcedureParameter("matDays", Integer.class, ParameterMode.OUT);
+			storedProcedure.registerStoredProcedureParameter("confChgsNegot", Float.class, ParameterMode.OUT);
+			storedProcedure.registerStoredProcedureParameter("confChgsMatur", Float.class, ParameterMode.OUT);
+			storedProcedure.registerStoredProcedureParameter("sumOfQuote", Integer.class, ParameterMode.OUT);
+			storedProcedure.registerStoredProcedureParameter("totalQuote", Integer.class, ParameterMode.OUT);
+			storedProcedure.setParameter("inp_quotation_id", quotationId);
+			storedProcedure.setParameter("inp_transaction_id", transId);
+			storedProcedure.setParameter("inp_table_type", tableType);
 
-		storedProcedure.execute();
+			storedProcedure.execute();
 
-		int negoDays = (int) storedProcedure.getOutputParameterValue("negoDays");
-		int expDays = (int) storedProcedure.getOutputParameterValue("expDays");
-		int matDays = (int) storedProcedure.getOutputParameterValue("matDays");
-		float confChgsNegot = (float) storedProcedure.getOutputParameterValue("confChgsNegot");
-		float confChgsMatur = (float) storedProcedure.getOutputParameterValue("confChgsMatur");
-		int sumOfQuote = (int) storedProcedure.getOutputParameterValue("sumOfQuote");
-		int totalQuote = (int) storedProcedure.getOutputParameterValue("totalQuote");
+			int negoDays = (int) storedProcedure.getOutputParameterValue("negoDays");
+			int expDays = (int) storedProcedure.getOutputParameterValue("expDays");
+			int matDays = (int) storedProcedure.getOutputParameterValue("matDays");
+			float confChgsNegot = (float) storedProcedure.getOutputParameterValue("confChgsNegot");
+			float confChgsMatur = (float) storedProcedure.getOutputParameterValue("confChgsMatur");
+			int sumOfQuote = (int) storedProcedure.getOutputParameterValue("sumOfQuote");
+			int totalQuote = (int) storedProcedure.getOutputParameterValue("totalQuote");
 
-		System.out.println(negoDays + " " + expDays + " " + matDays + " " + sumOfQuote + " " + totalQuote);
-		HashMap outputData = new HashMap();
+			System.out.println(negoDays + " " + expDays + " " + matDays + " " + sumOfQuote + " " + totalQuote);
+			HashMap outputData = new HashMap();
 
-		outputData.put("negotiationDays", negoDays);
-		outputData.put("expiryDays", expDays);
-		outputData.put("maturityDays", matDays);
-		outputData.put("confChgsNegot", confChgsNegot);
-		outputData.put("confChgsMatur", confChgsMatur);
-		outputData.put("sumOfQuote", sumOfQuote);
-		outputData.put("TotalQuote", totalQuote);
-		
+			outputData.put("negotiationDays", negoDays);
+			outputData.put("expiryDays", expDays);
+			outputData.put("maturityDays", matDays);
+			outputData.put("confChgsNegot", confChgsNegot);
+			outputData.put("confChgsMatur", confChgsMatur);
+			outputData.put("sumOfQuote", sumOfQuote);
+			outputData.put("TotalQuote", totalQuote);
 
-		return outputData;
-	} catch (Exception e) {
-		System.out.println(e);
+			return outputData;
+		} catch (Exception e) {
+			System.out.println(e);
 
-	} finally {
-		entityManager.close();
+		} finally {
+			entityManager.close();
+
+		}
+		return null;
 
 	}
-	return null;
 
-	}
-	
-	
 }

@@ -3,6 +3,7 @@ package com.nimai.admin.payload;
 public class VasUpdateRequestBody {
 
 	private String countryName;
+	private String vasNUmber;
 	private int vasid;
 	private String status;
 	private String userId;
@@ -12,6 +13,39 @@ public class VasUpdateRequestBody {
 	private String customerType;
 	private String vasMakerComment;
 	private String vasCheckerComment;
+	private String sPLanSerialNumber;
+	
+	
+
+	
+	
+	
+	
+
+
+	public String getsPLanSerialNumber() {
+		return sPLanSerialNumber;
+	}
+
+	public void setsPLanSerialNumber(String sPLanSerialNumber) {
+		this.sPLanSerialNumber = sPLanSerialNumber;
+	}
+
+	public String getVasNUmber() {
+		return vasNUmber;
+	}
+
+	public void setVasNUmber(String vasNUmber) {
+		this.vasNUmber = vasNUmber;
+	}
+
+	public int getVasid() {
+		return vasid;
+	}
+
+	public void setVasid(int vasid) {
+		this.vasid = vasid;
+	}
 
 	public String getVasMakerComment() {
 		return vasMakerComment;
@@ -45,13 +79,7 @@ public class VasUpdateRequestBody {
 		this.countryName = countryName;
 	}
 
-	public int getVasid() {
-		return vasid;
-	}
 
-	public void setVasid(int vasid) {
-		this.vasid = vasid;
-	}
 
 	public String getStatus() {
 		return status;

@@ -868,7 +868,7 @@ public class DashboardServiceImpl implements DashboardService {
 		String rmId = Utility.getUserId();
 		System.out.println("countryNames: " + countryNames);
 		if (countryNames != null && countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
-			countryNames = "";
+			countryNames = "";  
 			final List<String> countryList = (List<String>) this.repo.getCountryList();
 			for (final String country : countryList) {
 				countryNames = countryNames + country + ",";
@@ -894,6 +894,7 @@ public class DashboardServiceImpl implements DashboardService {
 			response = getReferrerdata(countryNames, request,value, response);
 		} else if (request.getBankType().equalsIgnoreCase("Customer")
 				&& request.getSubscriberType().equalsIgnoreCase("Bank")) {
+			System.out.println("Inside the bank as customer ");
 			response = getBankAsCustomerdata(countryNames, request, response, value, rmId);
 		} else if (request.getBankType().equalsIgnoreCase("Underwriter")
 				&& request.getSubscriberType().equalsIgnoreCase("Bank")) {
@@ -1030,6 +1031,8 @@ public class DashboardServiceImpl implements DashboardService {
 		long paymentPending = custRepo.getDashboardCount(12, request.getSubscriberType(), request.getBankType(), "", 0, "", "", "",
 				Utility.getUserCountry());
 
+		System.out.println("Bank as customer data values"+paymentPending);
+		
 		response.setPaymentApproval(paymentApprovalList);
 		response.setGrantPayment(grantPayment);
 		response.setAssignRm(assignRm);
