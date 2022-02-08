@@ -202,6 +202,7 @@ public class EmailController {
 		return userEmailService.validateSubsidiaryLink(token);
 	}
 
+	
 	/*
 	 * Validating branch user passcodeVlue
 	 */
@@ -228,6 +229,7 @@ System.out.println("Peersonal Details recaptchResponse" + passCodeBean.getRecapt
 					userID=userid+"-"+client.getEmailAddress();
 				}else {
 					userID=userid+"-"+passCodeBean.getEmailid();
+					
 				}
 				
 			}else {

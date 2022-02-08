@@ -35,6 +35,21 @@ public class DiscountMpCouponRequest {
 	private NimaiMDiscount discountId;
 
 	private NimaiMCustomer userid;
+	
+	private String countryName[];
+	
+	
+	
+	
+	
+
+	public String[] getCountryName() {
+		return countryName;
+	}
+
+	public void setCountryName(String[] countryName) {
+		this.countryName = countryName;
+	}
 
 	public DiscountMpCouponRequest() {
 		super();
@@ -70,8 +85,9 @@ public class DiscountMpCouponRequest {
 	}
 
 	public void setCountry(String country) {
-		this.country = country;
+	this.country = country;
 	}
+	
 
 	public String getCompanyName() {
 		return companyName;

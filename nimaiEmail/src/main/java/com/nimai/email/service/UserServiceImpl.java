@@ -2837,11 +2837,19 @@ public class UserServiceImpl implements UserService {
 			logger.info("====================================UserId Id:-" + userId
 					+ "====================================");
 			if (clientUseId != null) {
+				NimaiSubscriptionDetails subDetails ;
 				NimaiSubscriptionVas vasDetails = vasRepo.getVasDetailsByInvoiceId(clientUseId.getUserid(),
 						invoiceId);
 				logger.info("====================vasdetails" + vasDetails.getVasId());
-				NimaiSubscriptionDetails subDetails = userDao.getSplanDetails(vasDetails.getSubscriptionId(),
-						userId);
+				if(vasDetails.getStatus().equalsIgnoreCase("Inactive")) 
+				{
+					subDetails = sPlanRepo.getOne(vasDetails.getsPLanSerialNUmber());
+					 
+				}else {
+					subDetails = userDao.getSplanDetails(vasDetails.getSubscriptionId(),
+							userId);
+				}
+				
 
 				logger.info("==========================subdetails" + subDetails.getsPlSerialNUmber());
 				if (!vasDetails.getMode().equalsIgnoreCase("Wire")) {
@@ -2880,8 +2888,18 @@ public class UserServiceImpl implements UserService {
 							NimaiSubscriptionVas vasDetail = vasRepo.getVasDetailsByInvoiceId(clientUseId.getUserid(),
 									invoiceId);
 							logger.info("====================vasdetails" + vasDetails.getVasId());
-							NimaiSubscriptionDetails subDetail = userDao.getSplanDetails(vasDetails.getSubscriptionId(),
-									userId);
+							NimaiSubscriptionDetails subDetail ;
+							
+							if(vasDetails.getStatus().equalsIgnoreCase("Inactive")) 
+							{
+								subDetail = sPlanRepo.getOne(vasDetails.getsPLanSerialNUmber());
+								 
+							}else {
+								subDetail = userDao.getSplanDetails(vasDetails.getSubscriptionId(),
+										userId);
+							}
+							
+							
 							logger.info("====================vasdetails" + vasDetails.getVasId());
 							
 							logger.info("==========================subdetails" + subDetails.getsPlSerialNUmber());

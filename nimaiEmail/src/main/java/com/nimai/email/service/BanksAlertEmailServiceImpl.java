@@ -134,7 +134,7 @@ public class BanksAlertEmailServiceImpl implements BanksALertEmailService {
 	}
 
 	@Override
-	@Scheduled(fixedDelay = 50000)
+	//@Scheduled(fixedDelay = 50000)
 	@Transactional(propagation = Propagation.NESTED)
 	public void sendTransactionStatusToBanksByScheduled() {
 

@@ -167,7 +167,9 @@ public class RefererServiceImpl implements RefererService {
 			response.setLandline(ref.getLandline());
 			response.setDesignation(ref.getDesignation());
 			response.setCompanyName(ref.getCompanyName());
-			if (ref.getKycStatus().equals("PENDING"))
+			if(ref.getKycStatus()==null)
+				response.setKyc("Not Uploaded");
+			else if (ref.getKycStatus().equals("PENDING"))
 				response.setKyc("Not Uploaded");
 			else
 				response.setKyc(ref.getKycStatus());

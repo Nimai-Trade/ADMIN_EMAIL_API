@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import com.nimai.admin.payload.SPlanBean;
 import com.nimai.admin.payload.CouponBean;
+import com.nimai.admin.payload.CurrencyResponce;
 import com.nimai.admin.payload.EligibleEmailList;
 import com.nimai.admin.payload.VasUpdateRequestBody;
 import java.util.stream.Stream;
@@ -17,6 +18,7 @@ import com.nimai.admin.model.NimaiLCMaster;
 
 import java.util.Calendar;
 
+import com.nimai.admin.model.BankRatingModel;
 import com.nimai.admin.model.GenericResponse;
 import com.nimai.admin.model.NimaiEmailScheduler;
 import com.nimai.admin.model.NimaiEmailSchedulerAlertToBanks;
@@ -40,11 +42,15 @@ import com.nimai.admin.payload.VasDetails;
 import java.util.Iterator;
 import com.nimai.admin.model.NimaiMDiscount;
 import com.nimai.admin.model.NimaiSubscriptionVas;
+import com.nimai.admin.model.PreferredBankModel;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import com.nimai.admin.model.NimaiSubscriptionDetails;
 import com.nimai.admin.payload.PlanOfPaymentDetailsResponse;
+import com.nimai.admin.payload.PreferredBankListResponse;
+import com.nimai.admin.payload.PreferredBankRequest;
+
 import java.util.function.Function;
 import java.util.Comparator;
 import com.nimai.admin.model.NimaiFKyc;
@@ -66,6 +72,8 @@ import com.nimai.admin.payload.AssociatedAccountsDetails;
 import java.util.List;
 import com.nimai.admin.util.ModelMapper;
 import com.nimai.admin.payload.BankDetailsResponse;
+import com.nimai.admin.payload.BankRatingRequest;
+
 import org.springframework.http.ResponseEntity;
 import com.nimai.admin.util.SPlanSerialComparator;
 import org.slf4j.Logger;
@@ -74,6 +82,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.ParameterMode;
 import javax.persistence.StoredProcedureQuery;
+import javax.validation.Valid;
 
 import com.nimai.admin.repository.NimaiEmailSchedulerRepository;
 import com.nimai.admin.specification.KycSpecification;
@@ -91,12 +100,15 @@ import com.nimai.admin.repository.NimaiKycRepository;
 import com.nimai.admin.repository.NimaiLcMasterRepository;
 import com.nimai.admin.repository.QuotationRepository;
 import com.nimai.admin.repository.SubscriptionVasRepository;
+import com.nimai.admin.repository.BankRatingRepository;
 import com.nimai.admin.repository.CustomerRepository;
 import com.nimai.admin.repository.MasterSubsPlanRepository;
 import com.nimai.admin.repository.NimaiEmailSchedulerAlertToBanksRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import com.nimai.admin.repository.OwnerMasterRepository;
+import com.nimai.admin.repository.PreferredBankRepository;
+
 import org.springframework.stereotype.Service;
 import com.nimai.admin.service.BankService;
 
@@ -149,6 +161,10 @@ public class BankServiceImpl implements BankService {
 	NimaiEmailSchedulerRepository schRepo;
 	@Autowired
 	SubscriptionVasRepository vasRepo;
+	@Autowired
+	PreferredBankRepository preferBankRepo;
+	@Autowired
+	BankRatingRepository bankratingRepo;
 	@Autowired
 	EntityManagerFactory em;
 	@Autowired
@@ -454,6 +470,12 @@ public class BankServiceImpl implements BankService {
 							? Sort.by(new String[] { request.getSortBy() }).descending()
 							: Sort.by(new String[] { request.getSortBy() }).ascending());
 
+		}else if(request.getTxtStatus().equalsIgnoreCase("PaymentPendingUser")) {
+			request.setSortBy("inserted_date");
+			pageable = (Pageable) PageRequest.of(request.getPage(), request.getSize(),
+					request.getDirection().equalsIgnoreCase("desc")
+							? Sort.by(new String[] { request.getSortBy() }).descending()
+							: Sort.by(new String[] { request.getSortBy() }).ascending());
 		} else {
 
 			pageable = (Pageable) PageRequest.of(request.getPage(), request.getSize(),
@@ -609,13 +631,58 @@ public class BankServiceImpl implements BankService {
 			response.setLandline(cust.getLandline());
 			response.setCountryName(cust.getCountryName());
 			response.setBankName(cust.getBankName());
-			response.setPlanOfPayments((cust.getNimaiSubscriptionDetailsList().size() != 0)
-					? this.collectPlanName(cust.getNimaiSubscriptionDetailsList())
-					: "No Active Plan");
-			if (response.getPlanOfPayments().isEmpty() || response.getPlanOfPayments() == null) {
-				response.setPlanOfPayments(
-						"Latest Inactive_".concat(this.collectInPlanName(cust.getNimaiSubscriptionDetailsList())));
+//			response.setPlanOfPayments((cust.getNimaiSubscriptionDetailsList().size() != 0)
+//					? this.collectPlanName(cust.getNimaiSubscriptionDetailsList())
+//					: "No Active Plan");
+//			if (response.getPlanOfPayments().isEmpty() || response.getPlanOfPayments() == null) {
+//				response.setPlanOfPayments(
+//						"Latest Inactive_".concat(this.collectInPlanName(cust.getNimaiSubscriptionDetailsList())));
+//			}
+			if(request.getTxtStatus()==null) {
+				response.setPlanOfPayments(cust.getNimaiSubscriptionDetailsList().size() != 0
+						? collectPlanName(cust.getNimaiSubscriptionDetailsList())
+						: "No Active Plan");
+				if (response.getPlanOfPayments().isEmpty() || response.getPlanOfPayments() == null) {
+					response.setPlanOfPayments(
+							("Latest Inactive_").concat(collectInPlanName(cust.getNimaiSubscriptionDetailsList())));
+				}
 			}
+			
+			
+			else if (request.getTxtStatus().equalsIgnoreCase("PaymentPendingUser")) {
+				if(cust.getNimaiSubscriptionDetailsList().size()!=0) {
+					response.setPlanOfPayments(
+							("Latest Inactive_").concat(collectInPlanName(cust.getNimaiSubscriptionDetailsList())));
+				}else {
+					response.setPlanOfPayments(cust.getNimaiSubscriptionDetailsList().size() != 0
+							? collectPlanName(cust.getNimaiSubscriptionDetailsList())
+							: "No Active Plan");
+				}
+				
+			}else{
+				response.setPlanOfPayments(cust.getNimaiSubscriptionDetailsList().size() != 0
+						? collectPlanName(cust.getNimaiSubscriptionDetailsList())
+						: "No Active Plan");
+				if (response.getPlanOfPayments().isEmpty() || response.getPlanOfPayments() == null) {
+					response.setPlanOfPayments(
+							("Latest Inactive_").concat(collectInPlanName(cust.getNimaiSubscriptionDetailsList())));
+				}
+			}
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			response.setTotalQuotes(this.quoteRepo.quoteCout(cust.getUserid()));
 			// response.setKyc(cust.getKycStatus());
 			// System.out.println("==============useriD"+userId);
@@ -2059,4 +2126,87 @@ vasIdString.add(String.valueOf(vasNew.getId()).concat("-"));
 
 	}
 
+	@Override
+	public List<PreferredBankListResponse> getBankList() {
+		// TODO Auto-generated method stub
+		final List<NimaiMCustomer> cust = this.repo.findBankDetails();
+		
+	if (cust.size() != 0 && cust != null)
+		return cust.stream().map(
+				res -> new PreferredBankListResponse(res.getUserid(), res.getFirstName(), res.getLastName(),res.getEmailAddress(), res.getBankName()))
+				.collect(Collectors.toList());
+	else
+		return null;
+	}
+
+	@Override
+	public ResponseEntity<?> createOrUpdatePreferredBank(@Valid PreferredBankRequest request) {
+		// TODO Auto-generated method stub
+		preferBankRepo.deletePreferredBank(request.getCustUserId());
+		for (int i = 0; i < request.getBanks().length; i++) {
+			PreferredBankModel preferBank = new PreferredBankModel();
+			preferBank.setCustUserId(request.getCustUserId());
+			preferBank.setBankUserId(request.getBanks()[i]);
+			preferBankRepo.save(preferBank);
+		}
+		
+		return new ResponseEntity<>(new ApiResponse(true, "Preferred Bank Added Successfully..."),
+				HttpStatus.CREATED);
+	}
+
+	@Override
+	public List<PreferredBankListResponse> viewPreferredBanks(@Valid PreferredBankRequest request) {
+		// TODO Auto-generated method stub
+		List<PreferredBankListResponse> prBankList = new ArrayList<>();
+		final List<PreferredBankModel> cust = preferBankRepo.findBankDetails(request.getCustUserId());
+		for(PreferredBankModel pm:cust)
+		{
+			String bankNm = this.repo.findBankName(pm.getBankUserId());
+			PreferredBankListResponse pr=new PreferredBankListResponse();
+			pr.setUserid(pm.getBankUserId());
+			pr.setCustUserid(pm.getCustUserId());
+			pr.setBankName(bankNm);
+			prBankList.add(pr);
+		}
+		return prBankList;
+		/*if (cust.size() != 0 && cust != null)
+			return cust.stream().map(
+					res -> new PreferredBankListResponse(res.getBankUserId(),res.getCustUserId(),""))
+					.collect(Collectors.toList());
+		else
+			return null;*/
+	}
+
+	@Override
+	public ResponseEntity<?> createOrUpdateBankRating(@Valid BankRatingRequest request) {
+		// TODO Auto-generated method stub
+		BankRatingModel br=bankratingRepo.getDetailsByBankUserId(request.getBankUserid());
+		if(br==null)
+		{
+			BankRatingModel brNew=new BankRatingModel();
+			brNew.setBankUserid(request.getBankUserid());
+			brNew.setRating(request.getRating());
+			bankratingRepo.save(brNew);
+		}
+		else
+		{
+			BankRatingModel brOld=bankratingRepo.getOne(br.getId());
+			brOld.setBankUserid(request.getBankUserid());
+			brOld.setRating(request.getRating());
+			bankratingRepo.save(brOld);
+		}
+		return new ResponseEntity<>(new ApiResponse(true, "Bank Rated Successfully..."),
+				HttpStatus.CREATED);
+	}
+
+	@Override
+	public ResponseEntity<?> viewBankRatingDetails(@Valid BankRatingRequest request) {
+		// TODO Auto-generated method stub
+		
+		GenericResponse response = new GenericResponse();
+		BankRatingModel brm=bankratingRepo.getDetailsByBankUserId(request.getBankUserid());
+		response.setData(brm);
+
+		return new ResponseEntity<>(response, HttpStatus.OK);
+	}
 }

@@ -26,6 +26,7 @@ public class NimaiMSubscriptionPlan {
 	@Basic(optional = false)
 	@Column(name = "SUBS_PLAN_ID")
 	private int subscriptionPlanId;
+	
 	@Column(name = "CUSTOMER_TYPE")
 	private String customerType;
 	@Column(name = "COUNTRY_NAME")

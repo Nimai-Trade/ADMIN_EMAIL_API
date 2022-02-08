@@ -28,10 +28,13 @@ public interface VasRepository extends JpaRepository<NimaiMVas, Integer>, JpaSpe
 	@Query("FROM NimaiMVas v where v.countryName= :countryName and  (v.status='Active' or v.status='Pending')  and v.customerType= :custType")
 	List<NimaiMVas> getVasDetails(@Param("countryName") String countryName,@Param("custType") String custType);
 	
-	@Query(value = "SELECT sub.* FROM nimai_m_vas sub where sub.COUNTRY_NAME in :value ",
+	@Query(value = "SELECT sub.* FROM nimai_m_vas sub INNER JOIN nimai_m_vascoutry vas\r\n" + 
+			"ON sub.VAS_ID=vas.vasid\r\n" + 
+			"  where vas.vas_country in :value ",
 	 		countQuery = "SELECT cnt FROM\n" + 
-	 				"(SELECT COUNT(*) AS cnt FROM nimai_m_vas sub \n" + 
-	 				"where  sub.COUNTRY_NAME IN :value  )\n" + 
+	 				"(SELECT COUNT(*) AS cnt FROM nimai_m_vas sub INNER JOIN nimai_m_vascoutry vas ON"
+	 				+ " sub.VAS_ID=vas.vasid\n" + 
+	 				"where   vas.vas_country IN :value  )\n" + 
 	 				"AS cnt",nativeQuery = true)
 	public Page<NimaiMVas> getAllVasPlan(List<String> value, Pageable pageable);
 }

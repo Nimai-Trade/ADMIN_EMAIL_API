@@ -13,6 +13,7 @@ public class SearchRequest {
 	private String emailId;
 	private String mobileNo;
 	private String companyName;
+	private String discountCountry[];
 	private String bankName;
 	private String country;
 	private String txtStatus;
@@ -117,6 +118,24 @@ public class SearchRequest {
 	public void setCountryNames(String countryNames) {
 		this.countryNames = countryNames;
 	}
+	
+	
+
+	public String[] getDiscountCountry() {
+		return discountCountry;
+	}
+
+	public void setDiscountCountry(String[] discountCountry) {
+		this.discountCountry = discountCountry;
+	}
+
+	public String getCountry() {
+		return country;
+	}
+
+	public void setCountry(String country) {
+		this.country = country;
+	}
 
 	public int getPage() {
 		return page;
@@ -182,13 +201,8 @@ public class SearchRequest {
 		this.companyName = companyName;
 	}
 
-	public String getCountry() {
-		return country;
-	}
+	
 
-	public void setCountry(String country) {
-		this.country = country;
-	}
 
 	public String getTxtStatus() {
 		return txtStatus;

@@ -46,8 +46,23 @@ public class DiscountCouponRequest {
 	private String modifiedBy;
 
 	private Date modifiedDate;
-
+	
+	private String countryName[];
+	
 	private List<DisQuantityAndCouponCode> details;
+	
+	
+	
+
+	public String[] getCountryName() {
+		return countryName;
+	}
+
+	public void setCountryName(String[] countryName) {
+		this.countryName = countryName;
+	}
+
+	
 
 	public DiscountCouponRequest() {
 		super();

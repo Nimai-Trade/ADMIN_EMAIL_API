@@ -1,5 +1,7 @@
 package com.nimai.admin.service.impl;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -23,6 +25,7 @@ import com.nimai.admin.model.NimaiMCustomer;
 import com.nimai.admin.model.NimaiMEmployee;
 import com.nimai.admin.model.NimaiMRole;
 import com.nimai.admin.model.NimaiMVas;
+import com.nimai.admin.model.NimaiMVasCountry;
 import com.nimai.admin.payload.ApiResponse;
 import com.nimai.admin.payload.PagedResponse;
 import com.nimai.admin.payload.SearchRequest;
@@ -32,6 +35,7 @@ import com.nimai.admin.repository.CustomerRepository;
 import com.nimai.admin.repository.EmployeeRepository;
 import com.nimai.admin.repository.MasterSubsPlanRepository;
 import com.nimai.admin.repository.NimaiEmailSchedulerRepository;
+import com.nimai.admin.repository.NimaiVasCountryRepository;
 import com.nimai.admin.repository.RoleRepository;
 import com.nimai.admin.repository.VasRepository;
 import com.nimai.admin.service.VasService;
@@ -61,6 +65,9 @@ public class VasServiceImpl implements VasService {
 	
 	@Autowired
 	MasterSubsPlanRepository sub;
+	
+	@Autowired
+	NimaiVasCountryRepository vasCountryRepo;
 
 	/**
 	 * Maker Create a Vas Plan
@@ -96,7 +103,15 @@ public class VasServiceImpl implements VasService {
 				msg = "VAS plan created successfully";
 			}
 			nimaiTempVas.setCustomerType(tempVas.getCustomerType());
-			nimaiTempVas.setCountryName(tempVas.getCountryName());
+			
+			StringBuilder stringBuilder = new StringBuilder();
+			for (int i = 0; i < tempVas.getCountry().length; i++) {
+				stringBuilder.append(tempVas.getCountry()[i] + ",");
+			}
+			nimaiTempVas.setCountryName(stringBuilder.toString().substring(0, stringBuilder.length() - 1));
+			
+			
+		//	nimaiTempVas.setCountryName(tempVas.getCountryName());
 			nimaiTempVas.setPlanName(tempVas.getPlanName());
 			nimaiTempVas.setDescription1(tempVas.getDescription1());
 			nimaiTempVas.setDescription2(tempVas.getDescription2());
@@ -108,6 +123,16 @@ public class VasServiceImpl implements VasService {
 			nimaiTempVas.setCreatedDate(today);
 			nimaiTempVas.setStatus("Pending");
 			vasRepository.save(nimaiTempVas);
+			
+			
+			for (int i = 0; i < tempVas.getCountry().length; i++) {
+				NimaiMVasCountry vasCoutry=new NimaiMVasCountry();
+				vasCoutry.setVasCountry(tempVas.getCountry()[i]);
+				vasCoutry.setVasId(nimaiTempVas.getVasid());
+				vasCountryRepo.save(vasCoutry);
+			}
+			
+			
 
 			return new ResponseEntity<>(new ApiResponse(true, msg), HttpStatus.CREATED);
 		} catch (Exception e) {
@@ -153,7 +178,21 @@ public class VasServiceImpl implements VasService {
 			VasResponse response = new VasResponse();
 			response.setVasid(vas.getVasid());
 			response.setCustomerType(vas.getCustomerType());
-			response.setCountryName(vas.getCountryName());
+			
+			
+			String countryName="";
+			List<String> myList = new ArrayList<String>(Arrays.asList(vas.getCountryName().split(",")));
+			
+			 
+            if(myList.size()<=1) {
+            	response.setCountryName(vas.getCountryName());
+            }else {
+            	response.setCountryName("Multiple Countries");
+            }
+			
+			
+			response.setCountry(vas.getCountryName().split(","));
+			//response.setCountryName(vas.getCountryName());
 			response.setPlanName(vas.getPlanName());
 			response.setDescription1(vas.getDescription1());
 			response.setDescription2(vas.getDescription2());

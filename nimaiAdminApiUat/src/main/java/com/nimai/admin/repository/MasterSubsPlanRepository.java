@@ -14,6 +14,7 @@ import org.springframework.stereotype.Repository;
 
 import com.nimai.admin.model.NimaiMSubscriptionPlan;
 import com.nimai.admin.model.NimaiMVas;
+import com.nimai.admin.payload.SubscriptionMPlanResponse;
 
 @Repository
 public interface MasterSubsPlanRepository
@@ -40,16 +41,41 @@ public interface MasterSubsPlanRepository
 	List<NimaiMSubscriptionPlan> getPlanAmount(@Param("customerType") String customerType,
 			@Param("countryName") String countryName);
 
-	@Query(value = "SELECT sub.* FROM nimai_m_subscription sub where sub.country_name in :value and sub.customer_type=:custType",
+	@Query(value = " SELECT * FROM nimai_m_subscription nms INNER JOIN nimai_m_subscriptioncountry ncm \r\n" + 
+			"     ON nms.SUBSCRIPTION_ID=ncm.subscription_id\r\n" + 
+			"     WHERE ncm.subscription_country IN (:value)\r\n" + 
+			"     AND nms.CUSTOMER_TYPE=:custType group by nms.SUBSCRIPTION_ID",
 	 		countQuery = "SELECT cnt FROM\n" + 
-	 				"(SELECT COUNT(*) AS cnt FROM nimai_m_subscription sub \n" + 
-	 				"where sub.customer_type=:custType and sub.country_name IN :value  )\n" + 
+	 				"(SELECT count(DISTINCT ncm.subscription_id) AS cnt FROM nimai_m_subscription nms INNER JOIN nimai_m_subscriptioncountry ncm \n" + 
+	 				"ON nms.SUBSCRIPTION_ID=ncm.subscription_id "
+	 				+ "where nms.customer_type=:custType "
+	 				+ " and ncm.subscription_country IN (:value))\n" + 
 	 				"AS cnt",nativeQuery = true)
 	public Page<NimaiMSubscriptionPlan> getAllSubscriptionPlan(List<String> value, String custType, Pageable pageable);
 
+
+
+//	@Query(value = "SELECT sub.* FROM nimai_m_subscription sub where FIND_IN_SET ((:countryValues),sub.country_name) and"
+//			+ " sub.customer_type=:customerType"
+//			+ " order by  sub.INSERTED_DATE  desc ",
+//			countQuery = "SELECT cnt FROM\n" + 
+//	 				"(SELECT COUNT(*) AS cnt FROM nimai_m_subscription sub \n" + 
+//	 				"where sub.customer_type=:custType and FIND_IN_SET ((:countryValues),sub.country_name) "
+//	 				+ " order by sub.INSERTED_DATE desc limit i )\n" + 
+//	 				"AS cnt",nativeQuery = true)
+//	List<NimaiMSubscriptionPlan> getAllSubscriptionPlanNew(String countryValues, String customerType, Pageable pageable);
+//
+//	
+
+	@Query(value = "SELECT sub.* FROM nimai_m_subscription sub where FIND_IN_SET ((:countryValues),sub.country_name) and"
+			+ " sub.customer_type=:customerType",
+			countQuery = "SELECT cnt FROM\n" + 
+	 				"(SELECT COUNT(*) AS cnt FROM nimai_m_subscription sub \n" + 
+	 				"where sub.customer_type=:custType and FIND_IN_SET ((:countryValues),sub.country_name) "+ 
+	 				"AS cnt",nativeQuery = true)
+	List<NimaiMSubscriptionPlan> getAllSubscriptionPlanNew(String countryValues, String customerType, Pageable pageable);
+
 	
-
-
 	
 	
 	

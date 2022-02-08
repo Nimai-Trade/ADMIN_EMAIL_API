@@ -138,6 +138,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 				stringBuilder.append(request.getCountry()[i] + ",");
 			}
 			employee.setCountry(stringBuilder.toString().substring(0, stringBuilder.length() - 1));
+			
 			employee.setAddress1(request.getAddress1());
 			employee.setAddress2(request.getAddress2());
 			

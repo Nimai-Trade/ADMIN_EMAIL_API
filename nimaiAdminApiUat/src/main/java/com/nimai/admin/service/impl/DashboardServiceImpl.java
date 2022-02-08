@@ -912,8 +912,8 @@ public class DashboardServiceImpl implements DashboardService {
 		long kycApproval;
 		long grntkycApproval;
 		
-			 kycApproval = custRepo.getRefPendingAllKYC();
-			 grntkycApproval = custRepo.getRefCustGrantKYC();
+			 kycApproval = custRepo.getRefPendingAllKYC(value);
+			 grntkycApproval = custRepo.getRefCustGrantKYC(value);
 			paymentApprovalList = 0;//custRepo.getDashboardCount(34, "", "", "", 0, "", "", "", Utility.getUserCountry());
 			grantRm = custRepo.getDashboardCount(4, request.getSubscriberType(), request.getBankType(), "", 0, "", "", "", Utility.getUserCountry());
 			grantPayment = 0;//custRepo.getDashboardCount(35, "", "", "", 0, "", "", "", Utility.getUserCountry());	
@@ -922,7 +922,13 @@ public class DashboardServiceImpl implements DashboardService {
 		
 		long subExp30Days = custRepo.getDashboardCount(9, "Referrer", "", "", 0, "", "", "A", Utility.getUserCountry());
 		
-		long pendingKyc =  custRepo.getRefpendingKycNullNew();
+		long pendingKyc;
+		
+		if(Utility.getUserCountry().equalsIgnoreCase("All")) {
+			pendingKyc=  custRepo.getRefpendingKycNullNew();
+		}else {
+			pendingKyc=custRepo.getRefpendingKycCountryWiseNullNew(value);
+		}
 				
 				//custRepo.getDashboardCount(8, "Referrer","", "", 1, "", "", "A",
 				//Utility.getUserCountry());
@@ -954,8 +960,8 @@ public class DashboardServiceImpl implements DashboardService {
 		long grntkycApproval;
 		long pendingKyc;
 		
-			 kycApproval = custRepo.getBankAsUnderPendingAllKYC();
-			 grntkycApproval = custRepo.getBankAsUnderGrantKYC();
+			 kycApproval = custRepo.getBankAsUnderPendingAllKYC(value);
+			 grntkycApproval = custRepo.getBankAsUnderGrantKYC(value);
 			paymentApprovalList = custRepo.getDashboardCount(30, "", "", "", 0, "", "", "", Utility.getUserCountry());
 			grantRm = custRepo.getDashboardCount(4,request.getSubscriberType(), request.getBankType(), "", 0, "", "", "", Utility.getUserCountry());
 			grantPayment = custRepo.getDashboardCount(33, "", "", "", 0, "", "", "", Utility.getUserCountry());	
@@ -980,8 +986,10 @@ public class DashboardServiceImpl implements DashboardService {
 				//Utility.getUserCountry());
 		
 		
-		long paymentPending = custRepo.getDashboardCount(12,request.getSubscriberType(),request.getBankType(), "", 0, "", "", "",
-				Utility.getUserCountry());
+//		long paymentPending = custRepo.getDashboardCount(12,request.getSubscriberType(),request.getBankType(), "", 0, "", "", "",
+//				Utility.getUserCountry());
+		
+		long paymentPending = custRepo.getDashboardCountBank(request.getSubscriberType(),request.getBankType(),value);
 
 		response.setPaymentApproval(paymentApprovalList);
 		response.setGrantPayment(grantPayment);
@@ -1007,8 +1015,8 @@ public class DashboardServiceImpl implements DashboardService {
 		long grntkycApproval;
 		long pendingKyc;
 		
-			 kycApproval = custRepo.getBankAsCustPendingAllKYC();
-			 grntkycApproval = custRepo.getBankAsCustGrantKYC();
+			 kycApproval = custRepo.getBankAsCustPendingAllKYC(value);
+			 grntkycApproval = custRepo.getBankAsCustGrantKYC(value);
 			paymentApprovalList = custRepo.getDashboardCount(29, "", "", "", 0, "", "", "", Utility.getUserCountry());
 			grantRm = custRepo.getDashboardCount(4, request.getSubscriberType(), request.getBankType(), "", 0, "", "", "", Utility.getUserCountry());
 			grantPayment = custRepo.getDashboardCount(32, "", "", "", 0, "", "", "", Utility.getUserCountry());	
@@ -1027,9 +1035,11 @@ public class DashboardServiceImpl implements DashboardService {
 				//custRepo.getDashboardCount(8, "Bank", "Customer", "", 1, "", "", "A",
 				//Utility.getUserCountry());
 		
+//		
+//		long paymentPending = custRepo.getDashboardCount(12, request.getSubscriberType(), request.getBankType(), "", 0, "", "", "",
+//				Utility.getUserCountry());
 		
-		long paymentPending = custRepo.getDashboardCount(12, request.getSubscriberType(), request.getBankType(), "", 0, "", "", "",
-				Utility.getUserCountry());
+		long paymentPending = custRepo.getDashboardCountBank(request.getSubscriberType(),request.getBankType(),value);
 
 		System.out.println("Bank as customer data values"+paymentPending);
 		
@@ -1056,8 +1066,8 @@ public class DashboardServiceImpl implements DashboardService {
 		long grntkycApproval;
 		long pendingKyc;
 		
-			 kycApproval = custRepo.getCustPendingAllKYC();
-			 grntkycApproval = custRepo.getCustGrantKYC();
+			 kycApproval = custRepo.getCustPendingAllKYC(value);
+			 grntkycApproval = custRepo.getCustGrantKYC(value);
 			paymentApprovalList = custRepo.getDashboardCount(28, "", "", "", 0, "", "", "", Utility.getUserCountry());
 			grantRm = custRepo.getDashboardCount(4, request.getSubscriberType(), request.getBankType(), "", 0, "", "", "", Utility.getUserCountry());
 			grantPayment = custRepo.getDashboardCount(31, "", "", "", 0, "", "", "", Utility.getUserCountry());	
@@ -1082,8 +1092,13 @@ public class DashboardServiceImpl implements DashboardService {
 			//	Utility.getUserCountry());
 		
 		
-		long paymentPending = custRepo.getDashboardCount(11, "Customer", "", "", 0, "", "", "A",
-				Utility.getUserCountry());
+		/*
+		 * long paymentPending = custRepo.getDashboardCount(11, "Customer", "", "", 0,
+		 * "", "", "A", Utility.getUserCountry());
+		 */
+		
+		
+		long paymentPending = custRepo.getDashboardCountCustomer(request.getSubscriberType(),value);
 
 		response.setPaymentApproval(paymentApprovalList);
 		response.setGrantPayment(grantPayment);
@@ -1110,13 +1125,13 @@ public class DashboardServiceImpl implements DashboardService {
 		long grntkycApproval;
 		long pendingKyc;
 		
-			 kycApproval = custRepo.getPendingAllKYC();
-			 grntkycApproval = custRepo.getGrantKYC();
+			 kycApproval = custRepo.getPendingAllKYC(value);
+			 grntkycApproval = custRepo.getGrantKYC(value);
 			paymentApprovalList = custRepo.getDashboardCount(1, "", "", "", 0, "", "", "", Utility.getUserCountry());
 			grantRm = custRepo.getDashboardCount(37, "", "", "", 0, "", "", "", Utility.getUserCountry());
 			grantPayment = custRepo.getDashboardCount(2, "", "", "", 0, "", "", "", Utility.getUserCountry());	
 			// kycApproval = custRepo.getPendingAllKYC();
-			 grntkycApproval = custRepo.getGrantKYC();
+			// grntkycApproval = custRepo.getGrantKYC();
 		long assignRm = custRepo.getDashboardCount(36, "", "", "", 0, "", "", "", Utility.getUserCountry());
 		long grantUser =custRepo.getDashboardCount(5, "", "", "", 0, "", "", "", Utility.getUserCountry());
 		
@@ -1135,7 +1150,10 @@ public class DashboardServiceImpl implements DashboardService {
 		
 		
 		
-		long paymentPending = custRepo.getDashboardCount(11, "", "", "", 0, "", "", "", Utility.getUserCountry());
+		//long paymentPending = custRepo.getDashboardCount(11, "", "", "", 0, "", "", "", Utility.getUserCountry());
+		
+		
+		long paymentPending = custRepo.getDashboardCountByQuery(value);
 
 		response.setPaymentApproval(paymentApprovalList);
 		response.setGrantPayment(grantPayment);

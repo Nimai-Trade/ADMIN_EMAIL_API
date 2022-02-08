@@ -51,6 +51,13 @@ public interface KycRepository extends JpaRepository<NimaiFKyc, Integer>//, JpaS
 	@Query(value ="SELECT * FROM nimai_f_kyc k INNER JOIN nimai_m_customer nc ON k.userId=nc.USERID WHERE k.kyc_status='Maker Approved' AND nc.subscriber_type=:subsType and nc.bank_type=:bankType and nc.COUNTRY_NAME IN :value", nativeQuery = true)
 	Page<NimaiFKyc> findMakerApprovedKycByCountriesSubsTypeBankType(@Param("value")List<String> value, String subsType, String bankType, Pageable pageable);
 	
-	@Query(value ="SELECT * FROM nimai_f_kyc k INNER JOIN nimai_m_customer nc ON k.userId=nc.USERID WHERE nc.subscriber_type=:subsType and k.kyc_status='Maker Approved' AND nc.COUNTRY_NAME IN :value", nativeQuery = true)
+	@Query(value ="SELECT * FROM nimai_f_kyc k INNER JOIN nimai_m_customer nc "
+			+ " ON k.userId=nc.USERID WHERE nc.subscriber_type=:subsType and k.kyc_status='Maker Approved' "
+			+ "AND nc.COUNTRY_NAME IN :value",
+	countQuery = "SELECT COUNT(*) AS cnt FROM nimai_f_kyc k INNER JOIN nimai_m_customer nc ON k.userId=nc.USERID\r\n" + 
+			" WHERE nc.subscriber_type='Referrer'  \r\n" + 
+			"AND k.kyc_status='Maker Approved' \r\n" + 
+			"AND nc.COUNTRY_NAME IN :value",
+	nativeQuery = true)
 	Page<NimaiFKyc> findCustomerReferrerMakerApprovedKycByCountries(@Param("value")List<String> value, String subsType, Pageable pageable);
 }

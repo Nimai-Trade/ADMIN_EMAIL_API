@@ -20,6 +20,7 @@ import com.nimai.admin.payload.BankDetailsResponse;
 import com.nimai.admin.payload.CustomerResponse;
 import com.nimai.admin.payload.EmployeeListRequest;
 import com.nimai.admin.payload.OwenerBean;
+import com.nimai.admin.payload.PreferredBankListResponse;
 import com.nimai.admin.payload.RightsResponse;
 import com.nimai.admin.payload.RoleList;
 import com.nimai.admin.payload.RoleResponse;
@@ -484,4 +485,22 @@ public class ModelMapper {
 		return response;
 	}
 
+	/*public static List<PreferredBankListResponse> mapPreferredBankDetails(List<NimaiMCustomer> cust) {
+		List<PreferredBankListResponse> responses;
+		System.out.println("CustomerList: "+cust);
+		for(NimaiMCustomer pr:cust)
+		{
+			System.out.println("PreferredBank:: "+pr.getFirstName());
+			PreferredBankListResponse response=new PreferredBankListResponse();
+			response.setUserid(pr.getUserid());
+			response.setFirstName(pr.getFirstName());
+			response.setLastName(pr.getLastName());
+			response.setBankName(pr.getBankName());
+			response.setEmailAddress(pr.getEmailAddress());
+			responses.add(response);
+		}
+		
+		
+		return responses;
+	}*/
 }

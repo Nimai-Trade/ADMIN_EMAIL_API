@@ -301,6 +301,14 @@ public class CustomerServiceImpl implements CustomerService {
 							? Sort.by(new String[] { request.getSortBy() }).descending()
 							: Sort.by(new String[] { request.getSortBy() }).ascending());
 
+		}else if(request.getTxtStatus().equalsIgnoreCase("PaymentPendingUser")) {
+			System.out.println("===============Inside PaymentPendingUser=================");
+			
+			pageable = (Pageable) PageRequest.of(request.getPage(), request.getSize(),
+					request.getDirection().equalsIgnoreCase("desc")
+							? Sort.by(new String[] { request.getSortBy() }).descending()
+							: Sort.by(new String[] { request.getSortBy() }).ascending());
+			System.out.println("===============Inside PaymentPendingUser================="+request.getSortBy());
 		} else {
 
 			pageable = PageRequest.of(request.getPage(), request.getSize(),
@@ -321,11 +329,15 @@ public class CustomerServiceImpl implements CustomerService {
 			}
 			System.out.println("Country List: " + countryNames);
 			request.setCountryNames(countryNames);
+			System.out.println("1: "+countryNames);
 		} else if (countryNames != null && !countryNames.equalsIgnoreCase("all") && request.getCountry() == null) {
 			request.setCountryNames(countryNames);
+			System.out.println("2: "+countryNames);
 		}else if(countryNames!=null && request.getCountry()!=null) {
 			request.setCountryNames(request.getCountry());
+			System.out.println("3: "+countryNames);
 		} else if (countryNames == null && request.getCountry() == null) {
+			System.out.println("4: "+countryNames);
 		}
 		final List<String> value = Stream.of(request.getCountryNames().split(",", -1)).collect(Collectors.toList());
 		System.out.println("Values BankService: " + value);
@@ -383,7 +395,9 @@ public class CustomerServiceImpl implements CustomerService {
 				// pageable);
 				System.out.println("========= Searching All Customer =========");
 				customerList = customerRepository.getAllCustomerKYC(value,pageable);
-			} else if (request.getTxtStatus().equalsIgnoreCase("Pending") && (request.getBankType()==null || request.getBankType().isEmpty()) && (request.getSubscriberType()==null || request.getSubscriberType().isEmpty()) ) {
+			} else if (request.getTxtStatus().equalsIgnoreCase("Pending") && 
+					(request.getBankType()==null || request.getBankType().isEmpty()) 
+					&& (request.getSubscriberType()==null || request.getSubscriberType().isEmpty()) ) {
 				System.out.println("========= Searching Pending Customer KYC =========");
 				customerList = customerRepository.getPendingCustomerKYC(value,pageable);
 			} else if (request.getTxtStatus().equalsIgnoreCase("Approved")) {
@@ -399,7 +413,8 @@ public class CustomerServiceImpl implements CustomerService {
 				}else if(request.getSubscriberType().equals("CUSTOMER") && ( request.getBankType()==null) ) {
 					
 					customerList = customerRepository.getNotUploadForCU(value,pageable);
-				}else if(request.getSubscriberType().equals("BANK") && request.getBankType().equals("CUSTOMER")) {
+				}else if(request.getSubscriberType().equals("BANK") && 
+						request.getBankType().equals("CUSTOMER")) {
 					System.out.println("inside khkj");
 				     customerList = customerRepository.getNotUploadForBC(value,pageable);
 				}
@@ -421,10 +436,15 @@ public class CustomerServiceImpl implements CustomerService {
 							"************=============Subscription Expiry in 30 days============***********");
 				}
 				else if (request.getTxtStatus().equalsIgnoreCase("PaymentPendingUser")) {
+					
+					System.out.println("inside paymetpending user customer "+request.getSortBy());
 					customerList = customerRepository.getPaymentPendingUserCU(value, pageable);
+					
 					System.out.println(
 							"************=============PaymentPaymentUser getPaymentPendingUserCU============***********"
-									+ request.getUserId());
+									+ customerList.getSize()+"and :"+customerList.getTotalPages()+"and :"+customerList.getTotalElements()+"country list count:"+value.size());
+					
+					
 					for(NimaiMCustomer cust:customerList) {
 						System.out.println(
 								"************=============PaymentPaymentUser getPaymentPendingUserCU============***********"
@@ -450,10 +470,11 @@ public class CustomerServiceImpl implements CustomerService {
 							"************=============Subscription Expiry in 30 days============***********");
 				}
 				else if (request.getTxtStatus().equalsIgnoreCase("PaymentPendingUser")) {
+					System.out.println("inside paymetpending user getPaymentPendingUserBC "+request.getSortBy());
 					customerList = customerRepository.getPaymentPendingUserBC(value, pageable);
 					for(NimaiMCustomer cust:customerList) {
 						System.out.println(
-								"************=============PaymentPaymentUser getPaymentPendingUserCU============***********"
+								"************=============PaymentPaymentUser getPaymentPendingUserBC============***********"
 										+ cust.getUserid());
 					}
 					System.out.println(
@@ -493,13 +514,38 @@ public class CustomerServiceImpl implements CustomerService {
 			response.setEmailAddress(cust.getEmailAddress());
 			response.setCountryName(cust.getCountryName());
 			response.setCompanyName(cust.getCompanyName());
-			response.setPlanOfPayments(cust.getNimaiSubscriptionDetailsList().size() != 0
-					? collectPlanName(cust.getNimaiSubscriptionDetailsList())
-					: "No Active Plan");
-			if (response.getPlanOfPayments().isEmpty() || response.getPlanOfPayments() == null) {
-				response.setPlanOfPayments(
-						("Latest Inactive_").concat(collectInPlanName(cust.getNimaiSubscriptionDetailsList())));
+			if(request.getTxtStatus()==null) {
+				response.setPlanOfPayments(cust.getNimaiSubscriptionDetailsList().size() != 0
+						? collectPlanName(cust.getNimaiSubscriptionDetailsList())
+						: "No Active Plan");
+				if (response.getPlanOfPayments().isEmpty() || response.getPlanOfPayments() == null) {
+					response.setPlanOfPayments(
+							("Latest Inactive_").concat(collectInPlanName(cust.getNimaiSubscriptionDetailsList())));
+				}
 			}
+			
+			
+			else if (request.getTxtStatus().equalsIgnoreCase("PaymentPendingUser")) {
+				if(cust.getNimaiSubscriptionDetailsList().size()!=0) {
+					response.setPlanOfPayments(
+							("Latest Inactive_").concat(collectInPlanName(cust.getNimaiSubscriptionDetailsList())));
+				}else {
+					response.setPlanOfPayments(cust.getNimaiSubscriptionDetailsList().size() != 0
+							? collectPlanName(cust.getNimaiSubscriptionDetailsList())
+							: "No Active Plan");
+				}
+				
+			}else{
+				response.setPlanOfPayments(cust.getNimaiSubscriptionDetailsList().size() != 0
+						? collectPlanName(cust.getNimaiSubscriptionDetailsList())
+						: "No Active Plan");
+				if (response.getPlanOfPayments().isEmpty() || response.getPlanOfPayments() == null) {
+					response.setPlanOfPayments(
+							("Latest Inactive_").concat(collectInPlanName(cust.getNimaiSubscriptionDetailsList())));
+				}
+			}
+			
+			
 //			response.setTotalTxn(transactionsRepository.countByUserId(cust.getUserid()));
 			response.setTotalTxn(
 					cust.getNimaiMmTransactionList() != null ? cust.getNimaiMmTransactionList().size() : 0);

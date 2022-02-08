@@ -1,10 +1,14 @@
 package com.nimai.admin.service.impl;
 
 import java.text.SimpleDateFormat;
+
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -17,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -29,6 +34,7 @@ import com.nimai.admin.exception.ResourceNotFoundException;
 import com.nimai.admin.model.NimaiEmailScheduler;
 import com.nimai.admin.model.NimaiMEmployee;
 import com.nimai.admin.model.NimaiMRole;
+import com.nimai.admin.model.NimaiMSubscriptionCountry;
 import com.nimai.admin.model.NimaiMSubscriptionPlan;
 import com.nimai.admin.payload.ApiResponse;
 import com.nimai.admin.payload.DiscountPlanResponse;
@@ -40,6 +46,7 @@ import com.nimai.admin.repository.CustomerRepository;
 import com.nimai.admin.repository.EmployeeRepository;
 import com.nimai.admin.repository.MasterSubsPlanRepository;
 import com.nimai.admin.repository.NimaiEmailSchedulerRepository;
+import com.nimai.admin.repository.NimaiMSubscriptionCountryRepository;
 import com.nimai.admin.repository.RoleRepository;
 import com.nimai.admin.service.SubscriptionService;
 import com.nimai.admin.specification.SubscriptionSpecification;
@@ -66,6 +73,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
 	@Autowired
 	RoleRepository roleRepo;
+	
+	@Autowired
+	NimaiMSubscriptionCountryRepository sPlanCountryRepo;
 
 	/**
 	 * To fetch list of data
@@ -95,23 +105,36 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 		final List<String> value = Stream.of(request.getCountryNames().split(",", -1)).collect(Collectors.toList());
 		System.out.println("Countries:" + value);
 		
-		Page<NimaiMSubscriptionPlan> subsList = masterRepo.getAllSubscriptionPlan(value,request.getCustomerType(),pageable);
-				//.findAll(subsspecification.getFilter(request), pageable);
-
-		//Page<NimaiMSubscriptionPlan> subsList = masterRepo.findAll(subsspecification.getFilter(request), pageable);
-
+		String query=null;
+		List<NimaiMSubscriptionPlan> queryList=new ArrayList<>();
+		List<SubscriptionMPlanResponse> allList=new ArrayList<>();
+		Page<NimaiMSubscriptionPlan> subsList;
+		subsList = masterRepo.getAllSubscriptionPlan(value,request.getCustomerType(), pageable);
 	
-		
-		
-		
+ 
+	//	Page<NimaiMSubscriptionPlan> subsList = masterRepo.findAll(subsspecification.getFilter(request), pageable);
 		List<SubscriptionMPlanResponse> responses = subsList.map(sub -> {
 			SubscriptionMPlanResponse response = new SubscriptionMPlanResponse();
 			response.setSubscriptionPlanId(sub.getSubscriptionPlanId());
-			response.setCountryName(sub.getCountryName());
+			
+			String countryName="";
+			List<String> myList = new ArrayList<String>(Arrays.asList(sub.getCountryName().split(",")));
+			
+			 
+		            if(myList.size()<=1) {
+		            	response.setCountryName(sub.getCountryName());
+		            }else {
+		            	response.setCountryName("Multiple Countries");
+		            }
+		     
+			
+			
+			response.setCountry(sub.getCountryName().split(","));
+		//	response.setCountryName(sub.getCountryName());
 			response.setCustomerType(sub.getCustomerType());
 			response.setPlanName(sub.getPlanName());
 			response.setCredits(sub.getCredits());
-			response.setRm(sub.getRm());
+		response.setRm(sub.getRm());
 			response.setSubsidiaries(sub.getSubsidiaries());
 			response.setPricing(sub.getPricing());
 			response.setValidity(sub.getValidity() + "");
@@ -119,7 +142,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 			response.setCreatedBy(sub.getCreatedBy());
 			return response;
 		}).getContent();
-
+		
+		
 		return new PagedResponse<>(responses, subsList.getNumber(), subsList.getSize(), subsList.getTotalElements(),
 				subsList.getTotalPages(), subsList.isLast());
 	}
@@ -173,7 +197,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 			System.out.println("Sub ID :: " + request.getSubscriptionPlanId());
 			Calendar cal = Calendar.getInstance();
 			SimpleDateFormat simpleformat = new SimpleDateFormat("ddMMyyHHmmss");
-			String subscriptionId = request.getCountryName().substring(0, 3) + simpleformat.format(cal.getTime());
+			String id=request.getCountry().toString();
+			String subscriptionId = id.substring(1, 3) + simpleformat.format(cal.getTime());
+			//String subscriptionId =request.getCountryName().substring(0, 3) + simpleformat.format(cal.getTime());
 			if (request.getSubscriptionPlanId() != null) {
 				plan = masterRepo.getOne(request.getSubscriptionPlanId());
 				// plan.setCreatedBy(plan.getCreatedBy());
@@ -185,7 +211,14 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 				msg = "Subscription plan created successfully";
 
 			}
-			plan.setCountryName(request.getCountryName());
+			
+			StringBuilder stringBuilder = new StringBuilder();
+			for (int i = 0; i < request.getCountry().length; i++) {
+				stringBuilder.append(request.getCountry()[i] + ",");
+			}
+			plan.setCountryName(stringBuilder.toString().substring(0, stringBuilder.length() - 1));
+			
+			//plan.setCountryName(request.getCountryName());
 			plan.setCreatedBy(request.getCreatedBy());
 			plan.setCustomerType(request.getCustomerType());
 			plan.setPlanName(request.getPlanName());
@@ -201,7 +234,20 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 			plan.setCurrency(request.getCountryCurrency());
 			plan.setStatus("Pending");
 			masterRepo.save(plan);
-			System.out.println("inserte   dby" + plan.getCreatedBy());
+			
+			for (int i = 0; i < request.getCountry().length; i++) {
+				System.out.println("subscription pLan Id in integer"+plan.getSubscriptionPlanId());
+				NimaiMSubscriptionCountry subCountry=new NimaiMSubscriptionCountry();
+				subCountry.setCountry(request.getCountry()[i]);
+				subCountry.setSubscriptionId(plan.getSubscriptionId());
+				subCountry.setSubscriptionPlanId(plan.getSubscriptionPlanId());
+				sPlanCountryRepo.save(subCountry);
+			}
+			
+			
+			
+			
+			System.out.println("insertedby" + plan.getCreatedBy());
 
 			/*
 			 * RMs entery will be in NimaiEmailScheduler table to send the email
@@ -431,8 +477,15 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 	// returns PlanName and Amount to DiscountManagementApi
 	@Override
 	public ResponseEntity<?> getPlanAmount(SearchRequest request) {
+		
+		StringBuilder stringBuilder = new StringBuilder();
+		for (int i = 0; i < request.getDiscountCountry().length; i++) {
+			stringBuilder.append(request.getDiscountCountry()[i] + ",");
+		}
+		String countryNames=(stringBuilder.toString().substring(0, stringBuilder.length() - 1));
+		
 		List<NimaiMSubscriptionPlan> subList = masterRepo.getPlanAmount(request.getCustomerType(),
-				request.getCountry());
+				countryNames);
 		List<DiscountPlanResponse> dResp = new ArrayList<DiscountPlanResponse>();
 
 		for (NimaiMSubscriptionPlan o : subList) {
@@ -443,5 +496,86 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 		}
 		return new ResponseEntity<>(dResp, HttpStatus.OK);
 	}
+	/* CUstomise pagination logic
+	 * String query=null;
+		List<NimaiMSubscriptionPlan> queryList=new ArrayList<>();
+		List<SubscriptionMPlanResponse> allList=new ArrayList<>();
+		Page<NimaiMSubscriptionPlan> subsList;
+	//	subsList = masterRepo.getAllSubscriptionPlan(value,request.getCustomerType(), pageable);
+		Page<SubscriptionMPlanResponse> pages = null;
 
+	for(String countryValues:value) {
+		System.out.println("country value"+countryValues);
+		queryList = masterRepo.getAllSubscriptionPlanNew(countryValues,request.getCustomerType(),pageable);
+	
+
+		for(NimaiMSubscriptionPlan sub:queryList) 
+	{
+		SubscriptionMPlanResponse response = new SubscriptionMPlanResponse();
+		response.setSubscriptionPlanId(sub.getSubscriptionPlanId());
+		response.setCountry(sub.getCountryName().split(","));
+	//	response.setCountryName(sub.getCountryName());
+		response.setCustomerType(sub.getCustomerType());
+		response.setPlanName(sub.getPlanName());
+		response.setCredits(sub.getCredits());
+		response.setRm(sub.getRm());
+		response.setSubsidiaries(sub.getSubsidiaries());
+		response.setPricing(sub.getPricing());
+		response.setValidity(sub.getValidity() + "");
+		response.setStatus(sub.getStatus());
+		response.setCreatedBy(sub.getCreatedBy());
+		allList.add( response);
+		
+	}
+	}
+
+ pages=new PageImpl<>(allList);
+
+
+ Integer pagesize=request.getSize();
+ Integer pageNUmber=request.getPage();
+
+ if (pagesize==null || pagesize <= 0 || pagesize > allList.size())
+	 pagesize = allList.size();
+ int numPages = (int) Math.ceil((double)allList.size() / (double)pagesize);
+ List<List<SubscriptionMPlanResponse>> pagesNew = new ArrayList<List<SubscriptionMPlanResponse>>(numPages);
+ for (int pageNum = 0; pageNum < numPages;)
+	 pagesNew.add(allList.subList(pageNum * pagesize, Math.min(++pageNum * pagesize, allList.size())));
+ 
+ List<SubscriptionMPlanResponse> responseList=new ArrayList<SubscriptionMPlanResponse>();
+
+ for(int i=0;i<pagesNew.size();i++) {
+	
+	 List<SubscriptionMPlanResponse> responseListNew=pagesNew.get(i);
+	 for(SubscriptionMPlanResponse sub:responseListNew) {
+		 SubscriptionMPlanResponse response = new SubscriptionMPlanResponse();
+			response.setSubscriptionPlanId(sub.getSubscriptionPlanId());
+			 StringJoiner joiner = new StringJoiner("");
+			  for(int j = 0; i < sub.getCountry().length; j++) {
+			         joiner.add(sub.getCountry()[i]);
+			      }
+			      String str = joiner.toString();
+			//response.setCountry(str);
+			response.setCountryName(str);
+			response.setCustomerType(sub.getCustomerType());
+			response.setPlanName(sub.getPlanName());
+			response.setCredits(sub.getCredits());
+			response.setRm(sub.getRm());
+			response.setSubsidiaries(sub.getSubsidiaries());
+			response.setPricing(sub.getPricing());
+			response.setValidity(sub.getValidity() + "");
+			response.setStatus(sub.getStatus());
+			response.setCreatedBy(sub.getCreatedBy());
+			responseList.add(response);
+	 }
+
+ }
+ 	return new PagedResponse<>(responseList, pages.getNumber(), pages.getSize(), pages.getTotalElements(),
+				pages.getTotalPages(), pages.isLast());
+ 
+	 *  
+	 *  
+	 *  
+	 *  
+	 *  */
 }

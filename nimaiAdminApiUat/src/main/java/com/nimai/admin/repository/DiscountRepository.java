@@ -35,25 +35,31 @@ public interface DiscountRepository
 	
 	
 	
-	@Query(value = "SELECT * FROM nimai_m_discount sub where sub.COUNTRY in :value",
+	@Query(value = "SELECT * FROM nimai_m_discount sub "
+			+ "inner join nimai_m_discountcountry nmd  on sub.DISCOUNT_ID=nmd.discount_id where"
+			+ " nmd.discount_country in :value group by nmd.discount_id",
 	 		countQuery = "SELECT cnt FROM\n" + 
-	 				"(SELECT COUNT(*) AS cnt FROM nimai_m_discount sub \n" + 
-	 				"where  sub.COUNTRY IN :value  )\n" + 
+	 				"(SELECT COUNT(DISTINCT nmd.discount_id) AS cnt FROM nimai_m_discount sub \n"
+	 				+ "inner join nimai_m_discountcountry nmd  on sub.DISCOUNT_ID=nmd.discount_id "
+	 				+ "where  nmd.discount_country IN :value  )\n" + 
 	 				"AS cnt",nativeQuery = true)
 	public Page<NimaiMDiscount> getAllVasPlan(List<String> value, Pageable pageable);
 
-	@Query(value = "SELECT * FROM nimai_m_discount sub where sub.COUNTRY in :value and sub.COUPON_FOR=:customerType ",
+	@Query(value = "SELECT * FROM nimai_m_discount sub inner join nimai_m_discountcountry nmd"
+			+ " on sub.DISCOUNT_ID=nmd.discount_id  where nmd.discount_country in :value and sub.COUPON_FOR=:customerType group by nmd.discount_id ",
 	 		countQuery = "SELECT cnt FROM\n" + 
-	 				"(SELECT COUNT(*) AS cnt FROM nimai_m_discount sub \n" + 
-	 				"where  sub.COUNTRY IN :value and sub.COUPON_FOR=:customerType  )\n" + 
+	 				"(SELECT COUNT(DISTINCT nmd.discount_id) AS cnt FROM nimai_m_discount sub inner join nimai_m_discountcountry nmd\n" + 
+	 				"on sub.DISCOUNT_ID=nmd.discount_id where  nmd.discount_country :value and sub.COUPON_FOR=:customerType  )\n" + 
 	 				"AS cnt",nativeQuery = true)
 	public Page<NimaiMDiscount> getAsPerCuTypeDiscount(List<String> value, String customerType, Pageable pageable);
 
 	
-	@Query(value = "SELECT * FROM nimai_m_discount sub where sub.COUNTRY in :value and sub.STATUS=:status ",
+	@Query(value = "SELECT * FROM nimai_m_discount sub  "
+			+ "inner join nimai_m_discountcountry nmd  on sub.DISCOUNT_ID=nmd.discount_id where nmd.discount_country in :value and sub.STATUS=:status group by nmd.discount_id",
 	 		countQuery = "SELECT cnt FROM\n" + 
-	 				"(SELECT COUNT(*) AS cnt FROM nimai_m_discount sub \n" + 
-	 				"where  sub.COUNTRY IN :value and sub.STATUS=:status)\n" + 
+	 				"(SELECT COUNT(DISTINCT nmd.discount_id) AS cnt FROM nimai_m_discount sub \n"
+	 				+ "inner join nimai_m_discountcountry nmd  on "
+	 				+ "  sub.DISCOUNT_ID=nmd.discount_id where nmd.discount_country IN :value and sub.STATUS=:status)\n" + 
 	 				"AS cnt",nativeQuery = true)
 	public Page<NimaiMDiscount> getAllDiscountByStats(List<String> value, String status, Pageable pageable);
 

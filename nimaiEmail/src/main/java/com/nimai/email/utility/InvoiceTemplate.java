@@ -937,7 +937,7 @@ public class InvoiceTemplate {
 			response.setReferrenceNumber(referenceNumber);
 			response.setGst(gst);
 			response.setAmountInWords(totalAmountInwords);
-			response.setInvoiceNumber(referenceNumber);
+			response.setInvoiceNumber(vasDetails.getInvoiceId());
 			response.setVasStatus(vasDetails.getPaymentSts());
 			response.setSplanSerialNumber(vasDetails.getsPLanSerialNUmber());
 			return response;

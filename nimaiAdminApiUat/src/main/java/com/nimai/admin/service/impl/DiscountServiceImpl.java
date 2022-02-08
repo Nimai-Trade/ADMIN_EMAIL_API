@@ -5,6 +5,7 @@ import java.sql.Time;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -26,6 +27,7 @@ import org.springframework.stereotype.Service;
 
 import com.nimai.admin.model.NimaiEmailScheduler;
 import com.nimai.admin.model.NimaiMDiscount;
+import com.nimai.admin.model.NimaiMDiscountCountry;
 import com.nimai.admin.model.NimaiMEmployee;
 import com.nimai.admin.model.NimaiMRole;
 import com.nimai.admin.model.NimaiMVas;
@@ -45,6 +47,7 @@ import com.nimai.admin.repository.DiscountMpRepository;
 import com.nimai.admin.repository.DiscountRepository;
 import com.nimai.admin.repository.EmployeeRepository;
 import com.nimai.admin.repository.NimaiEmailSchedulerRepository;
+import com.nimai.admin.repository.NimaiMDiscountCountryRepository;
 import com.nimai.admin.repository.RoleRepository;
 import com.nimai.admin.service.DiscountService;
 import com.nimai.admin.specification.DiscountSpecification;
@@ -77,6 +80,9 @@ public class DiscountServiceImpl implements DiscountService {
 	
 	@Autowired
 	CustomerRepository repo;
+	
+	@Autowired
+	NimaiMDiscountCountryRepository discountCountryRepo;
 
 	/*
 	 * Save New Coupon/Edit Coupon
@@ -88,9 +94,17 @@ public class DiscountServiceImpl implements DiscountService {
 		List<DiscountIdCouponCode> idCoupons = new ArrayList<DiscountIdCouponCode>();
 		int roleId = getEmpRoleId(request.getCouponFor());
 		try {
-
+			String countryDetail="";
 			DisQuantityAndCouponCode[] details = request.getDetails().toArray(new DisQuantityAndCouponCode[0]);
 
+			StringBuilder stringBuilder = new StringBuilder();
+			for (int k = 0; k < request.getCountryName().length; k++) {
+				stringBuilder.append(request.getCountryName()[k] + ",");
+				
+			}
+			countryDetail=(stringBuilder.toString().substring(0, stringBuilder.length() - 1));
+			
+			
 			for (int i = 0; i < details.length; i++) {
 				System.out.print(details[i].getQuantity() + " " + details[i].getCouponCode());
 				String designation = "RM";
@@ -105,7 +119,9 @@ public class DiscountServiceImpl implements DiscountService {
 				disc.setMaxDiscount(request.getMaxDiscount());
 				disc.setCouponFor(request.getCouponFor());
 				disc.setSubscriptionPlan(request.getSubscriptionPlan());
-				disc.setCountry(request.getCountry());
+				System.out.println("countryName from front end"+request.getCountryName().toString());
+				//System.out.println("country name otside for loop"+disc.getCountry());
+				disc.setCountry(countryDetail);
 				disc.setStatus("Pending");
 				disc.setConsumedCoupons(0);
 				disc.setStartDate(request.getStartDate());
@@ -117,6 +133,16 @@ public class DiscountServiceImpl implements DiscountService {
 				disc.setQuantity(details[i].getQuantity());
 				disc.setCouponCode(details[i].getCouponCode());
 				disc = discountRepo.save(disc);
+				
+				
+				for (int n = 0; n < request.getCountryName().length; n++) {
+					NimaiMDiscountCountry countryDetails=new NimaiMDiscountCountry();
+					countryDetails.setDiscountCountry(request.getCountryName()[n]);
+					countryDetails.setDiscountId(disc.getDiscountId());
+					discountCountryRepo.save(countryDetails);
+					
+				}
+				
 				System.out.println("Start Time: " + request.getStartTime());
 				System.out.println("End Time: " + request.getEndTime());
 				System.out.println("============= After Save =============");
@@ -293,7 +319,41 @@ public class DiscountServiceImpl implements DiscountService {
 //}
 		List<DiscountCouponMResponse> responses = disclist.map(sub -> {
 			DiscountCouponMResponse response = new DiscountCouponMResponse();
-			BeanUtils.copyProperties(sub, response);
+			String countryName="";
+			List<String> myList = new ArrayList<String>(Arrays.asList(sub.getCountry().split(",")));
+			
+			 
+		            if(myList.size()<=1) {
+		            	response.setCountry(sub.getCountry());
+		            }else {
+		            	response.setCountry("Multiple Countries");
+		            }
+		            
+		            
+		            response.setAmount(sub.getAmount());
+		            response.setApprovalDate(sub.getApprovalDate());
+		            response.setApprovedBy(sub.getApprovedBy());
+		            response.setConsumedCoupons(sub.getConsumedCoupons());
+		            response.setCouponCode(sub.getCouponCode());
+		            response.setCouponFor(sub.getCouponFor());
+		            response.setCreatedBy(sub.getCreatedBy());
+		            response.setCreatedDate(sub.getCreatedDate());
+		            response.setCurrency(sub.getCurrency());
+		            response.setDiscountId(sub.getDiscountId());
+		            response.setDiscountPercentage(sub.getDiscountPercentage());
+		            response.setDiscountType(sub.getDiscountType());
+		            response.setEndDate(sub.getEndDate());
+		            response.setEndTime(sub.getEndTime());
+		            response.setMaxDiscount(sub.getMaxDiscount());
+		            response.setModifiedBy(sub.getModifiedBy());
+		            response.setModifiedDate(sub.getModifiedDate());
+		            response.setQuantity(sub.getQuantity());
+		            response.setStartDate(sub.getStartDate());
+		            response.setStartTime(sub.getStartTime());
+		            response.setStatus(sub.getStatus());
+		            response.setSubscriptionPlan(sub.getSubscriptionPlan());
+		            
+			//BeanUtils.copyProperties(sub, response);
 			return response;
 		}).getContent();
 		return new PagedResponse<>(responses, disclist.getNumber(), disclist.getSize(), disclist.getTotalElements(),
@@ -390,6 +450,16 @@ public class DiscountServiceImpl implements DiscountService {
 			mpDiscount.setUserid(mCoupon.getUserid());
 			mpDiscount.setFirstName(mCoupon.getFirstName());
 			mpDiscount.setLastName(mCoupon.getLastName());
+			
+			
+	StringBuilder stringBuilder = new StringBuilder();
+			for (int i = 0; i < mCoupon.getCountryName().length; i++) {
+				stringBuilder.append(mCoupon.getCountryName()[i] + ",");
+			}
+			mpDiscount.setCountry(stringBuilder.toString().substring(0, stringBuilder.length() - 1));
+			
+			
+			
 			mpDiscount.setCountry(mCoupon.getCountry());
 			mpDiscount.setCompanyName(mCoupon.getCompanyName());
 			mpDiscount.setVas(mCoupon.getVas());
@@ -407,6 +477,14 @@ public class DiscountServiceImpl implements DiscountService {
 			}
 
 			mpDiscount = discountMpRepo.save(mpDiscount);
+			
+			for (int i = 0; i < mCoupon.getCountryName().length; i++) {
+				NimaiMDiscountCountry countryDetails=new NimaiMDiscountCountry();
+				countryDetails.setDiscountCountry(mCoupon.getCountryName()[i] );
+				countryDetails.setDiscountId(mpDiscount.getId());
+				discountCountryRepo.save(countryDetails);
+			
+			}
 
 			disc.add(mpDiscount);
 

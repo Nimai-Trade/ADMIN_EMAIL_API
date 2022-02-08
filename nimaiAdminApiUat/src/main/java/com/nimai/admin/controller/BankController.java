@@ -3,6 +3,8 @@ package com.nimai.admin.controller;
 import java.io.IOException;
 import java.util.List;
 
+import javax.validation.Valid;
+
 import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,11 +20,15 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.nimai.admin.model.NimaiMCustomer;
 import com.nimai.admin.payload.BankDetailsResponse;
+import com.nimai.admin.payload.BankRatingRequest;
 import com.nimai.admin.payload.CouponBean;
+import com.nimai.admin.payload.EmployeeListRequest;
 import com.nimai.admin.payload.KycBDetailResponse;
 import com.nimai.admin.payload.KycFiledBean;
 import com.nimai.admin.payload.PagedResponse;
 import com.nimai.admin.payload.PlanOfPaymentDetailsResponse;
+import com.nimai.admin.payload.PreferredBankListResponse;
+import com.nimai.admin.payload.PreferredBankRequest;
 import com.nimai.admin.payload.QuotationDetailsResponse;
 import com.nimai.admin.payload.SPlanBean;
 import com.nimai.admin.payload.SearchRequest;
@@ -59,7 +65,33 @@ public class BankController {
 		System.out.println("user :: " + userid);
 		return bankService.getBankDetailUserId(userid);
 	}
+	
+	@GetMapping("/bankList")
+	public List<?> getBankListForPreferredBank() {
+		System.out.println(":: Getting bank list :: ");
+		return bankService.getBankList();
+	}
 
+	@PostMapping("/savePreferredBank")
+	public ResponseEntity<?> createOrUpdatePreferredBank(@Valid @RequestBody PreferredBankRequest request) {
+		return bankService.createOrUpdatePreferredBank(request);
+	}
+	
+	@PostMapping("/saveBankRating")
+	public ResponseEntity<?> createOrUpdateBankRating(@Valid @RequestBody BankRatingRequest request) {
+		return bankService.createOrUpdateBankRating(request);
+	}
+	
+	@PostMapping("/viewPreferredBank")
+	public List<?> viewPreferredBank(@Valid @RequestBody PreferredBankRequest request) {
+		return bankService.viewPreferredBanks(request);
+	}
+	
+	@PostMapping("/viewBankRating")
+	public ResponseEntity<?> viewBankRating(@Valid @RequestBody BankRatingRequest request) {
+		return bankService.viewBankRatingDetails(request);
+	}
+	
 	//parameter did not match as user id req is NimaiCustomer and we were passing String
 	@GetMapping("/quotes/{userId}")
 	public List<QuotationDetailsResponse> getQuotesDetailsByUserId(@PathVariable("userId") String userId) {

@@ -21,8 +21,19 @@ public class VasResponse {
 	private String modifiedBy;
 	private Date modifiedDate;
 	private String countryCurrency;
+	private String country[];
+	
+	
 
 	
+	public String[] getCountry() {
+		return country;
+	}
+
+	public void setCountry(String[] country) {
+		this.country = country;
+	}
+
 	public String getCustomerType() {
 		return customerType;
 	}

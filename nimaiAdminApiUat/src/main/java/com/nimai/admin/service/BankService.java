@@ -2,16 +2,21 @@ package com.nimai.admin.service;
 
 import java.util.List;
 
+import javax.validation.Valid;
+
 import org.springframework.http.ResponseEntity;
 
 import com.nimai.admin.model.NimaiFOwner;
 import com.nimai.admin.model.NimaiMCustomer;
 import com.nimai.admin.payload.BankDetailsResponse;
+import com.nimai.admin.payload.BankRatingRequest;
 import com.nimai.admin.payload.CouponBean;
 import com.nimai.admin.payload.KycBDetailResponse;
 import com.nimai.admin.payload.KycFiledBean;
 import com.nimai.admin.payload.PagedResponse;
 import com.nimai.admin.payload.PlanOfPaymentDetailsResponse;
+import com.nimai.admin.payload.PreferredBankListResponse;
+import com.nimai.admin.payload.PreferredBankRequest;
 import com.nimai.admin.payload.QuotationDetailsResponse;
 import com.nimai.admin.payload.SPlanBean;
 import com.nimai.admin.payload.SearchRequest;
@@ -64,5 +69,15 @@ public interface BankService {
 	ResponseEntity<?> kycFiledSave(KycFiledBean data);
 
 	ResponseEntity<?> kycViewFieldData(KycFiledBean data);
+
+	List<PreferredBankListResponse> getBankList();
+
+	ResponseEntity<?> createOrUpdatePreferredBank(@Valid PreferredBankRequest request);
+
+	List<PreferredBankListResponse> viewPreferredBanks(@Valid PreferredBankRequest request);
+
+	ResponseEntity<?> createOrUpdateBankRating(@Valid BankRatingRequest request);
+
+	ResponseEntity<?> viewBankRatingDetails(@Valid BankRatingRequest request);
 
 }
