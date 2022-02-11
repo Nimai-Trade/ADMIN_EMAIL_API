@@ -1,6 +1,7 @@
 package com.nimai.admin.payload;
 
 import java.util.Date;
+import java.util.List;
 
 public class VasResponse {
 
@@ -22,10 +23,20 @@ public class VasResponse {
 	private Date modifiedDate;
 	private String countryCurrency;
 	private String country[];
+	private List<CountryList> countryList;
+	
 	
 	
 
 	
+	public List<CountryList> getCountryList() {
+		return countryList;
+	}
+
+	public void setCountryList(List<CountryList> countryList) {
+		this.countryList = countryList;
+	}
+
 	public String[] getCountry() {
 		return country;
 	}
@@ -170,4 +181,5 @@ public class VasResponse {
 		this.countryCurrency = countryCurrency;
 	}
 
+	
 }

@@ -37,6 +37,7 @@ import com.nimai.admin.model.NimaiMRole;
 import com.nimai.admin.model.NimaiMSubscriptionCountry;
 import com.nimai.admin.model.NimaiMSubscriptionPlan;
 import com.nimai.admin.payload.ApiResponse;
+import com.nimai.admin.payload.CountryList;
 import com.nimai.admin.payload.DiscountPlanResponse;
 import com.nimai.admin.payload.PagedResponse;
 import com.nimai.admin.payload.SearchRequest;
@@ -162,6 +163,14 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 			response.setCustomerType(sub.getCustomerType());
 			response.setPlanName(sub.getPlanName());
 			response.setCredits(sub.getCredits());
+			List<CountryList> countryList=new ArrayList<CountryList>();
+			List<NimaiMSubscriptionCountry> actualCountryList=sub.getSubscriptionCountry();
+			for(NimaiMSubscriptionCountry country:actualCountryList) {
+				CountryList listCountry=new CountryList();
+				listCountry.setCountry(country.getCountry());
+				countryList.add(listCountry);
+			}
+			response.setCountryList(countryList);
 			response.setSubsidiaries(sub.getSubsidiaries());
 			response.setRm(sub.getRm());
 			response.setPricing(sub.getPricing());
@@ -211,8 +220,14 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 				msg = "Subscription plan created successfully";
 
 			}
-			
-			StringBuilder stringBuilder = new StringBuilder();
+			System.out.println(request.getCountry());
+			 Arrays.sort(request.getCountry());
+//			 List<String> arrCOuntry=Arrays.asList(request.getCountry());
+//			   Collections.sort(arrCOuntry);
+//			 
+//                       
+//			   String[] arr = arrCOuntry.toArray(new String[0]);
+			 StringBuilder stringBuilder = new StringBuilder();
 			for (int i = 0; i < request.getCountry().length; i++) {
 				stringBuilder.append(request.getCountry()[i] + ",");
 			}
@@ -236,11 +251,12 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 			masterRepo.save(plan);
 			
 			for (int i = 0; i < request.getCountry().length; i++) {
-				System.out.println("subscription pLan Id in integer"+plan.getSubscriptionPlanId());
+				System.out.println("subscription plan Id in integer"+plan.getSubscriptionPlanId());
 				NimaiMSubscriptionCountry subCountry=new NimaiMSubscriptionCountry();
 				subCountry.setCountry(request.getCountry()[i]);
 				subCountry.setSubscriptionId(plan.getSubscriptionId());
-				subCountry.setSubscriptionPlanId(plan.getSubscriptionPlanId());
+				//subCountry.setSubscriptionPlanId(plan.getSubscriptionPlanId());
+				subCountry.setsPLanId(plan);
 				sPlanCountryRepo.save(subCountry);
 			}
 			
@@ -477,15 +493,18 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 	// returns PlanName and Amount to DiscountManagementApi
 	@Override
 	public ResponseEntity<?> getPlanAmount(SearchRequest request) {
-		
+		String[] arrayCOuntry=request.getDiscountCountry();
 		StringBuilder stringBuilder = new StringBuilder();
-		for (int i = 0; i < request.getDiscountCountry().length; i++) {
-			stringBuilder.append(request.getDiscountCountry()[i] + ",");
+		Arrays.sort(arrayCOuntry);
+		for(int i=0;i<arrayCOuntry.length;i++) {
+			stringBuilder.append(arrayCOuntry[i]+",");
 		}
+		
 		String countryNames=(stringBuilder.toString().substring(0, stringBuilder.length() - 1));
 		
+		System.out.println("countryName"+countryNames);
 		List<NimaiMSubscriptionPlan> subList = masterRepo.getPlanAmount(request.getCustomerType(),
-				countryNames);
+				countryNames);		
 		List<DiscountPlanResponse> dResp = new ArrayList<DiscountPlanResponse>();
 
 		for (NimaiMSubscriptionPlan o : subList) {

@@ -1,6 +1,7 @@
 package com.nimai.admin.model;
 
 import java.util.Date;
+import java.util.List;
 
 import javax.persistence.Basic;
 import javax.persistence.Column;
@@ -9,6 +10,7 @@ import javax.persistence.EntityListeners;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
 import org.hibernate.annotations.DynamicUpdate;
@@ -78,6 +80,21 @@ public class NimaiMSubscriptionPlan {
 
 	@Column(name = "CURRENCY")
 	private String currency;
+
+	@OneToMany(mappedBy="sPLanId")
+	List<NimaiMSubscriptionCountry> subscriptionCountry;
+	
+	
+	
+	
+	
+	public List<NimaiMSubscriptionCountry> getSubscriptionCountry() {
+		return subscriptionCountry;
+	}
+
+	public void setSubscriptionCountry(List<NimaiMSubscriptionCountry> subscriptionCountry) {
+		this.subscriptionCountry = subscriptionCountry;
+	}
 
 	public NimaiMSubscriptionPlan() {
 		super();

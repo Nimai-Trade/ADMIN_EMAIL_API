@@ -7,9 +7,12 @@ import javax.persistence.EntityListeners;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
 import org.hibernate.annotations.DynamicUpdate;
+import org.hibernate.annotations.ManyToAny;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
@@ -26,15 +29,17 @@ public class NimaiMVasCountry {
 	
 	
 
-	@Column(name="vasid")
-	private int vasId;
+//	@Column(name="vas_id")
+//	private int vasId;
 	
 
 	
 	@Column(name="vas_country")
 	private String vasCountry;
 
-
+	@JoinColumn(name = "vas_id", referencedColumnName = "VAS_ID")
+	@ManyToOne
+private NimaiMVas vasDetails;
 
 	public Integer getId() {
 		return id;
@@ -48,14 +53,18 @@ public class NimaiMVasCountry {
 
 
 
-	public int getVasId() {
-		return vasId;
+
+
+
+
+	public NimaiMVas getVasDetails() {
+		return vasDetails;
 	}
 
 
 
-	public void setVasId(int vasId) {
-		this.vasId = vasId;
+	public void setVasDetails(NimaiMVas vasDetails) {
+		this.vasDetails = vasDetails;
 	}
 
 

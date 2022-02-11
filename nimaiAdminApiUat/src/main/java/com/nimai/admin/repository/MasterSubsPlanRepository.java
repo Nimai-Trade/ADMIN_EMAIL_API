@@ -37,7 +37,8 @@ public interface MasterSubsPlanRepository
 	Page<NimaiMSubscriptionPlan> findByStatus(String status, Pageable pageable);
 
 	// 01-09-2020
-	@Query("from NimaiMSubscriptionPlan m where m.status='Active' and m.countryName= :countryName and m.customerType= :customerType ")
+	@Query("from NimaiMSubscriptionPlan m where m.status='Active' and"
+			+ " m.countryName = :countryName and m.customerType= :customerType ")
 	List<NimaiMSubscriptionPlan> getPlanAmount(@Param("customerType") String customerType,
 			@Param("countryName") String countryName);
 

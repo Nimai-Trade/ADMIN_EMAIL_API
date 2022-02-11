@@ -1,6 +1,7 @@
 package com.nimai.admin.payload;
 
 import java.util.Date;
+import java.util.List;
 
 public class SubscriptionMPlanResponse {
 
@@ -21,6 +22,7 @@ public class SubscriptionMPlanResponse {
 	private String countryCurrency; 
 	private String modifiedBy;
 	private String country[];
+	private List<CountryList> countryList;
 	
 	
 	
@@ -28,6 +30,20 @@ public class SubscriptionMPlanResponse {
 	
 	
 	
+	
+	
+	
+	
+
+
+	public List<CountryList> getCountryList() {
+		return countryList;
+	}
+
+	public void setCountryList(List<CountryList> countryList) {
+		this.countryList = countryList;
+	}
+
 	public String[] getCountry() {
 		return country;
 	}

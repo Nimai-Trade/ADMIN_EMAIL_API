@@ -7,6 +7,8 @@ import javax.persistence.EntityListeners;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
 import org.hibernate.annotations.DynamicUpdate;
@@ -26,8 +28,8 @@ public class NimaiMSubscriptionCountry {
 	
 ;
 	
-	@Column(name="subscription_plan_id")
-	private int subscriptionPlanId;
+//	@Column(name="subscription_plan_id")
+//	private int subscriptionPlanId;
 	
 	@Column(name="subscription_id")
 	private String subscriptionId;
@@ -37,15 +39,23 @@ public class NimaiMSubscriptionCountry {
 
 	
 	
+	@JoinColumn(name = "subscription_plan_id", referencedColumnName = "SUBS_PLAN_ID")
+    @ManyToOne
+    private NimaiMSubscriptionPlan sPLanId;
 	
 	
-	public int getSubscriptionPlanId() {
-		return subscriptionPlanId;
+	
+	
+	
+	public NimaiMSubscriptionPlan getsPLanId() {
+		return sPLanId;
 	}
 
-	public void setSubscriptionPlanId(int subscriptionPlanId) {
-		this.subscriptionPlanId = subscriptionPlanId;
+	public void setsPLanId(NimaiMSubscriptionPlan sPLanId) {
+		this.sPLanId = sPLanId;
 	}
+
+
 
 	public Integer getId() {
 		return id;

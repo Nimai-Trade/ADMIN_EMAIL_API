@@ -24,9 +24,11 @@ import com.nimai.admin.model.NimaiEmailScheduler;
 import com.nimai.admin.model.NimaiMCustomer;
 import com.nimai.admin.model.NimaiMEmployee;
 import com.nimai.admin.model.NimaiMRole;
+import com.nimai.admin.model.NimaiMSubscriptionCountry;
 import com.nimai.admin.model.NimaiMVas;
 import com.nimai.admin.model.NimaiMVasCountry;
 import com.nimai.admin.payload.ApiResponse;
+import com.nimai.admin.payload.CountryList;
 import com.nimai.admin.payload.PagedResponse;
 import com.nimai.admin.payload.SearchRequest;
 import com.nimai.admin.payload.VasResponse;
@@ -93,7 +95,7 @@ public class VasServiceImpl implements VasService {
 				msg = "VAS Plan updated successfully";
 			} else {
 
-				List<NimaiMVas> nimaiVas = vasRepository.getVasDetails(tempVas.getCountryName(),tempVas.getCustomerType());
+				//List<NimaiMVas> nimaiVas = vasRepository.getVasDetails(tempVas.getCountryName(),tempVas.getCustomerType());
 				/*15-12-2021
 				 if (nimaiVas.size() >= 1) {
 					msg = "VAS Plan already active for " + tempVas.getCountryName();
@@ -103,6 +105,8 @@ public class VasServiceImpl implements VasService {
 				msg = "VAS plan created successfully";
 			}
 			nimaiTempVas.setCustomerType(tempVas.getCustomerType());
+			
+			 Arrays.sort(tempVas.getCountry());
 			
 			StringBuilder stringBuilder = new StringBuilder();
 			for (int i = 0; i < tempVas.getCountry().length; i++) {
@@ -128,7 +132,8 @@ public class VasServiceImpl implements VasService {
 			for (int i = 0; i < tempVas.getCountry().length; i++) {
 				NimaiMVasCountry vasCoutry=new NimaiMVasCountry();
 				vasCoutry.setVasCountry(tempVas.getCountry()[i]);
-				vasCoutry.setVasId(nimaiTempVas.getVasid());
+				//vasCoutry.setVasId(nimaiTempVas.getVasid());
+				vasCoutry.setVasDetails(nimaiTempVas);
 				vasCountryRepo.save(vasCoutry);
 			}
 			
@@ -235,6 +240,14 @@ public class VasServiceImpl implements VasService {
 			VasResponse response = new VasResponse();
 			response.setVasid(vas.getVasid());
 			response.setCustomerType(vas.getCustomerType());
+			List<CountryList> countryList=new ArrayList<CountryList>();
+			List<NimaiMVasCountry> actualCountryList=vas.getVasCountryList();
+			for(NimaiMVasCountry country:actualCountryList) {
+				CountryList listCountry=new CountryList();
+				listCountry.setCountry(country.getVasCountry());
+				countryList.add(listCountry);
+			}
+			response.setCountryList(countryList);
 			response.setCountryName(vas.getCountryName());
 			response.setPlanName(vas.getPlanName());
 			response.setDescription1(vas.getDescription1());

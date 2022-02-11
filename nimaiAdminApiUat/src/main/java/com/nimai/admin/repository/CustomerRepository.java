@@ -100,8 +100,13 @@ public interface CustomerRepository
 
 	@Query("from NimaiMCustomer where lower(emailAddress) =:emailAddress")
 	public NimaiMCustomer findByEmailAddress(@Param("emailAddress") String emailAddress);
-
-	@Query("from NimaiMCustomer where lower(userid) like 'BA%'")
+//
+//	@Query("from NimaiMCustomer where lower(userid) like 'BA%' and (bankName!=null or bankName")
+//	public List<NimaiMCustomer> findBankDetails();
+	
+	
+@Query(value="   SELECT * from nimai_m_customer nc where lower(nc.userid)  \r\n" + 
+			"	   like 'BA%' AND (!(nc.BANK_NAME is NULL) OR (nc.BANK_NAME !=''))",nativeQuery=true)
 	public List<NimaiMCustomer> findBankDetails();
 	
 	@Query("select kycStatus from NimaiMCustomer where lower(emailAddress) =:emailAddress")
