@@ -1090,4 +1090,22 @@ public class UserServiceDaoImpl implements UserServiceDao {
 		return result;
 	}
 
+
+	
+	  public NimaiSubscriptionDetails getsPlanDetailsBySerialNumber(int splanSerialNumber) {
+		    NimaiSubscriptionDetails results = null;
+		    try {
+		      Session session = this.sessionFactory.getCurrentSession();
+		      Query query = session.createQuery("from NimaiSubscriptionDetails n where n.sPlSerialNUmber = :splanSerialNumber ", NimaiSubscriptionDetails.class);
+		      query.setParameter("splanSerialNumber", Integer.valueOf(splanSerialNumber));
+		      results = (NimaiSubscriptionDetails)query.getSingleResult();
+		    } catch (NoResultException nre) {
+		      nre.printStackTrace();
+		      return null;
+		    } 
+		    return results;
+		  }
+	
+	
+	
 }

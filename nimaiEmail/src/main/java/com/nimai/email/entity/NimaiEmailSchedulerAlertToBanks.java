@@ -76,7 +76,16 @@ public class NimaiEmailSchedulerAlertToBanks {
 	@Column(name="passcode_user_email")
 	private String passcodeuserEmail;
 	
-	
+	  @Column(name = "PARENT_USER_ID")
+	  private String parentUserId;
+	  
+	  public String getParentUserId() {
+	    return this.parentUserId;
+	  }
+	  
+	  public void setParentUserId(String parentUserId) {
+	    this.parentUserId = parentUserId;
+	  }
 	
 	
 	

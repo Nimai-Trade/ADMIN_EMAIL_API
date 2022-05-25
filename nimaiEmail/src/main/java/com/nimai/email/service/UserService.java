@@ -11,12 +11,14 @@ import com.nimai.email.bean.BankDetailsBean;
 import com.nimai.email.bean.BranchUserBean;
 import com.nimai.email.bean.BranchUserPassCodeBean;
 import com.nimai.email.bean.BranchUserRequest;
+import com.nimai.email.bean.InvoiceBeanResponse;
 import com.nimai.email.bean.KycEmailRequest;
 import com.nimai.email.bean.LcUploadBean;
 import com.nimai.email.bean.QuotationAlertRequest;
 import com.nimai.email.bean.ResetPassBean;
 import com.nimai.email.bean.SubsidiaryBean;
 import com.nimai.email.entity.NimaiClient;
+import com.nimai.email.entity.NimaiSubscriptionDetails;
 
 public interface UserService {
 	boolean checkUserId(String userId);
@@ -60,5 +62,14 @@ public interface UserService {
 	String InvalidCaptchaStatus(BranchUserPassCodeBean passCodeBean);
 
 	ResponseEntity<?> validateCaptcha(String userId);
+	
+	int chkForInvoiceId(String paramString1, String paramString2);
+	
+	  InvoiceBeanResponse getVasplanInvoiceString(String paramString1, String paramString2);
+	  
+	  
+	  InvoiceBeanResponse getSplanInvoiceString(String paramString1, String paramString2);
+	  
+	  NimaiSubscriptionDetails getSubDetails(int sPlanSerialNumbar);
 
 }

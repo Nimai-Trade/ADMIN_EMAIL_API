@@ -10,6 +10,7 @@ import javax.persistence.Tuple;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import com.nimai.email.entity.NimaiSubscriptionDetails;
 
@@ -30,6 +31,11 @@ public interface SubscriptionDetailsRepository
 			"AND nc.ACCOUNT_SOURCE!='WEBSITE' AND ns.`STATUS`='ACTIVE' AND \n" + 
 			"DATE_ADD(NOW(), INTERVAL 30 DAY)>= ns.SPLAN_END_DATE", nativeQuery = true)
 	List<Tuple> getafter30DaysReferSplanDetils();
+	
+	
+	 @Query(value = "SELECT *  from nimai_subscription_details n where "
+	 		+ "n.userid=:userId AND n.INVOICE_ID=:invoiceId", nativeQuery = true)
+	  NimaiSubscriptionDetails getSplanDetails(@Param("userId") String userId, @Param("invoiceId") String invoiceId);
 
 
 

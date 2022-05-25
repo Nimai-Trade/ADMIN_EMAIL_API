@@ -310,7 +310,20 @@ public class Utils {
 	public int getNoOfMonths(int month) {
 		return month%12;
 	}
-	
+	 public Float referrerAmount(int SubscriptionAmount, String referPercentage) {
+		    logger.info("========= ==========" + referPercentage);
+		    System.out.println("=========Inside referrerAmount==========" + referPercentage);
+		    Float referEarning = Float.valueOf(referPercentage);
+		    Float actualREarning = Float.valueOf(referEarning.floatValue() / 100.0F);
+		    Float gstAmount = Float.valueOf(actualREarning.floatValue() * SubscriptionAmount);
+		    logger.info("=========Inside GstValue==========" + gstAmount);
+		    System.out.println("=========Inside GstValue==========" + gstAmount);
+		    Float value = Float.valueOf(
+		        Float.parseFloat((new DecimalFormat("##.##")).format(gstAmount)));
+		    logger.info("=========Conversion referrerAmount in util==========" + value);
+		    System.out.println("=========Conversion referrerAmount in util==========" + value);
+		    return value;
+		  }
 
 
 }

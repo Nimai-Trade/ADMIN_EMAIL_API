@@ -84,4 +84,6 @@ NimaiSubscriptionDetails getSplanDetails(String userid);
 NimaiSubscriptionVas getVasDetails(String subscriptionName, String userid);
 NimaiMBranch getBranchUserDetailsByEMpId(String emailAddress, String empId);
 
+NimaiSubscriptionDetails getsPlanDetailsBySerialNumber(int splanSerialNumber);
+
 }

@@ -12,9 +12,12 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Formatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.mail.SendFailedException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -4255,4 +4258,588 @@ public class EmaiInsert {
 		}
 	}
 
+	  public void sendLcReopeningToAlertBankNew(String emailEvent, NimaiEmailSchedulerAlertToBanks schdulerData, String banksEmailID, NimaiLC custTransactionDetails, NimaiClient bankDetails, NimaiClient customerDetails) {
+	    logger.info("=========Inside sendLcReopeningToAlertBank method with schedulerData from database==========");
+	    EmailComponentMaster emailconfigurationBean = null;
+	    try {
+	      emailconfigurationBean = this.emailComRepo.findEventConfiguration(schdulerData.getEmailEvent());
+	      System.out.println("Fetching Configuration for Reset Password Policy " + emailconfigurationBean);
+	      Map<String, String> subject = new HashMap<>();
+	      Map<String, String> body = new HashMap<>();
+	      String quoteId = String.valueOf(schdulerData.getQuotationId());
+	      String subjectSValue = "Transaction reopened by the corporate";
+	      subject.put("Subject", subjectSValue);
+	      this.emailConfigurationDAOImpl.updateSubject(subjectSValue, emailconfigurationBean.getEventId().intValue());
+	      String bankUserName = schdulerData.getBankUserName();
+	      System.out.println("================Company Name" + customerDetails.getCompanyName());
+	      body.put("htmlBody", "<br>Dear " + bankDetails.getFirstName() + ", <br><br>" + customerDetails
+	          .getCompanyName() + " has reopened the transaction. Your quote still stand a chance to be accepted by the corporate.<br><br>\r\nTransaction Details:<br>\r\n<br><br><table>\r\n          <thead>\r\n              <tr>\r\n                  <th style=\"background-color:#98AFC7;border: 1px solid black!important; border-collapse: collapse;\">Transaction ID</th>\r\n   <th style=\"background-color:#98AFC7;border: 1px solid black!important; border-collapse: collapse;\">Currency</th>\r\n                  <th style=\"background-color:#98AFC7;border: 1px solid black!important; border-collapse: collapse;\">Amount</th>\r\n          </thead>\r\n          <tbody>\r\n              <tr>\r\n                  <td style=\"background-color:#ADD8E6;border: 1px solid black!important; border-collapse: collapse;\">" + schdulerData
+	          
+	          .getTransactionid() + "</td>\r\n                  <td style=\"background-color:#ADD8E6;border: 1px solid black!important; border-collapse: collapse;\">" + custTransactionDetails
+	          
+	          .getlCCurrency() + "</td>\r\n<td style=\"background-color:#ADD8E6;border: 1px solid black!important; border-collapse: collapse;\">" + 
+	          
+	          String.valueOf(custTransactionDetails.getlCValue()) + "</td>\r\n          </tbody>\r\n      </table>\r\n   <br><br> \r\n<br>Warm Regards,<br>\r\nTeam 360tf<br>\r\n-------------------------------------------------------------------\r\n<br>Copyright & Disclaimer | Privacy Policy<br><br>\r\nPlease do not reply to this mail as this is automated mail service\r\n\r\n\r\n</body>");
+	      String toMail = schdulerData.getBanksEmailID();
+	      this.emailConfigurationDAOImpl.saveBCCEmails(this.uatCcEMail, emailconfigurationBean.getEventId().intValue());
+	      System.out.println("Fetching Configuration for transaction status" + emailconfigurationBean.getSubject() + " :: " + emailconfigurationBean
+	          .getEventId());
+	      ArrayList attachements = new ArrayList();
+	      ArrayList details = new ArrayList();
+	      details.add(emailconfigurationBean.getEventId());
+	      details.add(toMail);
+	      details.add(subject);
+	      details.add(body);
+	      details.add(attachements);
+	      System.out.println("details" + details);
+	      this.emailProcessorImpl.saveEmail(details, emailconfigurationBean.getEventId().intValue());
+	      this.emailSend.getDetailsEmail();
+	    } catch (SendFailedException e) {
+	      logger.info("=======sendQuotationStatusEmail SMTP ADDRESS Failed Exception============" + e);
+	      System.out.println("sendQuotationStatusEmail Exception" + e);
+	      e.printStackTrace();
+	    } catch (Exception e) {
+	      System.out.println("sendQuotationStatusEmail Exception" + e);
+	      e.printStackTrace();
+	    } 
+	  }
+	  
+
+	  public void sendLcStatusEmailData(NimaiEmailSchedulerAlertToBanks schdulerData, NimaiLC transactionDetails, NimaiClient clientUserId, NimaiClient accountSourcecustDetails) {
+	    EmailComponentMaster emailconfigurationBean = null;
+	    GenericResponse response = new GenericResponse();
+	    try {
+	      emailconfigurationBean = this.emailComRepo.findEventConfiguration(schdulerData.getEmailEvent());
+	      logger.info("========useraname=======:::" + schdulerData.getCustomerUserName());
+	      logger.info(" Fetching Configuration for Reset Password Policy " + emailconfigurationBean);
+	      Map<String, String> subject = new HashMap<>();
+	      Map<String, String> body = new HashMap<>();
+	      double lcVal = transactionDetails.getlCValue().doubleValue();
+	      Formatter formatter = new Formatter();
+	      formatter.format("%.2f", new Object[] { Double.valueOf(lcVal) });
+	      String lcValue = formatter.toString();
+	      String lcIssuingDate = convertSToDate(transactionDetails.getlCIssuingDate());
+	      String lcExpiryDate = transactionDetails.getValidity().trim().substring(0, 10).replaceAll("-", "/");
+	      subject.put("Subject", emailconfigurationBean.getSubject());
+	      body.put("transactionId", schdulerData.getTransactionid());
+	      body.put("companyname", clientUserId.getCompanyName());
+	      body.put("lcIssuingValue", lcValue);
+	      body.put("lcIssuingDate", lcIssuingDate);
+	      body.put("lcExpiryDate", lcExpiryDate);
+	      String toMail = " ";
+	      body.put("currency", transactionDetails.getlCCurrency());
+	      if (clientUserId.getIsAssociated() == 1) {
+	        toMail = accountSourcecustDetails.getEmailAddress();
+	        body.put("userId", accountSourcecustDetails.getUserid());
+	        body.put("username", accountSourcecustDetails.getFirstName());
+	        System.out.println("Associates userParentEmail" + toMail);
+	      } else {
+	        toMail = schdulerData.getCustomerEmail();
+	        body.put("username", clientUserId.getFirstName());
+	        body.put("userId", clientUserId.getUserid());
+	        System.out.println("Associates Else userParentEmail" + toMail);
+	      } 
+	      if (transactionDetails.getRequirementType().equalsIgnoreCase("ConfirmAndDiscount")) {
+	        body.put("productRequirementName", "Confirmation & Discounting");
+	      } else if (transactionDetails.getRequirementType().equalsIgnoreCase("Refinance")) {
+	        body.put("productRequirementName", " Refinancing");
+	      } else if (transactionDetails.getRequirementType().equalsIgnoreCase("Banker")) {
+	        body.put("productRequirementName", "Bankers Acceptance");
+	      }else if (transactionDetails.getRequirementType().equalsIgnoreCase("BillAvalisation")) {
+		        body.put("productRequirementName", " Bill Avalisation");
+		      } else {
+	        body.put("productRequirementName", transactionDetails.getRequirementType());
+	      } 
+	      logger.info("Fetching Configuration for transaction status" + emailconfigurationBean.getSubject() + " :: " + emailconfigurationBean
+	          .getEventId());
+	      String emailId = this.uatCcEMail;
+	      System.out.println("EmailID frm presented" + emailId);
+	      this.emailConfigurationDAOImpl.saveBCCEmails(this.uatCcEMail, emailconfigurationBean.getEventId().intValue());
+	      ArrayList attachements = new ArrayList();
+	      ArrayList details = new ArrayList();
+	      details.add(emailconfigurationBean.getEventId());
+	      details.add(toMail);
+	      details.add(subject);
+	      details.add(body);
+	      details.add(attachements);
+	      logger.info("details" + details);
+	      this.emailProcessorImpl.saveEmail(details, emailconfigurationBean.getEventId().intValue());
+	      this.emailSend.getDetailsEmail();
+	      if (clientUserId.getAccountType().equalsIgnoreCase("Subsidiary") && clientUserId.getIsAssociated() == 0) {
+	        System.out.println("Inside the pascodeUser condition emailInsert21");
+	        sendParentLcEmailstatus(schdulerData, transactionDetails, clientUserId, accountSourcecustDetails);
+	      } 
+	    } catch (SendFailedException e) {
+	      logger.info("=======SMTP ADDRESS Failed Exception============" + e);
+	      logger.info("Exception" + e);
+	      e.printStackTrace();
+	    } catch (Exception e) {
+	      logger.info("=======Exception============" + e);
+	      e.printStackTrace();
+	    } 
+	  }
+
+	  private void sendParentLcEmailstatus(NimaiEmailSchedulerAlertToBanks schdulerData, NimaiLC transactionDetails, NimaiClient clientUserId, NimaiClient accountSourcecustDetails) {
+	    EmailComponentMaster emailconfigurationBean = null;
+	    GenericResponse response = new GenericResponse();
+	    try {
+	      System.out.println("Inside the pascodeUser condition sendParentLcEmailstatus emailInsert22" + accountSourcecustDetails
+	          .getUserid());
+	      emailconfigurationBean = this.emailComRepo.findEventConfiguration(schdulerData.getEmailEvent());
+	      logger.info("========useraname=======:::" + schdulerData.getCustomerUserName());
+	      logger.info(" Fetching Configuration for Reset Password Policy " + emailconfigurationBean);
+	      Map<String, String> subject = new HashMap<>();
+	      Map<String, String> body = new HashMap<>();
+	      double lcVal = transactionDetails.getlCValue().doubleValue();
+	      Formatter formatter = new Formatter();
+	      formatter.format("%.2f", new Object[] { Double.valueOf(lcVal) });
+	      String lcValue = formatter.toString();
+	      String lcIssuingDate = convertSToDate(transactionDetails.getlCIssuingDate());
+	      String lcExpiryDate = transactionDetails.getValidity().trim().substring(0, 10).replaceAll("-", "/");
+	      subject.put("Subject", emailconfigurationBean.getSubject());
+	      body.put("transactionId", schdulerData.getTransactionid());
+	      body.put("username", accountSourcecustDetails.getFirstName());
+	      body.put("companyname", clientUserId.getCompanyName());
+	      if (clientUserId.getAccountType().equalsIgnoreCase("Master")) {
+	        body.put("userId", accountSourcecustDetails.getUserid());
+	      } else {
+	        body.put("userId", clientUserId.getUserid());
+	      } 
+	      body.put("lcIssuingValue", lcValue);
+	      body.put("lcIssuingDate", lcIssuingDate);
+	      body.put("lcExpiryDate", lcExpiryDate);
+	      if (transactionDetails.getRequirementType().equalsIgnoreCase("ConfirmAndDiscount")) {
+	        body.put("productRequirementName", "Confirmation & Discounting");
+	      } else if (transactionDetails.getRequirementType().equalsIgnoreCase("Refinance")) {
+	        body.put("productRequirementName", " Refinancing");
+	      } else if (transactionDetails.getRequirementType().equalsIgnoreCase("Banker")) {
+	        body.put("productRequirementName", " Bankers Acceptance");
+	      } else if (transactionDetails.getRequirementType().equalsIgnoreCase("BillAvalisation")) {
+		        body.put("productRequirementName", " Bill Avalisation");
+		      } else {
+	        body.put("productRequirementName", transactionDetails.getRequirementType());
+	      } 
+	      String toMail = " ";
+	      body.put("currency", transactionDetails.getlCCurrency());
+	      toMail = accountSourcecustDetails.getEmailAddress();
+	      logger.info("Fetching Configuration for transaction status" + emailconfigurationBean.getSubject() + " :: " + emailconfigurationBean
+	          .getEventId());
+	      String emailId = this.uatCcEMail;
+	      System.out.println("EmailID frm presented" + emailId);
+	      this.emailConfigurationDAOImpl.saveBCCEmails(this.uatCcEMail, emailconfigurationBean.getEventId().intValue());
+	      ArrayList attachements = new ArrayList();
+	      ArrayList details = new ArrayList();
+	      details.add(emailconfigurationBean.getEventId());
+	      details.add(toMail);
+	      details.add(subject);
+	      details.add(body);
+	      details.add(attachements);
+	      logger.info("details" + details);
+	      this.emailProcessorImpl.saveEmail(details, emailconfigurationBean.getEventId().intValue());
+	      this.emailSend.getDetailsEmail();
+	    } catch (SendFailedException e) {
+	      logger.info("=======SMTP ADDRESS Failed Exception============" + e);
+	      logger.info("Exception" + e);
+	      e.printStackTrace();
+	    } catch (Exception e) {
+	      logger.info("=======Exception============" + e);
+	      e.printStackTrace();
+	    } 
+	  }
+
+	  public void sendAssTransactionStatusToBanks(NimaiEmailSchedulerAlertToBanks alertBanksBean, NimaiLC custTransactionDetails, NimaiClient accountSourceDetails, NimaiClient custDetails) {
+	    EmailComponentMaster emailconfigurationBean = null;
+	    NimaiSystemConfig configDetails = null;
+	    configDetails = this.systemConfig.findBySystemValue("link");
+	    System.out.println("system value" + configDetails.getSystemEntityValue());
+	    try {
+	      emailconfigurationBean = this.emailComRepo.findEventConfiguration(alertBanksBean.getEmailEvent());
+	      logger.info(" Fetching Configuration for Reset Password Policy " + emailconfigurationBean);
+	      Map<String, String> subject = new HashMap<>();
+	      Map<String, String> body = new HashMap<>();
+	      double lcVal = custTransactionDetails.getlCValue().doubleValue();
+	      Formatter formatter = new Formatter();
+	      formatter.format("%.2f", new Object[] { Double.valueOf(lcVal) });
+	      String lcValue = formatter.toString();
+	      String requiredPage = "new-request";
+	      String quotePlaceLink = this.bankPlaceQuote + requiredPage;
+	      String lcIssuingDate = convertSToDate(custTransactionDetails.getlCIssuingDate());
+	      String lcExpiryDate = custTransactionDetails.getValidity().trim().substring(0, 10).replaceAll("-", "/");
+	      subject.put("Subject", emailconfigurationBean.getSubject());
+	      body.put("transactionId", alertBanksBean.getTransactionid());
+	      body.put("username", alertBanksBean.getBankUserName());
+	      System.out.println("=============" + alertBanksBean.getBankUserName());
+	      body.put("userId", accountSourceDetails.getUserid());
+	      body.put("customerName", custDetails.getFirstName());
+	      body.put("companyname", custDetails.getCompanyName());
+	      body.put("lcIssuingValue", lcValue);
+	      body.put("lcIssuingDate", lcIssuingDate);
+	      body.put("lcExpiryDate", lcExpiryDate);
+	      body.put("currency", custTransactionDetails.getlCCurrency());
+	      body.put("currency", custTransactionDetails.getlCCurrency());
+	      body.put("link", configDetails.getSystemEntityValue());
+	      if (alertBanksBean.getEmailEvent().equalsIgnoreCase("LC_REJECT_ALERT_ToBanks"))
+	        body.put("reason", alertBanksBean.getReason()); 
+	      String toMail = alertBanksBean.getBanksEmailID();
+	      this.emailConfigurationDAOImpl.saveBCCEmails(this.uatCcEMail, emailconfigurationBean.getEventId().intValue());
+	      ArrayList attachements = new ArrayList();
+	      ArrayList details = new ArrayList();
+	      details.add(emailconfigurationBean.getEventId());
+	      details.add(toMail);
+	      details.add(subject);
+	      details.add(body);
+	      details.add(attachements);
+	      logger.info("details" + details);
+	      this.emailProcessorImpl.saveEmail(details, emailconfigurationBean.getEventId().intValue());
+	      this.emailSend.getDetailsEmail();
+	    } catch (SendFailedException e) {
+	      logger.info("=======SMTP ADDRESS Failed Exception============" + e);
+	      logger.info("Exception" + e);
+	      e.printStackTrace();
+	    } catch (Exception e) {
+	      logger.info("sendTransactionStatusToBanks Exception" + e);
+	      e.printStackTrace();
+	    } 
+	  }
+
+	  public void sendQuotationStatusEmailToCust(String emailEvent, NimaiEmailSchedulerAlertToBanks schdulerData, String custEmailID, QuotationMaster quotationDetails, NimaiLC custTransactionDetails, NimaiClient bankDetails, String savingsDetails, NimaiClient customerDetails) {
+	    logger.info("=========Inside sendQuotationStatusEmailToCust method with schedulerData from database==========");
+	    EmailComponentMaster emailconfigurationBean = null;
+	    try {
+	      emailconfigurationBean = this.emailComRepo.findEventConfiguration("QUOTE_ACCEPT");
+	      System.out.println("Fetching Configuration for Reset Password Policy " + emailconfigurationBean);
+	      Map<String, String> subject = new HashMap<>();
+	      Map<String, String> body = new HashMap<>();
+	      String quoteId = String.valueOf(schdulerData.getQuotationId());
+	      String Subject = "Quote acceptance confirmation";
+	      this.emailConfigurationDAOImpl.updateSubject(Subject, emailconfigurationBean.getEventId().intValue());
+	      String custName = " ";
+	      if (schdulerData.getCustomerUserName() == null || schdulerData.getCustomerUserName().isEmpty()) {
+	        custName = customerDetails.getFirstName() + " " + customerDetails.getLastName();
+	      } else {
+	        custName = schdulerData.getCustomerUserName();
+	      } 
+	      String bankName = bankDetails.getBankNbfcName();
+	      String country = bankDetails.getCountryName();
+	      String savings = "";
+	      if (savingsDetails.equalsIgnoreCase("0")) {
+	        savings = "| Savings on this transaction " + custTransactionDetails.getlCCurrency() + " " + savingsDetails + "<br>\n";
+	      } else {
+	        savings = "";
+	      } 
+	      String contacatPerson = bankDetails.getFirstName() + " " + bankDetails.getLastName();
+	      String emailAddress = bankDetails.getEmailAddress();
+	      String phone = bankDetails.getMobileNumber();
+	      Float amount = quotationDetails.getTotalQuoteValue();
+	      String telePhone = bankDetails.getTelephone();
+	      String swiftCode = quotationDetails.getSwiftCode();
+	      String branch = quotationDetails.getBranchName();
+	      String quoteValue = String.valueOf(amount);
+	      String htmlValue = "bank's";
+	      subject.put("Subject", Subject);
+	      double lcVal = custTransactionDetails.getlCValue().doubleValue();
+	      Formatter formatter = new Formatter();
+	      formatter.format("%.2f", new Object[] { Double.valueOf(lcVal) });
+	      String trLcValue = formatter.toString();
+	      body.put("htmlBody", "<br>Dear " + custName + ", <br><br>Congratulations! <br><br>You have accepted quote from " + bankName + " against the transaction ID " + schdulerData
+	          
+	          .getTransactionid() + "<br><br>\r\n<br>Accepted Quote Details " + custTransactionDetails
+	          .getlCCurrency() + " " + amount + savings + "<br>Please find below the underwriting " + htmlValue + " contact details:<br>\n<br>Bank : " + bankName + "<br>\nSwift Code : " + swiftCode + "<br>\n Branch : " + branch + "<br>\nCountry : " + country + "<br>\n<br>For further support please connect with us at tradesupport@360tf.trade<br><br>\n<br>Warm Regards,<br>\nTeam 360tf<br>\n-------------------------------------------------------------------\n<br>Copyright & Disclaimer | Privacy Policy<br><br>\nPlease do not reply to this mail as this is automated mail service\r\n<br>");
+	      if (schdulerData.getEmailEvent().equalsIgnoreCase("QUOTE_REJECTION_CUSTOMER")) {
+	        emailconfigurationBean = this.emailComRepo.findEventConfiguration("QUOTE_REJECTION");
+	        if (quotationDetails.getRejectedBy().equalsIgnoreCase("BANK")) {
+	          String subjectRejection = "Quote rejected by bank";
+	          subject.put("Subject", subjectRejection);
+	          body.put("reason", schdulerData.getReason());
+	          this.emailConfigurationDAOImpl.updateSubject(subjectRejection, emailconfigurationBean.getEventId().intValue());
+	          body.put("quotationId", quoteId);
+	          body.put("htmlBody", "<br>Dear " + custName + ", <br><br>" + bankDetails.getBankNbfcName() + " has rejected the quote.<br><br>\r\nQuotation place details against customer are as follows:<br><br>\r\n<table style=\"border: 1px solid black!important; border-collapse: collapse;\">\r\n          <thead>\r\n              <tr>\r\n                  <th style=\"background-color:#98AFC7;border: 1px solid black!important; border-collapse: collapse;\">TransactionId</th>\r\n   <th style=\"background-color:#98AFC7;border: 1px solid black!important; border-collapse: collapse;\">Currency</th>\r\n                  <th style=\"background-color:#98AFC7;border: 1px solid black!important; border-collapse: collapse;\">Amount</th>\r\n              </tr>\r\n          </thead>\r\n          <tbody>\r\n              <tr>\r\n                  <td style=\"background-color:#ADD8E6;border: 1px solid black!important; border-collapse: collapse;\">" + schdulerData
+	              
+	              .getTransactionid() + "</td>\r\n                  <td style=\"background-color:#ADD8E6;border: 1px solid black!important; border-collapse: collapse;\">" + custTransactionDetails
+	              
+	              .getlCCurrency() + "</td>\r\n<td style=\"background-color:#ADD8E6;border: 1px solid black!important; border-collapse: collapse;\">" + trLcValue + "</td>\r\n              </tr>           \r\n          </tbody>\r\n      </table>\r\n<br>For further details, open Transaction Details -> Rejected Transaction\r\n<br> <br> <br>\r\n <br>Warm Regards,<br>\r\nTeam 360tf<br>  \r\n-------------------------------------------------------------------  \r\n<br>Copyright & Disclaimer | Privacy Policy<br><br>  \r\nPlease do not reply to this mail as this is automated mail service<br>");
+	        } else {
+	          String subjectRejection = "Quote Rejected";
+	          String baName = quotationDetails.getBankName();
+	          this.emailConfigurationDAOImpl.updateSubject(subjectRejection, emailconfigurationBean.getEventId().intValue());
+	          subject.put("Subject", subjectRejection);
+	          body.put("reason", schdulerData.getReason());
+	          body.put("htmlBody", "<br>Dear " + custName + "<br><br>You have rejected the quote for transaction ID <b>" + schdulerData
+	              
+	              .getTransactionid() + "</b> received from <b>" + baName + "</b>.<br>\r\n<br>You can reopen the transaction from Rejected Transaction section. Upon reopening the transaction you can accept available quotes or wait for new quotes.<br>\r\n<br>Warm Regards,<br>\nTeam 360tf<br>\n-------------------------------------------------------------------\n<br>Copyright & Disclaimer | Privacy Policy<br><br>\nPlease do not reply to this mail as this is automated mail service\r\n<br>");
+	        } 
+	      } 
+	      String toMail = custEmailID;
+	      this.emailConfigurationDAOImpl.saveBCCEmails(this.uatCcEMail, emailconfigurationBean.getEventId().intValue());
+	      System.out.println("Fetching Configuration for transaction status" + emailconfigurationBean.getSubject() + " :: " + emailconfigurationBean
+	          .getEventId());
+	      ArrayList attachements = new ArrayList();
+	      ArrayList details = new ArrayList();
+	      details.add(emailconfigurationBean.getEventId());
+	      details.add(toMail);
+	      details.add(subject);
+	      details.add(body);
+	      details.add(attachements);
+	      logger.info("details" + details);
+	      this.emailProcessorImpl.saveEmail(details, emailconfigurationBean.getEventId().intValue());
+	      this.emailSend.getDetailsEmail();
+	      if (schdulerData.getParentUserId() != null && 
+	        !customerDetails.getAccountType().equalsIgnoreCase("MASTER"))
+	        sendQuotationStatusEmailToParentCust(emailEvent, schdulerData, custEmailID, quotationDetails, custTransactionDetails, bankDetails, savingsDetails, customerDetails); 
+	    } catch (SendFailedException e) {
+	      logger.info("=======sendQuotationStatusEmailToCust SMTP ADDRESS Failed Exception============" + e);
+	      logger.info("sendQuotationStatusEmailToCust Exception" + e);
+	      e.printStackTrace();
+	    } catch (Exception e) {
+	      logger.info("sendQuotationStatusEmailToCust Exception" + e);
+	      e.printStackTrace();
+	    } 
+	  }
+
+	  private void sendQuotationStatusEmailToParentCust(String emailEvent, NimaiEmailSchedulerAlertToBanks schdulerData, String custEmailID, QuotationMaster quotationDetails, NimaiLC custTransactionDetails, NimaiClient bankDetails, String savingsDetails, NimaiClient customerDetails) {
+	    logger.info("=========Inside sendQuotationStatusEmailToCust method with schedulerData from database==========");
+	    EmailComponentMaster emailconfigurationBean = null;
+	    try {
+	      emailconfigurationBean = this.emailComRepo.findEventConfiguration("QUOTE_ACCEPT");
+	      System.out.println("Fetching Configuration for Reset Password Policy " + emailconfigurationBean);
+	      Map<String, String> subject = new HashMap<>();
+	      Map<String, String> body = new HashMap<>();
+	      String quoteId = String.valueOf(schdulerData.getQuotationId());
+	      String Subject = "Quote acceptance confirmation";
+	      this.emailConfigurationDAOImpl.updateSubject(Subject, emailconfigurationBean.getEventId().intValue());
+	      double lcVal = custTransactionDetails.getlCValue().doubleValue();
+	      Formatter formatter = new Formatter();
+	      formatter.format("%.2f", new Object[] { Double.valueOf(lcVal) });
+	      String trLcValue = formatter.toString();
+	      String custName = " ";
+	      if (schdulerData.getCustomerUserName() == null || schdulerData.getCustomerUserName().isEmpty()) {
+	        custName = customerDetails.getFirstName() + " " + customerDetails.getLastName();
+	      } else {
+	        custName = schdulerData.getCustomerUserName();
+	      } 
+	      String bankName = bankDetails.getBankNbfcName();
+	      String country = bankDetails.getCountryName();
+	      String savings = "";
+	      if (savingsDetails.equalsIgnoreCase("0")) {
+	        savings = "| Savings on this transaction " + custTransactionDetails.getlCCurrency() + " " + savingsDetails + "<br>\n";
+	      } else {
+	        savings = "";
+	      } 
+	      String contacatPerson = bankDetails.getFirstName() + " " + bankDetails.getLastName();
+	      String emailAddress = bankDetails.getEmailAddress();
+	      String phone = bankDetails.getMobileNumber();
+	      Float amount = quotationDetails.getTotalQuoteValue();
+	      String telePhone = bankDetails.getTelephone();
+	      String swiftCode = quotationDetails.getSwiftCode();
+	      String branch = quotationDetails.getBranchName();
+	      String quoteValue = String.valueOf(amount);
+	      String htmlValue = "bank's";
+	      subject.put("Subject", Subject);
+	      body.put("htmlBody", "<br>Dear " + custName + ", <br><br>Congratulations! <br><br>You have accepted quote from " + bankName + " against the transaction ID " + schdulerData
+	          
+	          .getTransactionid() + "<br><br>\r\n<br>Accepted Quote Details " + custTransactionDetails
+	          .getlCCurrency() + " " + amount + savings + "<br>Please find below the underwriting " + htmlValue + " contact details:<br>\n<br>Bank : " + bankName + "<br>\nSwift Code : " + swiftCode + "<br>\n Branch : " + branch + "<br>\nCountry : " + country + "<br>\n<br>For further support please connect with us at tradesupport@360tf.trade<br><br>\n<br>Warm Regards,<br>\nTeam 360tf<br>\n-------------------------------------------------------------------\n<br>Copyright & Disclaimer | Privacy Policy<br><br>\nPlease do not reply to this mail as this is automated mail service\r\n<br>");
+	      if (schdulerData.getEmailEvent().equalsIgnoreCase("QUOTE_REJECTION_CUSTOMER")) {
+	        emailconfigurationBean = this.emailComRepo.findEventConfiguration("QUOTE_REJECTION");
+	        if (quotationDetails.getRejectedBy().equalsIgnoreCase("BANK")) {
+	          String subjectRejection = "Quote rejected by bank";
+	          subject.put("Subject", subjectRejection);
+	          body.put("reason", schdulerData.getReason());
+	          this.emailConfigurationDAOImpl.updateSubject(subjectRejection, emailconfigurationBean.getEventId().intValue());
+	          body.put("quotationId", quoteId);
+	          body.put("htmlBody", "<br>Dear " + custName + ", <br><br>" + bankDetails.getBankNbfcName() + " has rejected the quote.<br><br>\r\nQuotation place details against customer are as follows:<br><br>\r\n<table style=\"border: 1px solid black!important; border-collapse: collapse;\">\r\n          <thead>\r\n              <tr>\r\n                  <th style=\"background-color:#98AFC7;border: 1px solid black!important; border-collapse: collapse;\">TransactionId</th>\r\n   <th style=\"background-color:#98AFC7;border: 1px solid black!important; border-collapse: collapse;\">Currency</th>\r\n                  <th style=\"background-color:#98AFC7;border: 1px solid black!important; border-collapse: collapse;\">Amount</th>\r\n              </tr>\r\n          </thead>\r\n          <tbody>\r\n              <tr>\r\n                  <td style=\"background-color:#ADD8E6;border: 1px solid black!important; border-collapse: collapse;\">" + schdulerData
+	              
+	              .getTransactionid() + "</td>\r\n                  <td style=\"background-color:#ADD8E6;border: 1px solid black!important; border-collapse: collapse;\">" + custTransactionDetails
+	              
+	              .getlCCurrency() + "</td>\r\n<td style=\"background-color:#ADD8E6;border: 1px solid black!important; border-collapse: collapse;\">" + trLcValue + "</td>\r\n              </tr>           \r\n          </tbody>\r\n      </table>\r\n<br>For further details, open Transaction Details -> Rejected Transaction\r\n<br> <br> <br>\r\n <br>Warm Regards,<br>\r\nTeam 360tf<br>  \r\n-------------------------------------------------------------------  \r\n<br>Copyright & Disclaimer | Privacy Policy<br><br>  \r\nPlease do not reply to this mail as this is automated mail service<br>");
+	        } else {
+	          String subjectRejection = "Quote Rejected";
+	          String baName = quotationDetails.getBankName();
+	          this.emailConfigurationDAOImpl.updateSubject(subjectRejection, emailconfigurationBean.getEventId().intValue());
+	          subject.put("Subject", subjectRejection);
+	          body.put("reason", schdulerData.getReason());
+	          body.put("htmlBody", "<br>Dear " + custName + "<br><br>You have rejected the quote for transaction ID <b>" + schdulerData
+	              
+	              .getTransactionid() + "</b> received from <b>" + baName + "</b>.<br>\r\n<br>You can reopen the transaction from Rejected Transaction section. Upon reopening the transaction you can accept available quotes or wait for new quotes.<br>\r\n<br>Warm Regards,<br>\nTeam 360tf<br>\n-------------------------------------------------------------------\n<br>Copyright & Disclaimer | Privacy Policy<br><br>\nPlease do not reply to this mail as this is automated mail service\r\n<br>");
+	        } 
+	      } 
+	      String toMail = schdulerData.getPasscodeuserEmail();
+	      this.emailConfigurationDAOImpl.saveBCCEmails(this.uatCcEMail, emailconfigurationBean.getEventId().intValue());
+	      System.out.println("Fetching Configuration for transaction status" + emailconfigurationBean.getSubject() + " :: " + emailconfigurationBean
+	          .getEventId());
+	      ArrayList attachements = new ArrayList();
+	      ArrayList details = new ArrayList();
+	      details.add(emailconfigurationBean.getEventId());
+	      details.add(toMail);
+	      details.add(subject);
+	      details.add(body);
+	      details.add(attachements);
+	      logger.info("details" + details);
+	      this.emailProcessorImpl.saveEmail(details, emailconfigurationBean.getEventId().intValue());
+	      this.emailSend.getDetailsEmail();
+	    } catch (SendFailedException e) {
+	      logger.info("=======sendQuotationStatusEmailToCust SMTP ADDRESS Failed Exception============" + e);
+	      logger.info("sendQuotationStatusEmailToCust Exception" + e);
+	      e.printStackTrace();
+	    } catch (Exception e) {
+	      logger.info("sendQuotationStatusEmailToCust Exception" + e);
+	      e.printStackTrace();
+	    } 
+	  }
+
+	  public void sendBidRecivedEmailToCust(String emailEvent, NimaiEmailSchedulerAlertToBanks schdulerData, String customerEmail, NimaiClient masterDetailsbyUserId, int i, NimaiClient custDetailsByUserId) {
+	    EmailComponentMaster emailconfigurationBean = null;
+	    NimaiSystemConfig configDetails = null;
+	    configDetails = this.systemConfig.findBySystemValue("link");
+	    System.out.println("system value" + configDetails.getSystemEntityValue());
+	    try {
+	      emailconfigurationBean = this.emailComRepo.findEventConfiguration(emailEvent);
+	      System.out.println(" Fetching Configuration for Reset Password Policy " + emailconfigurationBean);
+	      String requiredPage = "quoteDetails";
+	      String quoteLlink = this.quoteDetailsLink + requiredPage;
+	      Map<String, String> subject = new HashMap<>();
+	      Map<String, String> body = new HashMap<>();
+	      subject.put("Subject", emailconfigurationBean.getSubject());
+	      body.put("transactionId", schdulerData.getTransactionid());
+	      String companyName = " ";
+	      String toMail = " ";
+	      if (i == 1) {
+	        body.put("customerName", masterDetailsbyUserId
+	            .getFirstName() + " " + masterDetailsbyUserId.getLastName());
+	        companyName = custDetailsByUserId.getCompanyName();
+	        toMail = masterDetailsbyUserId.getEmailAddress();
+	        body.put("companyname", companyName);
+	      } else {
+	        body.put("customerName", custDetailsByUserId.getFirstName() + " " + custDetailsByUserId.getLastName());
+	        companyName = custDetailsByUserId.getCompanyName();
+	        toMail = customerEmail;
+	        body.put("companyname", companyName);
+	      } 
+	      body.put("link", configDetails.getSystemEntityValue());
+	      this.emailConfigurationDAOImpl.saveBCCEmails(this.uatCcEMail, emailconfigurationBean.getEventId().intValue());
+	      System.out.println("Fetching Configuration for transaction status" + emailconfigurationBean.getSubject() + " :: " + emailconfigurationBean
+	          .getEventId());
+	      ArrayList attachements = new ArrayList();
+	      ArrayList details = new ArrayList();
+	      details.add(emailconfigurationBean.getEventId());
+	      details.add(toMail);
+	      details.add(subject);
+	      details.add(body);
+	      details.add(attachements);
+	      System.out.println("details" + details);
+	      this.emailProcessorImpl.saveEmail(details, emailconfigurationBean.getEventId().intValue());
+	      this.emailSend.getDetailsEmail();
+	      System.out.println("INside branch user details null condition 4 NimaiClient custDetails in email INsert" + masterDetailsbyUserId
+	          .getUserid());
+	      System.out.println("INside branch user details null condition 4 NimaiClient custDetailsByUserId in email INsert" + custDetailsByUserId
+	          
+	          .getUserid());
+	      if ((custDetailsByUserId.getUserid() != masterDetailsbyUserId.getUserid() || 
+	        !custDetailsByUserId.getUserid().equalsIgnoreCase(masterDetailsbyUserId.getUserid())) && i != 1)
+	        sendBidRecivedEmailToCustParent(emailEvent, schdulerData, schdulerData.getCustomerEmail(), masterDetailsbyUserId, i, custDetailsByUserId); 
+	    } catch (SendFailedException e) {
+	      logger.info("=======sendBidRecivedEmailToCust SMTP ADDRESS Failed Exception============" + e);
+	      System.out.println("sendBidRecivedEmailToCust Exception" + e);
+	      e.printStackTrace();
+	    } catch (Exception e) {
+	      System.out.println("sendBidRecivedEmailToCust Exception" + e);
+	      e.printStackTrace();
+	    } 
+	  }
+
+	  private void sendBidRecivedEmailToCustParent(String emailEvent, NimaiEmailSchedulerAlertToBanks schdulerData, String customerEmail, NimaiClient masterDetailsbyUserId, int i, NimaiClient custDetailsByUserId) {
+	    EmailComponentMaster emailconfigurationBean = null;
+	    NimaiSystemConfig configDetails = null;
+	    configDetails = this.systemConfig.findBySystemValue("link");
+	    System.out.println("system value" + configDetails.getSystemEntityValue());
+	    try {
+	      emailconfigurationBean = this.emailComRepo.findEventConfiguration(emailEvent);
+	      System.out.println(" Fetching Configuration for Reset Password Policy " + emailconfigurationBean);
+	      String requiredPage = "quoteDetails";
+	      String quoteLlink = this.quoteDetailsLink + requiredPage;
+	      Map<String, String> subject = new HashMap<>();
+	      Map<String, String> body = new HashMap<>();
+	      subject.put("Subject", emailconfigurationBean.getSubject());
+	      body.put("transactionId", schdulerData.getTransactionid());
+	      String companyName = " ";
+	      String toMail = " ";
+	      if (i == 1) {
+	        body.put("customerName", masterDetailsbyUserId
+	            .getFirstName() + " " + masterDetailsbyUserId.getLastName());
+	        toMail = masterDetailsbyUserId.getEmailAddress();
+	        companyName = custDetailsByUserId.getCompanyName();
+	        body.put("companyname", companyName);
+	      } else {
+	        body.put("customerName", masterDetailsbyUserId
+	            .getFirstName() + " " + masterDetailsbyUserId.getLastName());
+	        toMail = masterDetailsbyUserId.getEmailAddress();
+	        companyName = custDetailsByUserId.getCompanyName();
+	        body.put("companyname", companyName);
+	      } 
+	      body.put("link", configDetails.getSystemEntityValue());
+	      this.emailConfigurationDAOImpl.saveBCCEmails(this.uatCcEMail, emailconfigurationBean.getEventId().intValue());
+	      System.out.println("Fetching Configuration for transaction status" + emailconfigurationBean.getSubject() + " :: " + emailconfigurationBean
+	          .getEventId());
+	      ArrayList attachements = new ArrayList();
+	      ArrayList details = new ArrayList();
+	      details.add(emailconfigurationBean.getEventId());
+	      details.add(toMail);
+	      details.add(subject);
+	      details.add(body);
+	      details.add(attachements);
+	      System.out.println("details" + details);
+	      this.emailProcessorImpl.saveEmail(details, emailconfigurationBean.getEventId().intValue());
+	      this.emailSend.getDetailsEmail();
+	    } catch (SendFailedException e) {
+	      logger.info("=======sendBidRecivedEmailToCust SMTP ADDRESS Failed Exception============" + e);
+	      System.out.println("sendBidRecivedEmailToCust Exception" + e);
+	      e.printStackTrace();
+	    } catch (Exception e) {
+	      System.out.println("sendBidRecivedEmailToCust Exception" + e);
+	      e.printStackTrace();
+	    } 
+	  }
+	  
+
+	  
+	  public void sendCustAccountReferredEmailToSource(NimaiEmailScheduler schdulerData, String referPercentage) {
+	    EmailComponentMaster emailconfigurationBean = null;
+	    try {
+	      emailconfigurationBean = this.emailComRepo.findEventConfiguration(schdulerData.getEvent());
+	      System.out.println(" Fetching Configuration for Reset Password Policy " + emailconfigurationBean);
+	      Map<String, String> subject = new HashMap<>();
+	      Map<String, String> body = new HashMap<>();
+	      subject.put("Subject", emailconfigurationBean.getSubject());
+	      Utils util = new Utils();
+	      Float referAmount = util.referrerAmount(Integer.valueOf(schdulerData.getSubscriptionAmount()).intValue(), referPercentage);
+	      String amount = String.valueOf(referAmount);
+	      body.put("username", schdulerData.getUserName());
+	      body.put("companyname", schdulerData.getDescription1());
+	      body.put("splanAmount", amount);
+	      String toMail = schdulerData.getEmailId();
+	      this.emailConfigurationDAOImpl.saveBCCEmails(this.uatCcEMail, emailconfigurationBean.getEventId().intValue());
+	      System.out.println("Fetching Configuration for Reset Password Policy " + emailconfigurationBean.getSubject() + " :: " + emailconfigurationBean
+	          .getEventId());
+	      ArrayList attachements = new ArrayList();
+	      ArrayList details = new ArrayList();
+	      details.add(emailconfigurationBean.getEventId());
+	      details.add(toMail);
+	      details.add(subject);
+	      details.add(body);
+	      details.add(attachements);
+	      System.out.println("details" + details);
+	      this.emailProcessorImpl.saveEmail(details, emailconfigurationBean.getEventId().intValue());
+	      this.emailSend.getDetailsEmail();
+	    } catch (SendFailedException e) {
+	      logger.info("=======AdminEmail SMTP ADDRESS Failed Exception============" + e);
+	      System.out.println("AdminEmail Exception" + e);
+	      e.printStackTrace();
+	    } catch (Exception e) {
+	      System.out.println("AdminEmail Exception" + e);
+	      e.printStackTrace();
+	    } 
+	  }
+
+	 
+	  
 }

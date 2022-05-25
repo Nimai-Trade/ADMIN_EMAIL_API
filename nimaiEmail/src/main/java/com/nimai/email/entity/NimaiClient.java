@@ -211,7 +211,8 @@ public class NimaiClient implements Serializable {
 //    @OneToMany(cascade = CascadeType.ALL, mappedBy = "userid")
 //    private List<QuotationMaster> quotationist;
     
-
+    @Column(name = "IS_ASSOCIATED")
+    private int isAssociated;
     
     
     
@@ -230,8 +231,19 @@ public class NimaiClient implements Serializable {
 //		this.quotationist = quotationist;
 //	}
 
+    
+    
+    
 	public List<NimaiSubscriptionVas> getVasDetails() {
 		return vasDetails;
+	}
+
+	public int getIsAssociated() {
+		return isAssociated;
+	}
+
+	public void setIsAssociated(int isAssociated) {
+		this.isAssociated = isAssociated;
 	}
 
 	public void setVasDetails(List<NimaiSubscriptionVas> vasDetails) {
