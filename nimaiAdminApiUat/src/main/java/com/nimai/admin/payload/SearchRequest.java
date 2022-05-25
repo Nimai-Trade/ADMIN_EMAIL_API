@@ -11,6 +11,7 @@ public class SearchRequest {
 	private String emailId;
 	private String mobileNo;
 	private String companyName;
+	  private String[] discountCountry;
 	private String bankName;
 	private String country;
 	private String txtStatus;
@@ -36,6 +37,7 @@ public class SearchRequest {
 	private String vasCheckerComment;
 	private String paymentMode;
 	
+	private String userBranchEmail;
 	
 	
 	
@@ -43,7 +45,22 @@ public class SearchRequest {
 	
 	
 	
-	
+
+	public String[] getDiscountCountry() {
+		return discountCountry;
+	}
+
+	public void setDiscountCountry(String[] discountCountry) {
+		this.discountCountry = discountCountry;
+	}
+
+	public String getUserBranchEmail() {
+		return userBranchEmail;
+	}
+
+	public void setUserBranchEmail(String userBranchEmail) {
+		this.userBranchEmail = userBranchEmail;
+	}
 
 	public String getPaymentMode() {
 		return paymentMode;

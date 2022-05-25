@@ -242,7 +242,55 @@ public class NimaiMmTransaction implements Serializable {
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "transactionId")
     private List<NimaiMQuotation> nimaiMQuotationList;
     
+    @Column(name = "transaction_approved_by")
+    private String transactionApprovedBy;
     
+    @Column(name = "transaction_rejected_by")
+    private String transactionRejected;
+    
+    @Column(name = "transaction_approaval_date")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date trApprovaldate;
+    
+    @Column(name = "transaction_rejected_date")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date trRejectedDate;
+    
+    
+    
+    
+
+	public String getTransactionApprovedBy() {
+		return transactionApprovedBy;
+	}
+
+	public void setTransactionApprovedBy(String transactionApprovedBy) {
+		this.transactionApprovedBy = transactionApprovedBy;
+	}
+
+	public String getTransactionRejected() {
+		return transactionRejected;
+	}
+
+	public void setTransactionRejected(String transactionRejected) {
+		this.transactionRejected = transactionRejected;
+	}
+
+	public Date getTrApprovaldate() {
+		return trApprovaldate;
+	}
+
+	public void setTrApprovaldate(Date trApprovaldate) {
+		this.trApprovaldate = trApprovaldate;
+	}
+
+	public Date getTrRejectedDate() {
+		return trRejectedDate;
+	}
+
+	public void setTrRejectedDate(Date trRejectedDate) {
+		this.trRejectedDate = trRejectedDate;
+	}
 
 	public static long getSerialversionuid() {
 		return serialVersionUID;

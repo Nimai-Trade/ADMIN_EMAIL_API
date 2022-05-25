@@ -20,6 +20,15 @@ public class TransactionSearchResponse {
 	    private String requiredment;	 
 	    private String trxnStatus;	   
 	    private String quotes;
+	    private String approverName;
+	    
+	    public String getApproverName() {
+	      return this.approverName;
+	    }
+	    
+	    public void setApproverName(String approverName) {
+	      this.approverName = approverName;
+	    }
 	    
 		public String getTransactionId() {
 			return transactionId;

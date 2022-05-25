@@ -98,6 +98,17 @@ public class NimaiFKyc implements Serializable {
 	@JoinColumn(name = "USERID", referencedColumnName = "USERID")
 	@ManyToOne
 	private NimaiMCustomer userid;
+	
+	  @Column(name = "source_details")
+	  private String sourceDetails;
+	  
+	  public String getSourceDetails() {
+	    return this.sourceDetails;
+	  }
+	  
+	  public void setSourceDetails(String sourceDetails) {
+	    this.sourceDetails = sourceDetails;
+	  }
 
 	
 	

@@ -390,4 +390,54 @@ public class ModelMapper {
 		return response;
 	}
 
+	
+
+	  public static TransactionSearchResponse mapMakerAppTransactionToResponse(NimaiMmTransaction trxn) {
+	    TransactionSearchResponse response = new TransactionSearchResponse();
+	    try {
+	      response.setTransactionId(trxn.getTransactionId());
+	      response.setUserId(trxn.getUserId().getUserid());
+	      response.setMobileNo(trxn.getUserId().getMobileNumber());
+	      response.setEmailId(trxn.getUserId().getEmailAddress());
+	      response.setBeneficiry(trxn.getBeneName());
+	      response.setBeneficiryCountry(trxn.getBeneCountry());
+	      response.setApplicant(trxn.getApplicantName());
+	      response.setApplicantCountry(trxn.getApplicantCountry());
+	      response.setInsertedDate(trxn.getInsertedDate());
+	      if (trxn.getTransactionApprovedBy() == null) {
+	        response.setApproverName(null);
+	      } else {
+	        response.setApproverName(trxn.getTransactionApprovedBy());
+	      } 
+	      if (trxn.getValidity() != null) {
+	        Date date = (new SimpleDateFormat("yyyy-MM-dd")).parse(trxn.getValidity());
+	        response.setTxnValidaty(date);
+	      } 
+	      response.setLcBank(trxn.getLcIssuanceBank());
+	      response.setAmount(trxn.getLcValue() + "");
+	      response.setCcy(trxn.getLcCurrency());
+	      String requirement = null;
+	      if (trxn.getRequirementType() == null) {
+	        requirement = " ";
+	      } else if (trxn.getRequirementType().equalsIgnoreCase("ConfirmAndDiscount")) {
+	        requirement = "Confirmation and Discounting";
+	      } else if (trxn.getRequirementType().equalsIgnoreCase("Banker")) {
+	        requirement = "Banker's Acceptance";
+	      } else if (trxn.getRequirementType().equalsIgnoreCase("Refinance")) {
+	        requirement = "Refinancing";
+	      } else if (trxn.getRequirementType().equalsIgnoreCase("Discounting")) {
+	        requirement = "Discounting";
+	      } else if (trxn.getRequirementType().equalsIgnoreCase("Confirmation")) {
+	        requirement = "Confirmation";
+	      } else if (trxn.getRequirementType().equalsIgnoreCase("BankGuarantee")) {
+	        requirement = "Bank Guarantee";
+	      } 
+	      response.setRequiredment(requirement);
+	      response.setTrxnStatus(trxn.getTransactionStatus());
+	      response.setQuotes(trxn.getNimaiMQuotationList().size() + "");
+	    } catch (ParseException e) {
+	      e.printStackTrace();
+	    } 
+	    return response;
+	  }
 }

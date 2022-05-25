@@ -13,14 +13,14 @@ public class LoginRequest {
 	@NotBlank
 	private String password;
 
-	@NotBlank
-	private String recaptchaResponse;
-public String getRecaptchaResponse() {
-		return recaptchaResponse;
-	}
-	public void setRecaptchaResponse(String recaptchaResponse) {
-this.recaptchaResponse = recaptchaResponse;
-	}
+//	@NotBlank
+//	private String recaptchaResponse;
+//public String getRecaptchaResponse() {
+//		return recaptchaResponse;
+//	}
+//	public void setRecaptchaResponse(String recaptchaResponse) {
+//this.recaptchaResponse = recaptchaResponse;
+//	}
 
 	public String getUsername() {
 		return username;

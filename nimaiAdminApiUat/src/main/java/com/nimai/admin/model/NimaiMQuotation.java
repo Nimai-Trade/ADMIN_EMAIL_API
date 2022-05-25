@@ -139,8 +139,32 @@ public class NimaiMQuotation implements Serializable {
     @JoinColumn(name = "userid", referencedColumnName = "USERID")
     @ManyToOne(optional = false)
     private NimaiMCustomer userid;
+    @Column(name = "conf_chgs_issuance_to_claim_exp")
+    private String confChgsIssToClaimExp;
+    
+    @Column(name = "term_condition_comments")
+    private String termsConditions;
+    
+    
+    
 
-    public NimaiMQuotation() {
+    public String getConfChgsIssToClaimExp() {
+		return confChgsIssToClaimExp;
+	}
+
+	public void setConfChgsIssToClaimExp(String confChgsIssToClaimExp) {
+		this.confChgsIssToClaimExp = confChgsIssToClaimExp;
+	}
+
+	public String getTermsConditions() {
+		return termsConditions;
+	}
+
+	public void setTermsConditions(String termsConditions) {
+		this.termsConditions = termsConditions;
+	}
+
+	public NimaiMQuotation() {
     }
 
     public NimaiMQuotation(Integer quotationId) {

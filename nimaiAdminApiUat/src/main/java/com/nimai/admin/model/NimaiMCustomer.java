@@ -201,6 +201,9 @@ public class NimaiMCustomer implements Serializable {
 	@OneToMany(cascade = CascadeType.ALL, mappedBy = "userid")
 	private List<NimaiMQuotation> nimaiMQuotationList;
 	
+	
+	
+	
 	@OneToMany(mappedBy = "userid")
 	private List<NimaiFKyc> nimaiFKycList;
 	
@@ -211,10 +214,21 @@ public class NimaiMCustomer implements Serializable {
 	@Column(name="PAYMENT_TRANS_ID")
 	private String paymentTransId;
 
+	 @Column(name = "IS_ASSOCIATED")
+	    private int isAssociated;
+	 
+	 
 	
 	
 	
-	
+	public int getIsAssociated() {
+		return isAssociated;
+	}
+
+	public void setIsAssociated(int isAssociated) {
+		this.isAssociated = isAssociated;
+	}
+
 	public String getPaymentTransId() {
 		return paymentTransId;
 	}
